@@ -3,12 +3,12 @@
    --------------------------------------------------------- */
 const DASHBOARD_BLOCOS = [
   { key:'stats', label:'Cartões de resumo (totais, pendentes, atrasadas...)' },
-  { key:'resumo-hoje', label:'🔴🟠🔵🟣 Resumo do dia (atrasadas, vencendo, hoje, projetos)' },
+  { key:'resumo-hoje', label:'🔴🟡🟠🔵 Resumo da Central de Ações' },
   { key:'hoje', label:'📅 Hoje (linha do tempo do dia)' },
   { key:'spotlight', label:'Suas prioridades de hoje' },
   { key:'projetos-andamento', label:'📁 Projetos em andamento' },
   { key:'graficos', label:'Gráficos e KPIs' },
-  { key:'atencao', label:'O que precisa da sua atenção?' },
+  { key:'atencao', label:'🎯 Central de Ações' },
   { key:'atividade', label:'Atividade recente' },
   { key:'atendimentos-hoje', label:'Atendimentos de hoje' }
 ];
@@ -93,9 +93,14 @@ function renderDashboard(){
   // Renderizar dashboard spotlight operacional
   renderDashboardSpotlight();
 
-  renderResumoHojeCores();
+  // Calcula pendências e próximos compromissos uma única vez e reaproveita
+  // nos dois painéis que dependem deles (resumo colorido + Central de
+  // Ações), em vez de recalcular a cada painel.
+  const pendenciasDashboard = (typeof coletarTodasPendencias === 'function') ? coletarTodasPendencias() : null;
+  const proximosCompromissosDashboard = coletarProximosCompromissos();
+  renderResumoHojeCores(pendenciasDashboard, proximosCompromissosDashboard);
   renderProjetosAndamento();
-  renderAttentionList();
+  renderAttentionList(pendenciasDashboard, proximosCompromissosDashboard);
   renderActivityList();
   if (typeof renderAtendimentosHojeDashboard === 'function') renderAtendimentosHojeDashboard();
   renderHojeTimeline();
@@ -103,33 +108,55 @@ function renderDashboard(){
 }
 
 /* ---------------------------------------------------------
-   9.1 RESUMO DO DIA — "PRECISA DE ATENÇÃO" (Fase 2 e 10)
-   Reaproveita a mesma central de pendências usada na view
-   Pendências (coletarTodasPendencias), então nunca fica
-   desatualizado em relação a ela nem duplica a lógica de cálculo.
+   9.1 RESUMO DA CENTRAL DE AÇÕES
+   Conta os mesmos itens que a Central de Ações lista logo abaixo,
+   usando categoriaAcao() (11-pendencias.js) para os 4 grupos padrão:
+   🔴 atrasado · 🟡 hoje · 🟠 atenção · 🔵 próximas ações.
+   Recebe a lista de pendências já calculada por renderDashboard() para
+   não repetir o cálculo duas vezes na mesma renderização.
    --------------------------------------------------------- */
-function renderResumoHojeCores(){
+function renderResumoHojeCores(pendenciasParam, proximosCompromissosParam){
   const box = document.getElementById('resumoHojeCores');
   if (!box) return;
-  if (typeof coletarTodasPendencias !== 'function'){ box.innerHTML = ''; return; }
+  const pendencias = pendenciasParam ?? (typeof coletarTodasPendencias === 'function' ? coletarTodasPendencias() : null);
+  if (!pendencias || typeof categoriaAcao !== 'function'){ box.innerHTML = ''; return; }
 
-  const pendencias = coletarTodasPendencias();
-  const contar = (...tipos) => pendencias.filter(p => tipos.includes(p.tipo)).length;
+  const contar = (cat) => pendencias.filter(p => categoriaAcao(p) === cat).length;
+  const proximosCompromissos = proximosCompromissosParam ?? coletarProximosCompromissos();
 
   const cards = [
-    { icon:'🔴', label:'atrasada(s)', valor: contar('tarefa_atrasada','atendimento_atrasado'), tom:'danger', view:'pendencias' },
-    { icon:'🟠', label:'documento(s) vencendo/vencido', valor: contar('documento_vencido','documento_vencendo'), tom:'warn', view:'documentos' },
-    { icon:'🔵', label:'tarefa(s)/compromisso(s) hoje', valor: contar('tarefa_hoje','evento_hoje'), tom:'primary', view:'agenda' },
-    { icon:'🟣', label:'projeto(s) aguardando ação', valor: new Set(pendencias.filter(p=>p.tipo==='projeto_pendencia').map(p=>p.origem.id)).size, tom:'purple', view:'projetos' }
+    { icon:'🔴', label:'atrasado(s)', valor: contar('atrasado'), tom:'danger' },
+    { icon:'🟡', label:'para hoje', valor: contar('hoje'), tom:'yellow' },
+    { icon:'🟠', label:'precisam de atenção', valor: contar('atencao'), tom:'warn' },
+    { icon:'🔵', label:'próximas ações', valor: contar('proximo') + proximosCompromissos.length, tom:'primary' }
   ];
 
   box.innerHTML = cards.map(c => `
-    <button type="button" class="stat-card c-${c.tom} resumo-hoje-card" data-view="${c.view}">
+    <button type="button" class="stat-card c-${c.tom} resumo-hoje-card" data-view="pendencias">
       <div class="stat-num">${c.icon} ${c.valor}</div>
       <div class="stat-label">${c.label}</div>
     </button>
   `).join('');
   box.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', () => goToView(el.dataset.view)));
+}
+
+/* ---------------------------------------------------------
+   9.1.1 PRÓXIMOS COMPROMISSOS (para exibição na Central de Ações)
+   Reaproveita eventosAgendaCompletos() (05-atividades-agenda.js), já
+   usada pela Agenda e pelo "Hoje" do Dashboard. Mostra só compromissos
+   futuros (depois de hoje) dentro de uma janela curta de dias.
+   IMPORTANTE: isto NÃO é uma pendência — é só um preview do que vem a
+   seguir, por isso fica fora de coletarTodasPendencias() (11-pendencias.js)
+   e nunca conta como atrasado. Tarefas da secretaria são excluídas daqui
+   porque já aparecem via tipo "tarefa_proxima" em coletarTodasPendencias,
+   evitando mostrar o mesmo item duas vezes no mesmo grupo. */
+function coletarProximosCompromissos(diasJanela = 3){
+  if (typeof eventosAgendaCompletos !== 'function') return [];
+  const hoje = todayISO();
+  return eventosAgendaCompletos()
+    .filter(e => e._origem !== 'secretaria' && e.data > hoje && daysDiffFromToday(e.data) <= diasJanela && !e.concluido)
+    .sort((a,b) => (a.data + String(a.horarioInicio || '')).localeCompare(b.data + String(b.horarioInicio || '')))
+    .slice(0, 5);
 }
 
 /* ---------------------------------------------------------
@@ -144,7 +171,10 @@ function renderProjetosAndamento(){
 
   const ativos = DB.getAll('projetos')
     .filter(p => !['Concluído','Cancelado'].includes(p.status))
-    .map(p => ({ p, progresso: projectProgress(projectData({ ...p })) }))
+    .map(p => {
+      const pd = projectData({ ...p });
+      return { p, progresso: projectProgress(pd), proximaAcao: typeof projectProximaAcao === 'function' ? projectProximaAcao(pd) : null };
+    })
     .sort((a,b) => a.progresso - b.progresso)
     .slice(0, 6);
 
@@ -160,19 +190,20 @@ function renderProjetosAndamento(){
       <a href="#" class="link-btn" onclick="goToView('projetos'); return false;">Ver todos os projetos →</a>
     </div>
     <div class="projetos-andamento-list">
-      ${ativos.map(({p, progresso}) => `
-        <div class="projeto-andamento-item" data-id="${escapeHTML(p.id)}">
+      ${ativos.map(({p, progresso, proximaAcao}) => `
+        <div class="projeto-andamento-item" data-id="${escapeHTML(p.id)}" data-tab="${escapeHTML(proximaAcao?.tab || 'resumo')}">
           <div class="projeto-andamento-head">
             <strong>${escapeHTML(p.nome)}</strong>
             ${badgeHTML(projetoStatusTom(p.status), p.status || 'Sem status')}
           </div>
           <div class="project-progress"><i style="width:${progresso}%"></i></div>
           <small class="muted">${progresso}% do processo documentado</small>
+          ${proximaAcao ? `<div class="projeto-proxima-acao">🟠 Próxima ação: ${escapeHTML(proximaAcao.label)}</div>` : `<div class="projeto-proxima-acao is-ok">✓ Checklist completo</div>`}
         </div>
       `).join('')}
     </div>`;
   box.querySelectorAll('.projeto-andamento-item').forEach(el => {
-    el.addEventListener('click', () => abrirDetalheProjeto(el.dataset.id));
+    el.addEventListener('click', () => abrirDetalheProjeto(el.dataset.id, el.dataset.tab));
   });
 }
 
@@ -340,47 +371,89 @@ function renderDashboardSpotlight(){
   });
 }
 
-/* Reaproveita a central de pendências (coletarTodasPendencias, em
-   11-pendencias.js) como fonte única, para que "O que precisa da sua
-   atenção?" no Dashboard nunca fique desalinhado com a view Pendências
-   nem duplique a lógica de detecção. Durante a primeira renderização
-   (antes de 11-pendencias.js carregar) cai num cálculo mínimo local. */
-function renderAttentionList(){
+/* ---------------------------------------------------------
+   9.3 CENTRAL DE AÇÕES
+   Agrupa a mesma central de pendências (coletarTodasPendencias, em
+   11-pendencias.js) nos 4 grupos de categoriaAcao() — não recalcula
+   nem duplica a detecção, só reorganiza para exibição. Ao grupo
+   "🔵 Próximas ações" somam-se os próximos compromissos da Agenda
+   (coletarProximosCompromissos), que não são pendências mas ajudam a
+   responder "o que vem depois". Cada item clica direto no registro
+   original (via origem.funcao / action), sem abrir cópia nenhuma.
+   Durante a primeiríssima renderização (antes de 11-pendencias.js
+   carregar) cai num cálculo mínimo local, igual antes. */
+function renderAttentionList(pendenciasParam, proximosCompromissosParam){
   const container = document.getElementById('attentionList');
-  const tomPorPrioridade = { urgente:'danger', atencao:'warn', proximo:'warn' };
+  if (!container) return;
 
-  let itens;
-  if (typeof coletarTodasPendencias === 'function'){
-    itens = coletarTodasPendencias().map(p => ({
-      tom: tomPorPrioridade[p.prioridade] || 'neutral',
-      titulo: `${p.icon} ${p.titulo}`,
-      sub: p.descricao,
-      action: () => p.origem?.funcao?.()
-    }));
-  } else {
+  if (typeof coletarTodasPendencias !== 'function' || typeof categoriaAcao !== 'function'){
     // Fallback mínimo enquanto os demais módulos ainda carregam.
     const solicitacoes = DB.getAll('solicitacoes').filter(s => !ehTarefaRenovacaoDocumento(s));
-    itens = solicitacoes.filter(solicitacaoAtrasada).map(s => ({
-      tom:'danger', titulo: `Solicitação atrasada: ${s.titulo}`,
-      sub: prazoTexto(s.prazo).texto, action: () => abrirDetalheSolicitacao(s.id)
+    const itens = solicitacoes.filter(solicitacaoAtrasada).map(s => ({
+      titulo: `Solicitação atrasada: ${s.titulo}`, sub: prazoTexto(s.prazo).texto,
+      action: () => abrirDetalheSolicitacao(s.id)
     }));
-  }
-
-  if (!itens.length){
-    container.innerHTML = `<p class="muted">Nenhum item precisa de atenção no momento. 🎉</p>`;
+    container.innerHTML = itens.length ? itens.map((it,i) => `
+      <div class="attn-item" data-idx="${i}"><span class="attn-dot danger"></span>
+        <div class="attn-main"><div class="attn-title">${escapeHTML(it.titulo)}</div><div class="attn-sub">${escapeHTML(it.sub)}</div></div>
+      </div>`).join('') : `<p class="muted">Nenhum item precisa de atenção no momento. 🎉</p>`;
+    container.querySelectorAll('.attn-item').forEach((el,i) => el.addEventListener('click', () => itens[i].action()));
     return;
   }
-  container.innerHTML = itens.slice(0,12).map((it,i) => `
-    <div class="attn-item" data-idx="${i}">
-      <span class="attn-dot ${it.tom}"></span>
-      <div class="attn-main">
-        <div class="attn-title">${escapeHTML(it.titulo)}</div>
-        <div class="attn-sub">${escapeHTML(it.sub)}</div>
-      </div>
-    </div>
-  `).join('');
-  container.querySelectorAll('.attn-item').forEach((el,i) => {
-    el.addEventListener('click', () => itens[i].action());
+
+  const pendencias = pendenciasParam ?? coletarTodasPendencias();
+  const grupos = { atrasado: [], hoje: [], atencao: [], proximo: [] };
+  pendencias.forEach(p => {
+    const cat = categoriaAcao(p);
+    (grupos[cat] || grupos.atencao).push({ titulo: p.titulo, sub: p.descricao, action: () => p.origem?.funcao?.() });
+  });
+
+  // Próximos compromissos da Agenda: somam-se ao grupo azul só para exibição
+  // (não fazem parte da lista de pendências, conforme a distinção pedida).
+  (proximosCompromissosParam ?? coletarProximosCompromissos()).forEach(e => {
+    grupos.proximo.push({
+      titulo: `${typeof tipoEventoIcon === 'function' ? tipoEventoIcon(e.tipo) : '📅'} ${e.titulo}`,
+      sub: `${formatDateBR(e.data)}${e.horarioInicio ? ' às ' + e.horarioInicio : ''}`,
+      action: () => abrirDetalheEvento(e.id)
+    });
+  });
+
+  const secoes = [
+    { key:'atrasado', label:'🔴 Atrasado', classe:'urgente' },
+    { key:'hoje', label:'🟡 Para hoje', classe:'hoje' },
+    { key:'atencao', label:'🟠 Precisa de atenção', classe:'atencao' },
+    { key:'proximo', label:'🔵 Próximas ações', classe:'futuro' }
+  ];
+
+  const totalItens = Object.values(grupos).reduce((soma, arr) => soma + arr.length, 0);
+  if (!totalItens){
+    container.innerHTML = `<p class="muted">Nada pendente no momento. Tudo em dia! 🎉</p>`;
+    return;
+  }
+
+  const acoes = [];
+  container.innerHTML = secoes.filter(s => grupos[s.key].length).map(s => {
+    const itensHTML = grupos[s.key].slice(0, 8).map(it => {
+      const idx = acoes.length;
+      acoes.push(it.action);
+      return `
+        <div class="pendencia-card ${s.classe}">
+          <div class="pendencia-header"><div class="pendencia-title">${escapeHTML(it.titulo)}</div></div>
+          <div class="pendencia-desc">${escapeHTML(it.sub)}</div>
+          <div class="pendencia-footer"><button class="btn btn-sm btn-primary pendencia-action" data-central-idx="${idx}">Abrir</button></div>
+        </div>`;
+    }).join('');
+    const restante = grupos[s.key].length - 8;
+    return `<div class="pendencias-group">
+      <div class="pendencias-group-title">${s.label} (${grupos[s.key].length})</div>
+      ${itensHTML}
+      ${restante > 0 ? `<p class="muted" style="padding:0 8px">+ ${restante} outro${restante===1?'':'s'}. <a href="#" class="link-btn" onclick="goToView('pendencias'); return false;">Ver todas →</a></p>` : ''}
+    </div>`;
+  }).join('');
+
+  container.querySelectorAll('.pendencia-action[data-central-idx]').forEach(btn => {
+    const idx = Number(btn.dataset.centralIdx);
+    btn.addEventListener('click', () => { if (acoes[idx]) acoes[idx](); });
   });
 }
 

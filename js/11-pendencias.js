@@ -157,13 +157,6 @@ function coletarTodasPendencias(){
   return pendencias;
 }
 
-/* Mapeia a etapa do checklist do projeto para a aba correta do workspace
-   (a maioria usa a mesma chave; "ordens" não é uma aba de topo — as ordens
-   de compra ficam dentro da aba "Empresas", por empresa). */
-function abaProjetoParaPendencia(tabKey){
-  return tabKey === 'ordens' ? 'empresas' : tabKey;
-}
-
 function coletarPendenciasDeProjetos(){
   if (typeof projectData !== 'function' || typeof projectChecklist !== 'function') return [];
   const pendencias = [];
@@ -186,6 +179,27 @@ function coletarPendenciasDeProjetos(){
       });
     });
   return pendencias;
+}
+
+/* ---------------------------------------------------------
+   21.1 CENTRAL DE AÇÕES (Dashboard)
+   Reclassifica os mesmos tipos que coletarTodasPendencias() já detecta,
+   nos 4 grupos que a Central de Ações mostra. Não recalcula nada e não
+   duplica dado: é só um mapeamento tipo → grupo visual.
+   --------------------------------------------------------- */
+const CATEGORIA_ACAO_POR_TIPO = {
+  tarefa_atrasada: 'atrasado',
+  documento_vencido: 'atrasado',
+  atendimento_atrasado: 'atrasado',
+  tarefa_hoje: 'hoje',
+  evento_hoje: 'hoje',
+  atendimento_sem_presenca: 'hoje',
+  documento_vencendo: 'atencao',
+  projeto_pendencia: 'atencao',
+  tarefa_proxima: 'proximo'
+};
+function categoriaAcao(pendencia){
+  return CATEGORIA_ACAO_POR_TIPO[pendencia.tipo] || 'atencao';
 }
 
 function renderPendencias(){

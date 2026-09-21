@@ -312,6 +312,23 @@ function projectChecklist(p){
 }
 function projectProgress(p){const c=projectChecklist(p);return Math.round(c.filter(x=>x[1]).length/c.length*100);}
 
+/* Mapeia a etapa do checklist do projeto para a aba correta do workspace
+   (a maioria usa a mesma chave; "ordens" não é uma aba de topo — as ordens
+   de compra ficam dentro da aba "Empresas", por empresa). Usada tanto pela
+   Central de Pendências (11-pendencias.js) quanto por projectProximaAcao. */
+function abaProjetoParaPendencia(tabKey){
+  return tabKey === 'ordens' ? 'empresas' : tabKey;
+}
+
+/* "Próxima ação" do projeto: primeira etapa do checklist ainda não
+   concluída, na mesma ordem em que já aparece no workspace. Não é um
+   cálculo novo — só lê o primeiro item pendente de projectChecklist. */
+function projectProximaAcao(p){
+  const proximo = projectChecklist(p).find(item => !item[1]);
+  if (!proximo) return null;
+  return { label: proximo[0], tab: abaProjetoParaPendencia(proximo[2]) };
+}
+
 function renderWorkspaceProjeto(p,aba='resumo'){
   p=projectData(p);
   const tabs=[['resumo','Visão geral'],['plano','Plano'],['empresas','Empresas'],['docs-apae','Docs. APAE'],['documentos','Documentos'],['pagamentos','Pagamentos'],['prestacao','Prestação de contas'],['pendencias','Pendências']];
@@ -321,6 +338,7 @@ function renderWorkspaceProjeto(p,aba='resumo'){
   openModal(`Projeto ${escapeHTML(p.codigo)} — ${escapeHTML(p.nome)}`,`<div class="project-workspace"><div class="project-workspace-head"><div><span class="project-code">${escapeHTML(p.codigo)}</span><h2>${escapeHTML(p.nome)}</h2><p>${escapeHTML(p.fonteRecurso||'Fonte não informada')} · Recurso: ${formatMoney(p.valorOrcado||0)}</p></div>${badgeHTML(projetoStatusTom(p.status),p.status)}</div><div class="project-progress-box"><div><strong>${projectProgress(p)}%</strong><span>do processo documentado</span></div><div class="project-progress"><i style="width:${projectProgress(p)}%"></i></div></div><div class="project-steps">${projectChecklist(p).map((x,i)=>`<button class="project-step ${x[1]?'done':''} ${active===x[2]?'current':''}" data-step="${x[2]}"><span>${x[1]?'✓':i+1}</span>${x[0]}</button>`).join('')}</div><div class="project-tabs">${tabs.map(([key,label])=>`<button class="project-tab ${active===key?'active':''}" data-tab="${key}">${label}${['empresas','docs-apae','documentos','pagamentos','pendencias'].includes(key)?` <span>${key==='empresas'?p.empresas.length:key==='docs-apae'?p.docsApae.length:key==='pagamentos'?p.pagamentos.length:key==='documentos'?p.documentosProjeto.length:p.pendencias.length}</span>`:''}</button>`).join('')}</div><div class="project-workspace-body">${content}</div></div>`);
   document.querySelectorAll('.project-tab,.project-step').forEach(btn=>btn.addEventListener('click',()=>renderWorkspaceProjeto(projectData(DB.getById('projetos',p.id)),btn.dataset.tab||btn.dataset.step)));
   document.querySelectorAll('[data-project-action="editar"]').forEach(b=>b.onclick=()=>openFormProjeto(p.id));
+  document.querySelectorAll('[data-project-action="ir-proxima-acao"]').forEach(b=>b.onclick=()=>renderWorkspaceProjeto(projectData(DB.getById('projetos',p.id)),b.dataset.tab));
   document.querySelectorAll('[data-project-action="plano"]').forEach(b=>b.onclick=()=>openFormPlano(p.id));
   document.querySelectorAll('[data-project-action="nova-cotacao"]').forEach(b=>b.onclick=()=>openFormCotacao(p.id,b.dataset.empresa||''));
   document.querySelectorAll('[data-project-action="selecionar-cotacao"]').forEach(b=>b.onclick=()=>selecionarCotacaoProjeto(p.id,b.dataset.item));
@@ -352,7 +370,11 @@ function projectResumoHTML(p){
   const previsto=p.cotacoes.filter(c=>c.selecionada).reduce((s,c)=>s+(Number(c.valor)||0),0);
   const gasto=p.pagamentos.reduce((s,x)=>s+(Number(x.valor)||0),0);
   const relacionados=renderRelacionados('projeto',p.id);
-  return `<div class="project-kpi-grid"><div><span>Recurso</span><strong>${formatMoney(p.valorOrcado||0)}</strong></div><div><span>Comprometido</span><strong>${formatMoney(previsto||0)}</strong></div><div><span>Pago</span><strong>${formatMoney(gasto)}</strong></div><div><span>Saldo</span><strong>${formatMoney((Number(p.valorOrcado)||0)-gasto)}</strong></div></div><div class="workspace-grid"><div class="detail-block"><div class="detail-label">Dados do projeto</div><div class="detail-value"><b>Fonte:</b> ${escapeHTML(p.fonteRecurso||'—')}<br><b>Instrumento:</b> ${escapeHTML(p.convenio||'—')}<br><b>Período:</b> ${formatDateBR(p.dataInicio)} → ${formatDateBR(p.dataFim)}<br><b>Responsável:</b> ${escapeHTML(p.responsavel||'—')}<br><b>Objetivo:</b> ${escapeHTML(p.objetivo||'—')}</div></div><div class="detail-block"><div class="detail-label">Situação</div><div class="detail-value">${cotMin?`<span class="status-inline ok">✓ ${p.cotacoes.length} cotações cadastradas</span>`:`<span class="status-inline danger">! Faltam ${Math.max(0,3-p.cotacoes.length)} cotação(ões)</span>`}<br>${fornecedor?`<span class="status-inline ok">Fornecedor: ${escapeHTML(fornecedor.fornecedor)}</span>`:''}</div></div></div>${pend.length?`<div class="notice-box warning"><b>! O que falta</b><br>${pend.map(x=>`• ${escapeHTML(x[0])}`).join('<br>')}</div>`:`<div class="notice-box success"><b>✓ Processo completo</b><br>Os principais documentos e etapas estão registrados.</div>`}${relacionados}<div class="modal-actions"><button class="btn btn-ghost" data-project-action="editar">Editar projeto</button></div>`;
+  const proximaAcao=projectProximaAcao(p);
+  const proximaAcaoHTML=proximaAcao
+    ? `<div class="notice-box warning proxima-acao-box"><b>🟠 Próxima ação</b><br>${escapeHTML(proximaAcao.label)}<div class="modal-actions" style="margin-top:10px"><button class="btn btn-sm btn-primary" data-project-action="ir-proxima-acao" data-tab="${escapeHTML(proximaAcao.tab)}">Ir para a ação →</button></div></div>`
+    : `<div class="notice-box success"><b>✓ Processo completo</b><br>Todas as etapas do checklist estão concluídas.</div>`;
+  return `<div class="project-kpi-grid"><div><span>Recurso</span><strong>${formatMoney(p.valorOrcado||0)}</strong></div><div><span>Comprometido</span><strong>${formatMoney(previsto||0)}</strong></div><div><span>Pago</span><strong>${formatMoney(gasto)}</strong></div><div><span>Saldo</span><strong>${formatMoney((Number(p.valorOrcado)||0)-gasto)}</strong></div></div>${proximaAcaoHTML}<div class="workspace-grid"><div class="detail-block"><div class="detail-label">Dados do projeto</div><div class="detail-value"><b>Fonte:</b> ${escapeHTML(p.fonteRecurso||'—')}<br><b>Instrumento:</b> ${escapeHTML(p.convenio||'—')}<br><b>Período:</b> ${formatDateBR(p.dataInicio)} → ${formatDateBR(p.dataFim)}<br><b>Responsável:</b> ${escapeHTML(p.responsavel||'—')}<br><b>Objetivo:</b> ${escapeHTML(p.objetivo||'—')}</div></div><div class="detail-block"><div class="detail-label">Situação</div><div class="detail-value">${cotMin?`<span class="status-inline ok">✓ ${p.cotacoes.length} cotações cadastradas</span>`:`<span class="status-inline danger">! Faltam ${Math.max(0,3-p.cotacoes.length)} cotação(ões)</span>`}<br>${fornecedor?`<span class="status-inline ok">Fornecedor: ${escapeHTML(fornecedor.fornecedor)}</span>`:''}</div></div></div>${pend.length?`<div class="notice-box warning"><b>! O que falta</b><br>${pend.map(x=>`• ${escapeHTML(x[0])}`).join('<br>')}</div>`:''}${relacionados}<div class="modal-actions"><button class="btn btn-ghost" data-project-action="editar">Editar projeto</button></div>`;
 }
 function projectPlanoHTML(p){return `<div class="workspace-toolbar"><div><h3>Plano do projeto</h3><p>Registre o que será feito com o recurso e guarde o plano aprovado.</p></div><button class="btn btn-primary" data-project-action="plano">${p.plano?.anexo||p.plano?.descricao?'Editar plano':'＋ Cadastrar plano'}</button></div>${p.plano?.descricao?`<div class="detail-block"><div class="detail-label">Descrição / aplicação do recurso</div><div class="detail-value">${escapeHTML(p.plano.descricao)}</div></div>`:'<div class="empty-inline">O plano ainda não foi registrado.</div>'}${p.plano?.anexo?`<div class="workspace-item"><div><strong>📎 ${escapeHTML(p.plano.anexo.nome)}</strong><small>Plano anexado</small></div><button class="btn btn-sm" data-file-download="${p.plano.anexo.id}">Abrir arquivo</button></div>`:''}<div class="notice-box"><b>! Antes de comprar</b><br>Confira se o item está previsto no plano e se o valor é compatível com o recurso recebido.</div>`;}
 /* Indicador de documentação da empresa, calculado a partir dos

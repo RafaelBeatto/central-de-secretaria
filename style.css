@@ -33,6 +33,10 @@
   --danger-soft: #F6EAE9;
   --info: #2D6675;
   --info-soft: #E9F1F3;
+  /* Amarelo — reservado para "hoje/importante" na Central de Ações,
+     distinto do laranja (--warn, já usado para "atenção"). */
+  --yellow: #8A6D00;
+  --yellow-soft: #FBF3D9;
 
   /* NEUTRO */
   --neutral: #6B7480;
@@ -92,6 +96,8 @@
   --danger-soft: #2C1E1D;
   --info: #6FA0AE;
   --info-soft: #19272C;
+  --yellow: #D8B24C;
+  --yellow-soft: #2E2814;
 
   /* NEUTRO */
   --neutral: #8894A2;
@@ -285,6 +291,7 @@ a{ color: var(--primary); }
 .stat-card.c-danger{ border-left-color: var(--danger); }
 .stat-card.c-primary{ border-left-color: var(--primary); }
 .stat-card.c-purple{ border-left-color: var(--purple); }
+.stat-card.c-yellow{ border-left-color: var(--yellow); }
 
 /* ---------------- two column panels ---------------- */
 .two-col{ display:grid; grid-template-columns: 1.3fr 1fr; gap:16px; }
@@ -716,6 +723,12 @@ canvas{ max-width:100%; }
 .pendencia-card.atencao:hover{border-left-color:var(--warn);}
 .pendencia-card.proximo{border-left:4px solid var(--neutral);background:var(--neutral-soft);}
 .pendencia-card.proximo:hover{border-left-color:var(--neutral);}
+/* Variações usadas só pela Central de Ações do Dashboard (não mexem no
+   agrupamento "proximo" acima, que continua servindo a view Pendências). */
+.pendencia-card.hoje{border-left:4px solid var(--yellow);background:var(--yellow-soft);}
+.pendencia-card.hoje:hover{border-left-color:var(--yellow);}
+.pendencia-card.futuro{border-left:4px solid var(--primary);background:var(--primary-soft);}
+.pendencia-card.futuro:hover{border-left-color:var(--primary);}
 .pendencia-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;}
 .pendencia-title{font-weight:600;font-size:14px;color:var(--ink);}
 .pendencia-icon{font-size:18px;flex-shrink:0;}
@@ -934,6 +947,7 @@ canvas{ max-width:100%; }
 .stat-card.c-ok     .stat-num{ color:var(--ok); }
 .stat-card.c-primary .stat-num{ color:var(--primary); }
 .stat-card.c-purple .stat-num{ color:var(--purple); }
+.stat-card.c-yellow .stat-num{ color:var(--yellow); }
 [data-theme="dark"] .stat-card.c-primary .stat-num{ color:var(--primary-light); }
 
 /* Resumo do dia (Dashboard — cartões coloridos clicáveis) */
@@ -947,6 +961,9 @@ canvas{ max-width:100%; }
 .projeto-andamento-item:hover{ background:var(--surface-2); }
 .projeto-andamento-item .projeto-andamento-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
 .projeto-andamento-item .project-progress{ height:8px; margin-bottom:4px; }
+.projeto-proxima-acao{ font-size:12.5px; color:var(--warn); margin-top:4px; }
+.projeto-proxima-acao.is-ok{ color:var(--ok); }
+.proxima-acao-box{ margin: 14px 0; }
 
 /* ---- superfícies ---- */
 .card,.panel{ box-shadow:var(--shadow-sm); }
@@ -986,6 +1003,7 @@ body{ -webkit-font-smoothing:antialiased; }
 .dot-ok{ background:var(--ok); }
 .dot-primary{ background:var(--primary); }
 .dot-purple{ background:var(--purple); }
+.dot-yellow{ background:var(--yellow); }
 .spotlight-icon{ display:flex; align-items:center; justify-content:center; width:auto; font-size:0; }
 .spotlight-icon .dot{ margin-right:0; }
 .spotlight-title{ display:flex; align-items:center; font-size:12px; text-transform:uppercase;
