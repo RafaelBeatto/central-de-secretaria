@@ -2,6 +2,16 @@
    21. CENTRAL DE PENDÊNCIAS
    --------------------------------------------------------- */
 
+/* Um atendimento só é considerado pendência quando a data dele já chegou
+   (hoje ou antes). Usa a mesma comparação de data real (daysDiffFromToday)
+   já usada para classificar "atrasado" logo abaixo, em vez de comparar
+   texto (a.data <= hojeIso) — isso evita divergência com atendimentos
+   antigos cuja data não esteja perfeitamente no formato AAAA-MM-DD. */
+function atendimentoDataJaChegou(a){
+  const dias = daysDiffFromToday(a.data);
+  return dias !== null && dias <= 0;
+}
+
 function coletarTodasPendencias(){
   const pendencias = [];
   const solicitacoes = DB.getAll('solicitacoes');
@@ -125,8 +135,7 @@ function coletarTodasPendencias(){
 
   // Atendimentos sem presença registrada, da semana atual ou anteriores (ATENÇÃO)
   if (typeof getAtendimentos === 'function') {
-    const hojeIso = todayISO();
-    getAtendimentos().filter(a => a.presenca === 'nao_informado' && a.data <= hojeIso && !a.remarcadoPara).forEach(a => {
+    getAtendimentos().filter(a => a.presenca === 'nao_informado' && atendimentoDataJaChegou(a) && !a.remarcadoPara).forEach(a => {
       const atrasado = daysDiffFromToday(a.data) < 0;
       pendencias.push({
         id: `atd-${a.id}`,
