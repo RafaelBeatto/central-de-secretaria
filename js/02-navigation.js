@@ -24,7 +24,7 @@ const HELP_TEXT = {
   solicitacoes: 'Central da rotina da secretaria. Registre solicitações mais importantes, tarefas do dia a dia e lembretes recorrentes, como enviar uma mensagem aos pais toda semana. Cada atividade pode ter responsável, prioridade, prazo, projeto relacionado e histórico.',
   agenda: 'Agenda é o calendário de compromissos da instituição. Use para reuniões, atendimentos, visitas, eventos e outros compromissos com data e horário. Ela é separada das tarefas da Secretaria.',
   documentos: 'Centraliza documentos da instituição e permite controlar categoria, responsável, emissão e validade. Documentos próximos do vencimento aparecem em destaque.',
-  pesquisa: 'Pesquisa rapidamente informações cadastradas em solicitações, documentos, projetos e demandas.',
+  pesquisa: 'Pesquisa rapidamente em todo o sistema: projetos, empresas, cotações, ordens de compra, documentos, tarefas da secretaria, agenda e atendimentos. Clique em qualquer resultado para abrir o registro original.',
   kanban: 'Crie quadros customizados para organizar tarefas, projetos ou eventos da agenda. Arraste cartões entre colunas de status, filtre por responsável ou prioridade. Você controla a estrutura de cada quadro.',
   historico: 'Exibe as alterações feitas no sistema, como criação, edição, exclusão e mudanças de status, ajudando na conferência das atividades.',
   relatorios: 'Gera indicadores com base nos registros cadastrados e permite imprimir o resultado para acompanhamento ou prestação de informações.',

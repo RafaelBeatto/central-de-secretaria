@@ -34,7 +34,14 @@
     });
   }
   (async()=>{
-    try{ for(const src of scripts) await load(src); }
+    try{
+      for(const src of scripts) await load(src);
+      // init() (chamado em 10-inicializacao.js) renderiza a view inicial no meio
+      // deste carregamento sequencial, antes de módulos carregados depois
+      // (ex.: pendências, agenda completa, atendimentos, projetos) existirem.
+      // Com tudo já carregado, renderiza de novo para preencher esses blocos.
+      if (typeof renderCurrentView === 'function') renderCurrentView();
+    }
     catch(e){ console.error(e); const toast=document.getElementById('toast'); if(toast){toast.textContent='⚠ Erro ao carregar uma parte do sistema. Verifique os arquivos do projeto.';toast.hidden=false;} }
   })();
 })();

@@ -38,6 +38,10 @@
   --neutral: #6B7480;
   --neutral-soft: #EFF1F4;
 
+  /* ROXO — usado apenas para sinalizar projetos aguardando alguma ação */
+  --purple: #6A4C93;
+  --purple-soft: #F0EBF6;
+
   /* SPACING & RADIUS */
   --radius-sm: 4px;
   --radius: 6px;
@@ -92,6 +96,10 @@
   /* NEUTRO */
   --neutral: #8894A2;
   --neutral-soft: #212730;
+
+  /* ROXO — usado apenas para sinalizar projetos aguardando alguma ação */
+  --purple: #A88FC9;
+  --purple-soft: #251E30;
 
   /* SOMBRAS - MAIS ESCURAS */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -276,6 +284,7 @@ a{ color: var(--primary); }
 .stat-card.c-warn{ border-left-color: var(--warn); }
 .stat-card.c-danger{ border-left-color: var(--danger); }
 .stat-card.c-primary{ border-left-color: var(--primary); }
+.stat-card.c-purple{ border-left-color: var(--purple); }
 
 /* ---------------- two column panels ---------------- */
 .two-col{ display:grid; grid-template-columns: 1.3fr 1fr; gap:16px; }
@@ -924,7 +933,20 @@ canvas{ max-width:100%; }
 .stat-card.c-warn   .stat-num{ color:var(--warn); }
 .stat-card.c-ok     .stat-num{ color:var(--ok); }
 .stat-card.c-primary .stat-num{ color:var(--primary); }
+.stat-card.c-purple .stat-num{ color:var(--purple); }
 [data-theme="dark"] .stat-card.c-primary .stat-num{ color:var(--primary-light); }
+
+/* Resumo do dia (Dashboard — cartões coloridos clicáveis) */
+.resumo-hoje-grid{ margin-bottom:22px; }
+.resumo-hoje-card{ cursor:pointer; border:1px solid var(--border); text-align:left; font:inherit; width:100%; box-sizing:border-box; -webkit-appearance:none; appearance:none; }
+.resumo-hoje-card:hover{ box-shadow:var(--shadow); }
+
+/* Projetos em andamento (Dashboard) */
+.projetos-andamento-list{ display:flex; flex-direction:column; gap:14px; }
+.projeto-andamento-item{ padding:10px 4px; cursor:pointer; border-radius:var(--radius); }
+.projeto-andamento-item:hover{ background:var(--surface-2); }
+.projeto-andamento-item .projeto-andamento-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+.projeto-andamento-item .project-progress{ height:8px; margin-bottom:4px; }
 
 /* ---- superfícies ---- */
 .card,.panel{ box-shadow:var(--shadow-sm); }
@@ -963,6 +985,7 @@ body{ -webkit-font-smoothing:antialiased; }
 .dot-warn{ background:var(--warn); }
 .dot-ok{ background:var(--ok); }
 .dot-primary{ background:var(--primary); }
+.dot-purple{ background:var(--purple); }
 .spotlight-icon{ display:flex; align-items:center; justify-content:center; width:auto; font-size:0; }
 .spotlight-icon .dot{ margin-right:0; }
 .spotlight-title{ display:flex; align-items:center; font-size:12px; text-transform:uppercase;

@@ -141,6 +141,41 @@ function coletarTodasPendencias(){
     });
   }
 
+  // Projetos aguardando alguma ação (🟣): reaproveita o checklist que já existe
+  // dentro de cada projeto (projectChecklist), sem duplicar essa lógica.
+  pendencias.push(...coletarPendenciasDeProjetos());
+
+  return pendencias;
+}
+
+/* Mapeia a etapa do checklist do projeto para a aba correta do workspace
+   (a maioria usa a mesma chave; "ordens" não é uma aba de topo — as ordens
+   de compra ficam dentro da aba "Empresas", por empresa). */
+function abaProjetoParaPendencia(tabKey){
+  return tabKey === 'ordens' ? 'empresas' : tabKey;
+}
+
+function coletarPendenciasDeProjetos(){
+  if (typeof projectData !== 'function' || typeof projectChecklist !== 'function') return [];
+  const pendencias = [];
+  DB.getAll('projetos')
+    .filter(p => !['Concluído', 'Cancelado'].includes(p.status))
+    .forEach(p => {
+      const pd = projectData({ ...p });
+      const faltando = projectChecklist(pd).filter(item => !item[1]);
+      faltando.forEach(([label, , tabKey]) => {
+        pendencias.push({
+          id: `prj-${p.id}-${tabKey}`,
+          tipo: 'projeto_pendencia',
+          prioridade: 'atencao',
+          titulo: `Projeto aguardando ação: ${p.nome} — ${label}`,
+          descricao: `Etapa pendente: ${label}`,
+          data: p.dataFim || null,
+          origem: { modulo: 'projetos', id: p.id, funcao: () => abrirDetalheProjeto(p.id, abaProjetoParaPendencia(tabKey)) },
+          icon: '🟣'
+        });
+      });
+    });
   return pendencias;
 }
 

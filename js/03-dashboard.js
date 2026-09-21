@@ -3,8 +3,10 @@
    --------------------------------------------------------- */
 const DASHBOARD_BLOCOS = [
   { key:'stats', label:'Cartões de resumo (totais, pendentes, atrasadas...)' },
+  { key:'resumo-hoje', label:'🔴🟠🔵🟣 Resumo do dia (atrasadas, vencendo, hoje, projetos)' },
   { key:'hoje', label:'📅 Hoje (linha do tempo do dia)' },
   { key:'spotlight', label:'Suas prioridades de hoje' },
+  { key:'projetos-andamento', label:'📁 Projetos em andamento' },
   { key:'graficos', label:'Gráficos e KPIs' },
   { key:'atencao', label:'O que precisa da sua atenção?' },
   { key:'atividade', label:'Atividade recente' },
@@ -91,11 +93,87 @@ function renderDashboard(){
   // Renderizar dashboard spotlight operacional
   renderDashboardSpotlight();
 
+  renderResumoHojeCores();
+  renderProjetosAndamento();
   renderAttentionList();
   renderActivityList();
   if (typeof renderAtendimentosHojeDashboard === 'function') renderAtendimentosHojeDashboard();
   renderHojeTimeline();
   aplicarVisibilidadeDashboard();
+}
+
+/* ---------------------------------------------------------
+   9.1 RESUMO DO DIA — "PRECISA DE ATENÇÃO" (Fase 2 e 10)
+   Reaproveita a mesma central de pendências usada na view
+   Pendências (coletarTodasPendencias), então nunca fica
+   desatualizado em relação a ela nem duplica a lógica de cálculo.
+   --------------------------------------------------------- */
+function renderResumoHojeCores(){
+  const box = document.getElementById('resumoHojeCores');
+  if (!box) return;
+  if (typeof coletarTodasPendencias !== 'function'){ box.innerHTML = ''; return; }
+
+  const pendencias = coletarTodasPendencias();
+  const contar = (...tipos) => pendencias.filter(p => tipos.includes(p.tipo)).length;
+
+  const cards = [
+    { icon:'🔴', label:'atrasada(s)', valor: contar('tarefa_atrasada','atendimento_atrasado'), tom:'danger', view:'pendencias' },
+    { icon:'🟠', label:'documento(s) vencendo/vencido', valor: contar('documento_vencido','documento_vencendo'), tom:'warn', view:'documentos' },
+    { icon:'🔵', label:'tarefa(s)/compromisso(s) hoje', valor: contar('tarefa_hoje','evento_hoje'), tom:'primary', view:'agenda' },
+    { icon:'🟣', label:'projeto(s) aguardando ação', valor: new Set(pendencias.filter(p=>p.tipo==='projeto_pendencia').map(p=>p.origem.id)).size, tom:'purple', view:'projetos' }
+  ];
+
+  box.innerHTML = cards.map(c => `
+    <button type="button" class="stat-card c-${c.tom} resumo-hoje-card" data-view="${c.view}">
+      <div class="stat-num">${c.icon} ${c.valor}</div>
+      <div class="stat-label">${c.label}</div>
+    </button>
+  `).join('');
+  box.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', () => goToView(el.dataset.view)));
+}
+
+/* ---------------------------------------------------------
+   9.2 PROJETOS EM ANDAMENTO (Fase 5 e 10)
+   Reaproveita projectProgress/projectData/projetoStatusTom,
+   já usados no workspace de Projetos — nenhum cálculo novo.
+   --------------------------------------------------------- */
+function renderProjetosAndamento(){
+  const box = document.getElementById('projetosAndamento');
+  if (!box) return;
+  if (typeof projectData !== 'function' || typeof projectProgress !== 'function'){ box.hidden = true; return; }
+
+  const ativos = DB.getAll('projetos')
+    .filter(p => !['Concluído','Cancelado'].includes(p.status))
+    .map(p => ({ p, progresso: projectProgress(projectData({ ...p })) }))
+    .sort((a,b) => a.progresso - b.progresso)
+    .slice(0, 6);
+
+  box.hidden = false;
+  if (!ativos.length){
+    box.innerHTML = `<div class="panel-head"><h2>📁 Projetos em andamento</h2></div><p class="muted" style="padding:0 4px">Nenhum projeto em andamento no momento.</p>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="panel-head">
+      <h2>📁 Projetos em andamento</h2>
+      <a href="#" class="link-btn" onclick="goToView('projetos'); return false;">Ver todos os projetos →</a>
+    </div>
+    <div class="projetos-andamento-list">
+      ${ativos.map(({p, progresso}) => `
+        <div class="projeto-andamento-item" data-id="${escapeHTML(p.id)}">
+          <div class="projeto-andamento-head">
+            <strong>${escapeHTML(p.nome)}</strong>
+            ${badgeHTML(projetoStatusTom(p.status), p.status || 'Sem status')}
+          </div>
+          <div class="project-progress"><i style="width:${progresso}%"></i></div>
+          <small class="muted">${progresso}% do processo documentado</small>
+        </div>
+      `).join('')}
+    </div>`;
+  box.querySelectorAll('.projeto-andamento-item').forEach(el => {
+    el.addEventListener('click', () => abrirDetalheProjeto(el.dataset.id));
+  });
 }
 
 function renderHojeTimeline(){
@@ -262,33 +340,32 @@ function renderDashboardSpotlight(){
   });
 }
 
+/* Reaproveita a central de pendências (coletarTodasPendencias, em
+   11-pendencias.js) como fonte única, para que "O que precisa da sua
+   atenção?" no Dashboard nunca fique desalinhado com a view Pendências
+   nem duplique a lógica de detecção. Durante a primeira renderização
+   (antes de 11-pendencias.js carregar) cai num cálculo mínimo local. */
 function renderAttentionList(){
-  const solicitacoes = DB.getAll('solicitacoes').filter(s => !ehTarefaRenovacaoDocumento(s));
-  const documentos = DB.getAll('documentos');
-
-  const itens = [];
-
-  solicitacoes.filter(solicitacaoAtrasada).forEach(s => {
-    itens.push({ tom:'danger', titulo: `Solicitação atrasada: ${s.titulo}`,
-      sub: prazoTexto(s.prazo).texto, action: () => abrirDetalheSolicitacao(s.id) });
-  });
-
-  // Documentos vencidos são listados apenas no módulo Documentos.
-
-  documentos.filter(d => situacaoDocumento(d).chave === 'vencendo').forEach(d => {
-    itens.push({ tom:'warn', titulo:`Documento vencendo: ${d.nome}`,
-      sub: `Vence em ${formatDateBR(d.dataValidade)}`, action: () => abrirDetalheDocumento(d.id) });
-  });
-
-  solicitacoes.filter(s => {
-    const pz = prazoAtividade(s);
-    return !solicitacaoAtrasada(s) && pz.data && pz.tom !== 'ok' && daysDiffFromToday(pz.data) <= 3 && daysDiffFromToday(pz.data) >= 0 && !['Concluída','Cancelada'].includes(s.status);
-  }).forEach(s => {
-      const prazo = prazoAtividade(s).data;
-      itens.push({ tom:'warn', titulo:`Prazo próximo: ${s.titulo}`, sub: prazoTexto(prazo).texto, action: () => abrirDetalheSolicitacao(s.id) });
-    });
-
   const container = document.getElementById('attentionList');
+  const tomPorPrioridade = { urgente:'danger', atencao:'warn', proximo:'warn' };
+
+  let itens;
+  if (typeof coletarTodasPendencias === 'function'){
+    itens = coletarTodasPendencias().map(p => ({
+      tom: tomPorPrioridade[p.prioridade] || 'neutral',
+      titulo: `${p.icon} ${p.titulo}`,
+      sub: p.descricao,
+      action: () => p.origem?.funcao?.()
+    }));
+  } else {
+    // Fallback mínimo enquanto os demais módulos ainda carregam.
+    const solicitacoes = DB.getAll('solicitacoes').filter(s => !ehTarefaRenovacaoDocumento(s));
+    itens = solicitacoes.filter(solicitacaoAtrasada).map(s => ({
+      tom:'danger', titulo: `Solicitação atrasada: ${s.titulo}`,
+      sub: prazoTexto(s.prazo).texto, action: () => abrirDetalheSolicitacao(s.id)
+    }));
+  }
+
   if (!itens.length){
     container.innerHTML = `<p class="muted">Nenhum item precisa de atenção no momento. 🎉</p>`;
     return;

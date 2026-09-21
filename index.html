@@ -97,6 +97,8 @@
 
         <div class="stat-grid" id="statGrid" data-dash-block="stats"></div>
 
+        <div class="stat-grid resumo-hoje-grid" id="resumoHojeCores" data-dash-block="resumo-hoje"></div>
+
         <div class="panel" id="painelHoje" data-dash-block="hoje">
           <div class="panel-head">
             <h2>📅 Hoje</h2>
@@ -105,6 +107,8 @@
         </div>
 
         <div class="dashboard-spotlight" id="dashboardSpotlight" data-dash-block="spotlight"></div>
+
+        <div class="panel" id="projetosAndamento" data-dash-block="projetos-andamento" hidden></div>
 
         <!-- Gráficos e KPIs -->
         <div id="dashboardGraphs" data-dash-block="graficos"></div>
@@ -157,6 +161,7 @@
               <option value="evento_hoje">Compromissos de hoje</option>
               <option value="atendimento_sem_presenca">Atendimentos sem presença</option>
               <option value="atendimento_atrasado">Atendimentos atrasados</option>
+              <option value="projeto_pendencia">🟣 Projetos aguardando ação</option>
             </select>
           </div>
         </div>
@@ -273,7 +278,7 @@
       <!-- PESQUISA -->
       <section class="view" id="view-pesquisa" data-view="pesquisa" hidden>
         <div class="toolbar">
-          <input type="search" class="input input-wide" id="buscaGeralInput" placeholder="Pesquisar em solicitações, documentos e projetos/demandas...">
+          <input type="search" class="input input-wide" id="buscaGeralInput" placeholder="Pesquisar em projetos, empresas, cotações, documentos, tarefas, agenda e atendimentos...">
         </div>
         <div id="resultadosBuscaGeral"></div>
       </section>
@@ -290,14 +295,21 @@
             <input type="date" class="input" data-filter="data" title="Data">
             <select class="input" data-filter="modulo">
               <option value="">Módulo: todos</option>
-              <option value="solicitacao">Solicitações</option>
+              <option value="secretaria">Secretaria (tarefas)</option>
+              <option value="agenda">Agenda</option>
               <option value="documento">Documentos</option>
+              <option value="projeto">Projetos</option>
+              <option value="empresa">Empresas</option>
+              <option value="atendimentos">Atendimentos</option>
             </select>
             <select class="input" data-filter="acao">
               <option value="">Ação: todas</option>
               <option value="criação">Criação</option>
               <option value="edição">Edição</option>
               <option value="exclusão">Exclusão</option>
+              <option value="conclusão">Conclusão</option>
+              <option value="movimentação">Movimentação</option>
+              <option value="renovação">Renovação</option>
               <option value="status">Mudança de status</option>
             </select>
           </div>

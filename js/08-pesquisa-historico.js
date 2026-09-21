@@ -33,10 +33,11 @@ function buscarComScoring(items, termo, campos){
 
 function buscarEmTudo(termo){
   const q = termo.trim().toLowerCase();
-  if (!q) return { solicitacoes:[], documentos:[] };
+  const vazio = { solicitacoes:[], documentos:[], projetos:[], empresas:[], eventos:[], atendimentos:[], cotacoes:[], ordens:[] };
+  if (!q) return vazio;
 
   const solicitacoes = buscarComScoring(
-    DB.getAll('solicitacoes'),
+    DB.getAll('solicitacoes').filter(s => !ehTarefaRenovacaoDocumento(s)),
     q,
     [
       { field: s => s.titulo, weight: 3 },
@@ -58,7 +59,75 @@ function buscarEmTudo(termo){
     ]
   );
 
-  return { solicitacoes, documentos };
+  const projetos = buscarComScoring(
+    DB.getAll('projetos'),
+    q,
+    [
+      { field: p => p.nome, weight: 3 },
+      { field: p => p.codigo, weight: 2 },
+      { field: p => p.fonteRecurso, weight: 1.5 },
+      { field: p => p.objetivo, weight: 1 },
+      { field: p => p.descricao, weight: 1 },
+      { field: p => p.responsavel, weight: 1 }
+    ]
+  );
+
+  const empresas = buscarComScoring(
+    DB.getAll('gerador-empresas'),
+    q,
+    [
+      { field: e => e.razaoSocial, weight: 3 },
+      { field: e => e.nomeFantasia, weight: 2 },
+      { field: e => e.cnpj, weight: 1.5 },
+      { field: e => e.contato, weight: 1 },
+      { field: e => e.municipio, weight: 1 }
+    ]
+  );
+
+  const eventos = buscarComScoring(
+    DB.getAll('eventos'),
+    q,
+    [
+      { field: e => e.titulo, weight: 3 },
+      { field: e => e.local, weight: 1.5 },
+      { field: e => e.responsavel, weight: 1 },
+      { field: e => e.participantes, weight: 1 },
+      { field: e => e.descricao, weight: 1 }
+    ]
+  );
+
+  const atendimentos = buscarComScoring(
+    DB.getAll('atendimentos'),
+    q,
+    [
+      { field: a => a.alunoNome, weight: 3 },
+      { field: a => a.profissionalNome, weight: 2 }
+    ]
+  );
+
+  // Cotações e ordens de compra vivem dentro de cada projeto (não são uma
+  // entidade própria no DB). A busca as agrega em memória a partir dos
+  // projetos já carregados, sem criar uma nova store nem duplicar dados.
+  const cotacoesTodas = [];
+  const ordensTodas = [];
+  DB.getAll('projetos').forEach(p => {
+    (p.cotacoes || []).forEach(c => cotacoesTodas.push({ ...c, _projetoId: p.id, _projetoNome: p.nome }));
+    (p.ordensCompra || []).forEach(o => ordensTodas.push({ ...o, _projetoId: p.id, _projetoNome: p.nome }));
+  });
+
+  const cotacoes = buscarComScoring(cotacoesTodas, q, [
+    { field: c => c.fornecedor, weight: 3 },
+    { field: c => c._projetoNome, weight: 1.5 },
+    { field: c => (c.itens || []).map(i => i.nome).join(' '), weight: 2 }
+  ]);
+
+  const ordens = buscarComScoring(ordensTodas, q, [
+    { field: o => o.numero, weight: 2 },
+    { field: o => o.fornecedor, weight: 3 },
+    { field: o => o._projetoNome, weight: 1.5 }
+  ]);
+
+  return { solicitacoes, documentos, projetos, empresas, eventos, atendimentos, cotacoes, ordens };
 }
 
 function renderPesquisa(){
@@ -71,15 +140,21 @@ function renderPesquisa(){
       container.innerHTML = `<p class="muted">Digite um termo para pesquisar em solicitações e documentos.</p>`;
       return;
     }
-    const total = resultados.solicitacoes.length + resultados.documentos.length;
+    const total = Object.values(resultados).reduce((s,arr) => s + arr.length, 0);
     if (!total){
       container.innerHTML = `<p class="muted">Não encontramos resultados para "${escapeHTML(termo)}".</p>`;
       return;
     }
 
     const blocos = [
-      { titulo:'Solicitações', itens: resultados.solicitacoes, render: s => ({ titulo:s.titulo, data:s.dataRecebimento, status:s.status, resumo:s.descricao, action:()=>abrirDetalheSolicitacao(s.id) }) },
-      { titulo:'Documentos', itens: resultados.documentos, render: d => ({ titulo:d.nome, data:d.dataEmissao, status:situacaoDocumento(d).label, resumo:d.descricao, action:()=>abrirDetalheDocumento(d.id) }) }
+      { titulo:'Projetos', itens: resultados.projetos, render: p => ({ titulo:p.nome, data:p.dataInicio, status:p.status||'Sem status', resumo:p.objetivo||p.descricao, action:()=>abrirDetalheProjeto(p.id) }) },
+      { titulo:'Empresas', itens: resultados.empresas, render: e => ({ titulo:e.razaoSocial||e.nomeFantasia, data:null, status:e.cnpj||'CNPJ não informado', resumo:e.municipio, action:()=>abrirFichaEmpresaGlobal(e.id) }) },
+      { titulo:'Cotações', itens: resultados.cotacoes, render: c => ({ titulo:`Cotação — ${c.fornecedor}`, data:c.data, status:c.selecionada?'Vencedora':'Em análise', resumo:c._projetoNome, action:()=>abrirDetalheProjeto(c._projetoId,'empresas') }) },
+      { titulo:'Ordens de compra', itens: resultados.ordens, render: o => ({ titulo:`Ordem ${o.numero||''}`, data:o.data, status:o.status||'—', resumo:o._projetoNome, action:()=>abrirDetalheProjeto(o._projetoId,'empresas') }) },
+      { titulo:'Solicitações', itens: resultados.solicitacoes, render: s => ({ titulo:s.titulo, data:prazoAtividade(s).data, status:s.status, resumo:s.descricao, action:()=>abrirDetalheSolicitacao(s.id) }) },
+      { titulo:'Agenda', itens: resultados.eventos, render: e => ({ titulo:e.titulo, data:e.data, status:e.tipo, resumo:e.local, action:()=>abrirDetalheEvento(e.id) }) },
+      { titulo:'Documentos', itens: resultados.documentos, render: d => ({ titulo:d.nome, data:d.dataEmissao, status:situacaoDocumento(d).label, resumo:d.descricao, action:()=>abrirDetalheDocumento(d.id) }) },
+      { titulo:'Atendimentos', itens: resultados.atendimentos, render: a => ({ titulo:`${a.alunoNome} — ${a.profissionalNome}`, data:a.data, status:a.presenca||'—', resumo:a.horario, action:()=>{ goToView('atendimentos'); if (typeof atendSegundaDaSemana==='function') atendSemanaAtual = atendSegundaDaSemana(a.data); renderAtendimentos(); } }) }
     ];
 
     container.innerHTML = blocos.filter(b=>b.itens.length).map(b => `
@@ -118,8 +193,12 @@ quickSearchInput.addEventListener('input', () => {
   if (!termo.trim()){ quickSearchResults.hidden = true; return; }
   const r = buscarEmTudo(termo);
   const grupos = [
+    { titulo:'Projetos', itens:r.projetos, go: p=>abrirDetalheProjeto(p.id), label:p=>p.nome },
+    { titulo:'Empresas', itens:r.empresas, go: e=>abrirFichaEmpresaGlobal(e.id), label:e=>e.razaoSocial||e.nomeFantasia },
     { titulo:'Solicitações', itens:r.solicitacoes, go: s=>abrirDetalheSolicitacao(s.id), label:s=>s.titulo },
-    { titulo:'Documentos', itens:r.documentos, go: d=>abrirDetalheDocumento(d.id), label:d=>d.nome }
+    { titulo:'Documentos', itens:r.documentos, go: d=>abrirDetalheDocumento(d.id), label:d=>d.nome },
+    { titulo:'Agenda', itens:r.eventos, go: e=>abrirDetalheEvento(e.id), label:e=>e.titulo },
+    { titulo:'Atendimentos', itens:r.atendimentos, go: a=>{ goToView('atendimentos'); if (typeof atendSegundaDaSemana==='function') atendSemanaAtual = atendSegundaDaSemana(a.data); renderAtendimentos(); }, label:a=>`${a.alunoNome} — ${a.profissionalNome}` }
   ].filter(g => g.itens.length);
 
   if (!grupos.length){
