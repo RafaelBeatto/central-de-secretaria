@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central da Secretaria</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ======================= MOBILE HEADER ======================= -->
+<header class="mobile-bar">
+  <button id="btnMenu" class="icon-btn" aria-label="Abrir menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <span class="mobile-title">Central da Secretaria</span>
+  <button id="btnThemeMobile" class="icon-btn" aria-label="Alternar tema">🌙</button>
+</header>
+
+<div class="app-shell">
+
+  <!-- ======================= SIDEBAR ======================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark">CS</span>
+      <span class="brand-name">Central da<br>Secretaria</span>
+    </div>
+
+    <nav class="nav" aria-label="Navegação principal">
+      <div class="nav-row"><button class="nav-item is-active" data-view="dashboard"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span>Dashboard</span></button><button class="nav-help" data-help="dashboard" aria-label="Explicar Dashboard">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="pendencias"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 2.8 19.5h18.4L12 3.5Z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg></span><span>Pendências</span></button><button class="nav-help" data-help="pendencias" aria-label="Explicar Pendências">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="projetos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4L11 8.5h8.5A1.5 1.5 0 0 1 21 10v7.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z"/></svg></span><span>Projetos</span></button><button class="nav-help" data-help="projetos" aria-label="Explicar Projetos">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="solicitacoes"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.8h6V4"/><path d="M9 10h6M9 14h6M9 18h3"/></svg></span><span>Secretaria</span></button><button class="nav-help" data-help="solicitacoes" aria-label="Explicar Solicitações">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="agenda"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><span>Agenda</span></button><button class="nav-help" data-help="agenda" aria-label="Explicar Agenda">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="documentos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span><span>Documentos</span></button><button class="nav-help" data-help="documentos" aria-label="Explicar Documentos">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="pesquisa"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg></span><span>Pesquisa</span></button><button class="nav-help" data-help="pesquisa" aria-label="Explicar Pesquisa">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="kanban"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="11" rx="1.5"/><rect x="16" y="4" width="5" height="14" rx="1.5"/></svg></span><span>Kanban</span></button><button class="nav-help" data-help="kanban" aria-label="Explicar Kanban">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="historico"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v4.5h4.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><span>Histórico</span></button><button class="nav-help" data-help="historico" aria-label="Explicar Histórico">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="relatorios"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span>Relatórios</span></button><button class="nav-help" data-help="relatorios" aria-label="Explicar Relatórios">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="modelos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="13" height="16" rx="2"/><path d="M16.5 19v1.5a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 20.5V7.5"/><path d="M11 8h5M11 12h5"/></svg></span><span>Modelos</span></button><button class="nav-help" data-help="modelos" aria-label="Explicar Modelos">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="gerador"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13.5h6M9 17h6"/><circle cx="9.6" cy="10" r="1.1"/></svg></span><span>Gerador de Documentos</span></button><button class="nav-help" data-help="gerador" aria-label="Explicar Gerador de Documentos">!</button></div>
+      <div class="nav-row"><button class="nav-item" data-view="atendimentos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg></span><span>Atendimentos</span></button><button class="nav-help" data-help="atendimentos" aria-label="Explicar Atendimentos">!</button></div>
+    </nav>
+
+    <div class="storage-indicator" id="storageIndicator" hidden></div>
+
+  </aside>
+
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ======================= MAIN ======================= -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="pageSubtitle" class="muted">Visão geral da secretaria</p>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="quick-search">
+          <span class="qs-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg></span>
+          <input type="search" id="quickSearch" placeholder="Pesquisar em tudo..." aria-label="Pesquisa rápida">
+        </div>
+        <button class="btn btn-primary" id="btnNewGeneric">＋ Novo registro</button>
+        <div class="clock" id="clockBox">
+          <span id="clockTime">--:--</span>
+          <span id="clockDate" class="muted">--/--/----</span>
+        </div>
+        <button class="icon-btn" id="btnNotif" aria-label="Notificações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.2 7.5-2.2 7.5h16.4S18 14.5 18 8.5Z"/><path d="M13.7 19.5a2 2 0 0 1-3.4 0"/></svg><span class="badge" id="notifBadge" hidden>0</span></button>
+        <button class="icon-btn" id="btnTheme" aria-label="Alternar tema">🌙</button>
+      </div>
+    </header>
+
+    <!-- NOTIFICATIONS PANEL -->
+    <div class="notif-panel" id="notifPanel" hidden>
+      <div class="notif-panel-head">
+        <strong>Notificações</strong>
+        <button class="icon-btn" id="btnCloseNotif">✕</button>
+      </div>
+      <div id="notifList" class="notif-list"></div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <!-- QUICK SEARCH RESULTS -->
+    <div id="quickSearchResults" class="qs-results" hidden></div>
+
+    <!-- ======================= VIEWS ======================= -->
+    <main id="viewport">
+
+      <!-- DASHBOARD -->
+      <section class="view" id="view-dashboard" data-view="dashboard">
+        <div class="dashboard-toolbar">
+          <button class="btn btn-sm" id="btnPersonalizarDashboard">⚙ Personalizar dashboard</button>
+        </div>
+
+        <div class="stat-grid" id="statGrid" data-dash-block="stats"></div>
+
+        <div class="panel" id="painelHoje" data-dash-block="hoje">
+          <div class="panel-head">
+            <h2>📅 Hoje</h2>
+          </div>
+          <div id="hojeTimeline" class="activity-list"></div>
+        </div>
+
+        <div class="dashboard-spotlight" id="dashboardSpotlight" data-dash-block="spotlight"></div>
+
+        <!-- Gráficos e KPIs -->
+        <div id="dashboardGraphs" data-dash-block="graficos"></div>
+
+        <div class="two-col">
+          <div class="panel" id="painelAtencao" data-dash-block="atencao">
+            <div class="panel-head">
+              <h2>O que precisa da sua atenção?</h2>
+            </div>
+            <div id="attentionList" class="attention-list"></div>
+          </div>
+
+          <div class="panel" id="painelAtividade" data-dash-block="atividade">
+            <div class="panel-head">
+              <h2>Atividade recente</h2>
+            </div>
+            <div id="activityList" class="activity-list"></div>
+          </div>
+        </div>
+
+        <div class="panel" id="painelAtendimentosHoje" data-dash-block="atendimentos-hoje">
+          <div class="panel-head">
+            <h2>Atendimentos de hoje</h2>
+            <a href="#" class="link-btn" onclick="goToView('atendimentos'); return false;">Ver atendimentos de hoje →</a>
+          </div>
+          <div id="atendimentosHojeResumo" class="stat-grid"></div>
+        </div>
+      </section>
+
+      <!-- PENDÊNCIAS -->
+      <section class="view" id="view-pendencias" data-view="pendencias" hidden>
+        <div class="section-intro">
+        </div>
+
+        <div class="toolbar">
+          <div class="filters" id="filtrosPendencias">
+            <select class="input" data-filter="prioridade">
+              <option value="">Todas as pendências</option>
+              <option value="urgente">🔴 Urgentes</option>
+              <option value="atencao">🟠 Atenção</option>
+              <option value="proximo">🟡 Próximas ações</option>
+            </select>
+            <select class="input" data-filter="tipo">
+              <option value="">Todos os tipos</option>
+              <option value="documento_vencido">Documentos vencidos</option>
+              <option value="documento_vencendo">Documentos vencendo</option>
+              <option value="tarefa_atrasada">Tarefas atrasadas</option>
+              <option value="tarefa_hoje">Tarefas de hoje</option>
+              <option value="tarefa_proxima">Tarefas próximas</option>
+              <option value="evento_hoje">Compromissos de hoje</option>
+              <option value="atendimento_sem_presenca">Atendimentos sem presença</option>
+              <option value="atendimento_atrasado">Atendimentos atrasados</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="listaPendencias" class="pendencias-list"></div>
+        <div class="empty-state" id="vazioPendencias" hidden>Nenhuma pendência! Tudo está em dia. 🎉</div>
+      </section>
+
+      <!-- PROJETOS E DEMANDAS -->
+      <section class="view" id="view-projetos" data-view="projetos" hidden>
+        <div class="section-intro">
+          <button class="btn btn-primary" data-action="novo-projeto-demanda">＋ Novo registro</button>
+        </div>
+        <div class="toolbar">
+          <div class="filters" id="filtrosProjetos">
+            <input type="search" class="input" data-filter="busca" placeholder="Pesquisar registros...">
+            <select class="input" data-filter="tipo">
+              <option value="">Todos os tipos</option>
+              <option value="projeto">Projetos</option>
+            </select>
+            <select class="input" data-filter="status"><option value="">Todos os status</option></select>
+          </div>
+          <button class="btn" id="btnFiltrarProjetosDemandas">Filtrar</button>
+          <button class="btn btn-ghost" id="btnMostrarTodosProjetosDemandas">Mostrar todos</button>
+        </div>
+        <div class="project-summary" id="projectSummary"></div>
+        <div class="card-grid" id="gridProjetos"></div>
+        <div class="empty-state" id="vazioProjetos" hidden>Nenhum registro encontrado. Clique em “Novo registro” para começar.</div>
+      </section>
+
+      <!-- SECRETARIA V1 -->
+      <section class="view" id="view-solicitacoes" data-view="solicitacoes" hidden>
+        <div class="section-intro">
+          <button class="btn btn-primary" data-action="nova-solicitacao">＋ Nova tarefa</button>
+        </div>
+        <div class="toolbar">
+          <div class="filters" id="filtrosSolicitacoes">
+            <input type="search" class="input" data-filter="busca" placeholder="Pesquisar tarefas...">
+            <select class="input" data-filter="periodo"><option value="">Todas as tarefas</option><option value="hoje">Hoje</option><option value="atrasadas">Atrasadas</option><option value="proximas">Próximas</option></select>
+            <select class="input" data-filter="frequencia"><option value="">Frequência: todas</option><option>Única</option><option>Diária</option><option>Semanal</option><option>Mensal</option><option>Anual</option></select>
+            <select class="input" data-filter="prioridade"><option value="">Prioridade: todas</option><option>Baixa</option><option>Média</option><option>Alta</option><option>Urgente</option></select>
+            <select class="input" data-filter="ordenacao"><option value="prazo_asc">Mais próximas</option><option value="prioridade">Prioridade</option><option value="recente">Mais recentes</option></select>
+          </div>
+        </div>
+        <div class="activity-summary" id="resumoAtividades"></div>
+        <div class="activity-list" id="listaAtividades"></div>
+        <div class="empty-state" id="vazioSolicitacoes" hidden>Nenhuma tarefa encontrada.</div>
+      </section>
+
+      <!-- AGENDA V1 -->
+      <section class="view" id="view-agenda" data-view="agenda" hidden>
+        <div class="section-intro">
+          <div class="agenda-actions"><button class="btn btn-ghost" id="agendaTelaCheia">⛶ Tela cheia</button><button class="btn btn-ghost" id="agendaImprimir">🖨 Imprimir</button><button class="btn btn-ghost" id="agendaBackup">💾 Exportar</button><button class="btn btn-ghost" id="agendaImportar">📥 Importar</button><button class="btn btn-primary" data-action="novo-evento">＋ Novo evento</button></div>
+        </div>
+        <div id="agendaResumoHoje" class="agenda-summary"></div>
+        <div class="agenda-toolbar">
+          <div class="agenda-nav">
+            <button class="btn btn-ghost" id="agendaPrev">‹</button>
+            <button class="btn btn-ghost" id="agendaHoje">Hoje</button>
+            <button class="btn btn-ghost" id="agendaNext">›</button>
+            <strong id="agendaMesTitulo"></strong>
+          </div>
+          <div class="agenda-views"><button class="btn btn-sm btn-primary" data-agenda-view="mes">Mês</button><button class="btn btn-sm btn-ghost" data-agenda-view="semana">Semana</button><button class="btn btn-sm btn-ghost" data-agenda-view="lista">Lista</button></div>
+        </div>
+        <div class="agenda-search-row"><input class="input" id="agendaBusca" type="search" placeholder="Pesquisar por nome, responsável, local ou tipo..."></div>
+        <div id="agendaConteudo"></div>
+      </section>
+
+      <!-- DOCUMENTOS -->
+      <section class="view" id="view-documentos" data-view="documentos" hidden>
+        <div class="section-intro">
+          <button class="btn btn-primary" data-action="novo-documento">＋ Novo documento</button>
+        </div>
+
+        <div class="stats-grid docs-stats">
+          <div class="stat-card c-primary"><div class="stat-num" id="docStatTotal">0</div><div class="stat-label">Total de documentos</div></div>
+          <div class="stat-card c-ok"><div class="stat-num" id="docStatValidos">0</div><div class="stat-label">Válidos</div></div>
+          <div class="stat-card c-warn"><div class="stat-num" id="docStatVencendo">0</div><div class="stat-label">Vencendo em até 30 dias</div></div>
+          <div class="stat-card c-danger"><div class="stat-num" id="docStatVencidos">0</div><div class="stat-label">Vencidos</div></div>
+        </div>
+
+        <div class="toolbar">
+          <div class="filters" id="filtrosDocumentos">
+            <input type="search" class="input" data-filter="busca" placeholder="Pesquisar por nome, número, responsável, órgão...">
+            <select class="input" data-filter="categoria">
+              <option value="">Categoria: todas</option>
+              <option>Certidão</option><option>Ofício</option><option>Ata</option><option>Contrato</option>
+              <option>Relatório</option><option>Declaração</option><option>Comprovante</option>
+              <option>Documento financeiro</option><option>Documento institucional</option><option>Convênio</option><option>Outros</option>
+            </select>
+            <select class="input" data-filter="situacao">
+              <option value="">Situação: todas</option><option value="valido">🟢 Válido</option>
+              <option value="vencendo">🟡 Vencendo</option><option value="vencido">🔴 Vencido</option><option value="sem_validade">⚪ Sem validade</option>
+            </select>
+            <select class="input" data-filter="responsavel"><option value="">Responsável: todos</option></select><button class="btn btn-primary" type="button" id="btnAplicarFiltrosDocumentos">Filtrar</button><button class="btn btn-ghost" type="button" id="btnLimparFiltrosDocumentos">Mostrar todos</button>
+          </div>
+        </div>
+
+        <div class="panel" id="painelVencendo">
+          <div class="panel-head"><h2>⚠️ Documentos que exigem atenção</h2></div>
+          <div id="listaVencendo" class="attention-list"></div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaDocumentos">
+            <thead><tr><th>ID</th><th>Documento</th><th>Categoria</th><th>Responsável</th><th>Emissão</th><th>Validade</th><th>Situação</th><th>Arquivo</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="vazioDocumentos" hidden>Nenhum documento encontrado.</div>
+      </section>
+
+
+      <!-- PESQUISA -->
+      <section class="view" id="view-pesquisa" data-view="pesquisa" hidden>
+        <div class="toolbar">
+          <input type="search" class="input input-wide" id="buscaGeralInput" placeholder="Pesquisar em solicitações, documentos e projetos/demandas...">
+        </div>
+        <div id="resultadosBuscaGeral"></div>
+      </section>
+
+      <!-- KANBAN -->
+      <section class="view" id="view-kanban" data-view="kanban" hidden>
+        <div id="listaQuadros" style="padding: 20px;"></div>
+      </section>
+
+      <!-- HISTÓRICO -->
+      <section class="view" id="view-historico" data-view="historico" hidden>
+        <div class="toolbar">
+          <div class="filters" id="filtrosHistorico">
+            <input type="date" class="input" data-filter="data" title="Data">
+            <select class="input" data-filter="modulo">
+              <option value="">Módulo: todos</option>
+              <option value="solicitacao">Solicitações</option>
+              <option value="documento">Documentos</option>
+            </select>
+            <select class="input" data-filter="acao">
+              <option value="">Ação: todas</option>
+              <option value="criação">Criação</option>
+              <option value="edição">Edição</option>
+              <option value="exclusão">Exclusão</option>
+              <option value="status">Mudança de status</option>
+            </select>
+          </div>
+        </div>
+        <div id="listaHistorico" class="history-list"></div>
+        <div class="empty-state" id="vazioHistorico" hidden>Nenhum registro encontrado.</div>
+      </section>
+
+      <!-- RELATÓRIOS -->
+      <section class="view" id="view-relatorios" data-view="relatorios" hidden>
+        <div class="toolbar">
+          <div class="filters">
+            <select class="input" id="periodoRelatorio">
+              <option value="hoje">Hoje</option>
+              <option value="7dias">Últimos 7 dias</option>
+              <option value="mes" selected>Este mês</option>
+              <option value="mesAnterior">Mês anterior</option>
+              <option value="personalizado">Período personalizado</option>
+            </select>
+            <input type="date" class="input" id="relatorioDe" hidden>
+            <input type="date" class="input" id="relatorioAte" hidden>
+          </div>
+          <div class="toolbar-btns">
+            <button class="btn btn-primary" id="btnGerarRelatorio">Gerar relatório</button>
+            <button class="btn btn-ghost" id="btnImprimirRelatorio">🖨 Imprimir</button>
+          </div>
+        </div>
+
+        <div class="panel backup-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Backup e restauração</h2>
+              <p class="muted">Faça uma cópia de segurança de todos os dados da Central e dos arquivos anexados.</p>
+            </div>
+          </div>
+          <div class="backup-actions">
+            <button class="btn btn-primary" id="btnBackupCompleto">💾 Exportar backup completo</button>
+            <button class="btn btn-ghost" id="btnRestaurarBackup">📥 Restaurar backup</button>
+            <input type="file" id="inputRestaurarBackup" accept=".json,application/json" hidden>
+          </div>
+          <p class="muted backup-warning">O backup completo inclui registros do sistema e anexos armazenados localmente. Guarde o arquivo em um local seguro.</p>
+        </div>
+        <div id="relatorioConteudo" class="report-content"></div>
+      </section>
+
+      <!-- MODELOS DE DOCUMENTOS -->
+      <section class="view" id="view-modelos" data-view="modelos" hidden>
+        <div id="listaModelos" style="padding: 20px;"></div>
+      </section>
+
+      <!-- GERADOR DE DOCUMENTOS -->
+      <section class="view" id="view-gerador" data-view="gerador" hidden>
+        <div id="listaGeradorDocumentos" style="padding: 20px;"></div>
+      </section>
+
+      <!-- ATENDIMENTOS -->
+      <section class="view" id="view-atendimentos" data-view="atendimentos" hidden>
+        <div id="atendimentosConteudo" style="padding:20px">
+          <div class="toolbar">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-ghost" id="btnAtendSemanaAnterior">← Semana anterior</button>
+              <strong id="atendSemanaLabel"></strong>
+              <button class="btn btn-ghost" id="btnAtendProximaSemana">Próxima semana →</button>
+              <button class="btn btn-ghost" id="btnAtendEscolherSemana">📅 Escolher semana</button>
+            </div>
+            <div class="toolbar-btns" style="margin-top:8px">
+              <button class="btn btn-primary" id="btnNovoAtendimento">➕ Novo atendimento</button>
+              <button class="btn btn-ghost" id="btnDuplicarSemanaAtend">📋 Duplicar semana anterior</button>
+              <button class="btn btn-ghost" id="btnGerarPdfAtend">📄 Gerar PDF</button>
+              <button class="btn btn-ghost" id="btnRelatorioPersonalizadoAtend">📊 Relatório personalizado/mensal</button>
+              <button class="btn btn-ghost" id="btnFechamentoSemana">✓ Fechamento da semana</button>
+              <button class="btn btn-ghost" id="btnGestaoAlunosProfissionais">👥 Alunos e Profissionais</button>
+            </div>
+          </div>
+          <div class="filters" id="filtrosAtendimentos" style="margin-bottom:14px">
+            <input type="search" class="input" data-filter="busca" placeholder="🔎 Pesquisar aluno ou profissional">
+            <select class="input" data-filter="aluno"><option value="">Aluno: todos</option></select>
+            <select class="input" data-filter="profissional"><option value="">Profissional: todos</option></select>
+            <select class="input" data-filter="presenca">
+              <option value="">Presença: todas</option>
+              <option value="veio">🟢 Veio</option>
+              <option value="faltou">🔴 Faltou</option>
+              <option value="nao_informado">⚪ Não informado</option>
+            </select>
+          </div>
+          <div id="atendResumo"></div>
+          <div id="atendPorDia" style="margin-top:16px"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ======================= MODAL (formulários / detalhes) ======================= -->
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal" id="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2 id="modalTitle">Título</h2>
+      <button class="icon-btn" id="btnCloseModal" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="modal-backdrop" id="confirmBackdrop" hidden>
+  <div class="modal modal-sm" role="alertdialog" aria-modal="true">
+    <div class="modal-body">
+      <p id="confirmText">Tem certeza?</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="btnConfirmCancel">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmOk">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
