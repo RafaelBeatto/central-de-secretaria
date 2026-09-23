@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Central da Secretaria</title>
-<link rel="stylesheet" href="style.css?v=20260923-3">
+<link rel="stylesheet" href="style.css?v=20260923-4">
 </head>
 <body>
 
@@ -21,23 +21,32 @@
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <span class="brand-mark">CS</span>
-      <span class="brand-name">Central da<br>Secretaria</span>
+      <span class="brand-name">Central da Secretaria<small id="brandInstituicao"></small></span>
     </div>
 
     <nav class="nav" aria-label="Navegação principal">
-      <div class="nav-row"><button class="nav-item is-active" data-view="dashboard"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span>Dashboard</span></button><button class="nav-help" data-help="dashboard" aria-label="Explicar Dashboard">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="pendencias"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 2.8 19.5h18.4L12 3.5Z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg></span><span>Pendências</span></button><button class="nav-help" data-help="pendencias" aria-label="Explicar Pendências">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="projetos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4L11 8.5h8.5A1.5 1.5 0 0 1 21 10v7.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z"/></svg></span><span>Projetos</span></button><button class="nav-help" data-help="projetos" aria-label="Explicar Projetos">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="solicitacoes"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.8h6V4"/><path d="M9 10h6M9 14h6M9 18h3"/></svg></span><span>Secretaria</span></button><button class="nav-help" data-help="solicitacoes" aria-label="Explicar Solicitações">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="agenda"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><span>Agenda</span></button><button class="nav-help" data-help="agenda" aria-label="Explicar Agenda">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="documentos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span><span>Documentos</span></button><button class="nav-help" data-help="documentos" aria-label="Explicar Documentos">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="pesquisa"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg></span><span>Pesquisa</span></button><button class="nav-help" data-help="pesquisa" aria-label="Explicar Pesquisa">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="kanban"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="11" rx="1.5"/><rect x="16" y="4" width="5" height="14" rx="1.5"/></svg></span><span>Kanban</span></button><button class="nav-help" data-help="kanban" aria-label="Explicar Kanban">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="historico"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v4.5h4.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><span>Histórico</span></button><button class="nav-help" data-help="historico" aria-label="Explicar Histórico">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="relatorios"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span>Relatórios</span></button><button class="nav-help" data-help="relatorios" aria-label="Explicar Relatórios">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="modelos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="13" height="16" rx="2"/><path d="M16.5 19v1.5a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 20.5V7.5"/><path d="M11 8h5M11 12h5"/></svg></span><span>Modelos</span></button><button class="nav-help" data-help="modelos" aria-label="Explicar Modelos">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="gerador"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13.5h6M9 17h6"/><circle cx="9.6" cy="10" r="1.1"/></svg></span><span>Gerador de Documentos</span></button><button class="nav-help" data-help="gerador" aria-label="Explicar Gerador de Documentos">!</button></div>
-      <div class="nav-row"><button class="nav-item" data-view="atendimentos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg></span><span>Atendimentos</span></button><button class="nav-help" data-help="atendimentos" aria-label="Explicar Atendimentos">!</button></div>
+      <div class="nav-grupo">
+        <button class="nav-item is-active" data-view="dashboard"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="nav-rotulo">Dashboard</span><span class="nav-conta" data-conta="dashboard" hidden></span></button>
+        <button class="nav-item" data-view="pendencias"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 2.8 19.5h18.4L12 3.5Z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg></span><span class="nav-rotulo">Pendências</span><span class="nav-conta" data-conta="pendencias" hidden></span></button>
+      </div>
+      <div class="nav-grupo"><span class="nav-grupo-titulo">Dia a dia</span>
+        <button class="nav-item" data-view="solicitacoes"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.8h6V4"/><path d="M9 10h6M9 14h6M9 18h3"/></svg></span><span class="nav-rotulo">Secretaria</span><span class="nav-conta" data-conta="solicitacoes" hidden></span></button>
+        <button class="nav-item" data-view="agenda"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><span class="nav-rotulo">Agenda</span><span class="nav-conta" data-conta="agenda" hidden></span></button>
+        <button class="nav-item" data-view="atendimentos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg></span><span class="nav-rotulo">Atendimentos</span><span class="nav-conta" data-conta="atendimentos" hidden></span></button>
+        <button class="nav-item" data-view="kanban"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="11" rx="1.5"/><rect x="16" y="4" width="5" height="14" rx="1.5"/></svg></span><span class="nav-rotulo">Kanban</span><span class="nav-conta" data-conta="kanban" hidden></span></button>
+      </div>
+      <div class="nav-grupo"><span class="nav-grupo-titulo">Controle</span>
+        <button class="nav-item" data-view="projetos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4L11 8.5h8.5A1.5 1.5 0 0 1 21 10v7.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z"/></svg></span><span class="nav-rotulo">Projetos</span><span class="nav-conta" data-conta="projetos" hidden></span></button>
+        <button class="nav-item" data-view="documentos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span><span class="nav-rotulo">Documentos</span><span class="nav-conta" data-conta="documentos" hidden></span></button>
+      </div>
+      <div class="nav-grupo"><span class="nav-grupo-titulo">Emitir</span>
+        <button class="nav-item" data-view="gerador"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13.5h6M9 17h6"/><circle cx="9.6" cy="10" r="1.1"/></svg></span><span class="nav-rotulo">Gerador de Documentos</span><span class="nav-conta" data-conta="gerador" hidden></span></button>
+        <button class="nav-item" data-view="modelos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="13" height="16" rx="2"/><path d="M16.5 19v1.5a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 20.5V7.5"/><path d="M11 8h5M11 12h5"/></svg></span><span class="nav-rotulo">Modelos</span><span class="nav-conta" data-conta="modelos" hidden></span></button>
+      </div>
+      <div class="nav-grupo"><span class="nav-grupo-titulo">Consultar</span>
+        <button class="nav-item" data-view="historico"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v4.5h4.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><span class="nav-rotulo">Histórico</span><span class="nav-conta" data-conta="historico" hidden></span></button>
+        <button class="nav-item" data-view="relatorios"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="nav-rotulo">Relatórios</span><span class="nav-conta" data-conta="relatorios" hidden></span></button>
+      </div>
     </nav>
 
     <div class="storage-indicator" id="storageIndicator" hidden></div>
@@ -52,7 +61,7 @@
     <!-- TOPBAR -->
     <header class="topbar">
       <div class="topbar-title">
-        <h1 id="pageTitle">Dashboard</h1>
+        <div class="page-title-row"><h1 id="pageTitle">Dashboard</h1><button type="button" class="page-help" id="btnAjudaPagina" aria-label="Como funciona esta tela" title="Como funciona esta tela">?</button></div>
         <p id="pageSubtitle" class="muted">Visão geral da secretaria</p>
       </div>
 
@@ -216,6 +225,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <!-- Ao publicar mudanças, troque o número de versão (v=) aqui e no style.css acima:
      isso obriga o navegador a baixar os arquivos novos em vez de usar os guardados. -->
-<script src="script.js?v=20260923-3"></script>
+<script src="script.js?v=20260923-4"></script>
 </body>
 </html>

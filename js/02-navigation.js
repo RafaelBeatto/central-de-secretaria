@@ -8,7 +8,7 @@ const VIEW_META = {
   solicitacoes: { title:'Secretaria', sub:'Tarefas e rotinas do dia a dia' },
   agenda: { title:'Agenda', sub:'Eventos, tarefas e prazos num só calendário' },
   documentos: { title:'Documentos', sub:'Documentos da instituição e quando renovar' },
-  pesquisa: { title:'Pesquisa', sub:'Busca geral em todos os módulos' },
+  pesquisa: { title:'Pesquisa', sub:'Todos os resultados da busca' },
   kanban: { title:'Kanban', sub:'Organize com quadros de tarefas' },
   historico: { title:'Histórico', sub:'Tudo o que foi feito no sistema, dia a dia' },
   relatorios: { title:'Relatórios', sub:'Relatório de atividades do período e backup dos dados' },
@@ -62,17 +62,42 @@ document.querySelectorAll('.nav-item').forEach(btn => {
   btn.addEventListener('click', () => goToView(btn.dataset.view));
 });
 
-document.querySelectorAll('.nav-help').forEach(btn => {
-  const show = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    mostrarAjuda(btn.dataset.help);
+/* Um "?" ao lado do título explica a tela aberta (antes havia um "!" em
+   cada linha do menu). */
+document.getElementById('btnAjudaPagina')?.addEventListener('click', () => mostrarAjuda(currentView));
+
+/* Contadores do menu: só aparecem quando há algo esperando naquela aba.
+   Usam as mesmas regras das próprias telas e de Pendências. */
+function atualizarMenu(){
+  const conta = (view, n, tom) => {
+    const el = document.querySelector(`.nav-conta[data-conta="${view}"]`); if (!el) return;
+    el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n || '');
+    el.className = `nav-conta t-${tom}`;
+    el.title = n ? `${n} esperando` : '';
   };
-  btn.addEventListener('click', show);
-  btn.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') show(e);
-  });
-});
+  const hoje = todayISO();
+  if (typeof coletarTodasPendencias === 'function' && typeof categoriaAcao === 'function') {
+    conta('pendencias', coletarTodasPendencias().filter(p => categoriaAcao(p) === 'atrasado').length, 'danger');
+  }
+  if (typeof prazoAtividade === 'function') {
+    const abertas = DB.getAll('solicitacoes').filter(s => !ehTarefaRenovacaoDocumento(s) && !['Concluída','Cancelada'].includes(s.status));
+    const atrasadas = abertas.filter(solicitacaoAtrasada).length;
+    const deHoje = abertas.filter(s => prazoAtividade(s).data === hoje && !solicitacaoAtrasada(s)).length;
+    conta('solicitacoes', atrasadas + deHoje, atrasadas ? 'danger' : 'neutral');
+  }
+  conta('agenda', DB.getAll('eventos').filter(e => e.data === hoje && !e.concluido).length, 'neutral');
+  if (typeof getAtendimentos === 'function') {
+    conta('atendimentos', getAtendimentos().filter(a => a.presenca === 'nao_informado' && !a.remarcadoPara && a.data <= hoje).length, 'warn');
+  }
+  if (typeof situacaoDocumento === 'function') {
+    const docs = DB.getAll('documentos').map(d => situacaoDocumento(d).chave);
+    const vencidos = docs.filter(c => c === 'vencido').length, vencendo = docs.filter(c => c === 'vencendo').length;
+    conta('documentos', vencidos || vencendo, vencidos ? 'danger' : 'warn');
+  }
+  const inst = typeof getInstituicaoConfig === 'function' ? getInstituicaoConfig().nome : '';
+  const alvo = document.getElementById('brandInstituicao');
+  if (alvo) { alvo.textContent = inst || ''; alvo.title = inst || ''; }
+}
 
 function applyTheme(theme){
   if (theme === 'auto') {
@@ -171,6 +196,7 @@ document.getElementById('btnNewGeneric').addEventListener('click', () => {
    --------------------------------------------------------- */
 function renderCurrentView(opts){
   renderNotifications();
+  atualizarMenu();
   switch(currentView){
     case 'dashboard': renderDashboard(); break;
     case 'pendencias': renderPendencias(); break;

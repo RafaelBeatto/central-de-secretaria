@@ -213,18 +213,25 @@ quickSearchInput.addEventListener('input', () => {
     quickSearchResults.innerHTML = `<div class="qs-group"><p class="muted">Não encontramos resultados para "${escapeHTML(termo)}".</p></div>`;
     return;
   }
+  const total = grupos.reduce((s, g) => s + g.itens.length, 0);
   quickSearchResults.hidden = false;
-  quickSearchResults.innerHTML = grupos.map(g => `
+  quickSearchResults.innerHTML = `<button type="button" class="qs-todos" id="qsVerTodos">Ver todos os resultados (${total}) →</button>` + grupos.map(g => `
     <div class="qs-group">
       <div class="qs-group-title">${g.titulo} · ${g.itens.length}</div>
       ${g.itens.slice(0,4).map((it,i) => `<div class="qs-row" data-grupo="${g.titulo}" data-idx="${i}"><span>${escapeHTML(g.label(it))}</span></div>`).join('')}
     </div>`).join('');
+  document.getElementById('qsVerTodos').onclick = () => {
+    document.getElementById('buscaGeralInput').value = termo;
+    quickSearchResults.hidden = true; quickSearchInput.value = '';
+    goToView('pesquisa');
+  };
   grupos.forEach(g => {
     quickSearchResults.querySelectorAll(`.qs-row[data-grupo="${g.titulo}"]`).forEach(el => {
       el.addEventListener('click', () => { g.go(g.itens[Number(el.dataset.idx)]); quickSearchResults.hidden = true; quickSearchInput.value=''; });
     });
   });
 });
+quickSearchInput.addEventListener('keydown', e => { if (e.key === 'Enter' && quickSearchInput.value.trim()) document.getElementById('qsVerTodos')?.click(); });
 document.addEventListener('click', (e) => {
   const verFichaEmpresa = e.target.closest?.('[data-project-action="ver-ficha-empresa"]');
   if (verFichaEmpresa) {
