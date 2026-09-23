@@ -305,20 +305,6 @@ function situacaoDocumento(doc){
   if (dias <= 30) return { chave: 'vencendo', label: 'Vencendo', tom: 'warn', emoji: '🟡' };
   return { chave: 'valido', label: 'Válido', tom: 'ok', emoji: '🟢' };
 }
-function badgeStatusSolicitacao(status){
-  const map = {
-    'Pendente': 'neutral', 'Em andamento': 'primary', 'Aguardando': 'warn',
-    'Concluída': 'ok', 'Cancelada': 'neutral'
-  };
-  return map[status] || 'neutral';
-}
-function badgePrioridade(p){
-  const map = { 'Baixa': 'neutral', 'Normal': 'primary', 'Alta': 'warn', 'Urgente': 'danger' };
-  return map[p] || 'neutral';
-}
-function solicitacaoAtrasada(s){
-  return s.prazo && daysDiffFromToday(s.prazo) < 0 && !['Concluída','Cancelada'].includes(s.status);
-}
 
 /* ---------------------------------------------------------
    5. LIMPEZA DE DADOS DE DEMONSTRAÇÃO
