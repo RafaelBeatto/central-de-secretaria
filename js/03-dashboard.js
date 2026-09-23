@@ -142,7 +142,7 @@ function renderResumoHojeCores(pendenciasParam, proximosCompromissosParam){
 
 /* ---------------------------------------------------------
    9.1.1 PRÓXIMOS COMPROMISSOS (para exibição na Central de Ações)
-   Reaproveita eventosAgendaCompletos() (05-atividades-agenda.js), já
+   Reaproveita eventosAgendaCompletos() (05-agenda.js), já
    usada pela Agenda e pelo "Hoje" do Dashboard. Mostra só compromissos
    futuros (depois de hoje) dentro de uma janela curta de dias.
    IMPORTANTE: isto NÃO é uma pendência — é só um preview do que vem a

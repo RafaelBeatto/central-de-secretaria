@@ -183,21 +183,7 @@
 
       <!-- AGENDA V1 -->
       <section class="view" id="view-agenda" data-view="agenda" hidden>
-        <div class="section-intro">
-          <div class="agenda-actions"><button class="btn btn-ghost" id="agendaTelaCheia">⛶ Tela cheia</button><button class="btn btn-ghost" id="agendaImprimir">🖨 Imprimir</button><button class="btn btn-ghost" id="agendaBackup">💾 Exportar</button><button class="btn btn-ghost" id="agendaImportar">📥 Importar</button><button class="btn btn-primary" data-action="novo-evento">＋ Novo evento</button></div>
-        </div>
-        <div id="agendaResumoHoje" class="agenda-summary"></div>
-        <div class="agenda-toolbar">
-          <div class="agenda-nav">
-            <button class="btn btn-ghost" id="agendaPrev">‹</button>
-            <button class="btn btn-ghost" id="agendaHoje">Hoje</button>
-            <button class="btn btn-ghost" id="agendaNext">›</button>
-            <strong id="agendaMesTitulo"></strong>
-          </div>
-          <div class="agenda-views"><button class="btn btn-sm btn-primary" data-agenda-view="mes">Mês</button><button class="btn btn-sm btn-ghost" data-agenda-view="semana">Semana</button><button class="btn btn-sm btn-ghost" data-agenda-view="lista">Lista</button></div>
-        </div>
-        <div class="agenda-search-row"><input class="input" id="agendaBusca" type="search" placeholder="Pesquisar por nome, responsável, local ou tipo..."></div>
-        <div id="agendaConteudo"></div>
+        <div id="agRoot" class="ag-root"></div>
       </section>
 
       <!-- DOCUMENTOS -->
