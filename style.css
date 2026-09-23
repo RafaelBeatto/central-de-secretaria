@@ -348,12 +348,7 @@ a{ color: var(--primary); }
 .history-row .h-meta{ color: var(--muted); font-size:11.5px; margin-bottom:3px; font-family: var(--font-mono); }
 
 /* ---------------- report ---------------- */
-.report-content{ background: var(--surface); border:1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-.report-grid{ display:grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom: 20px; }
-.report-item{ border:1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; background: var(--surface-2); }
-.report-item .r-num{ font-family: var(--font-mono); font-size:22px; font-weight:700; }
-.report-item .r-label{ font-size:12px; color: var(--ink-soft); }
-.report-section-title{ font-size: 14px; margin: 18px 0 8px; }
+
 canvas{ max-width:100%; }
 
 /* ---------------- empty state ---------------- */
@@ -437,7 +432,7 @@ canvas{ max-width:100%; }
   #viewport{ padding:0; }
   .view[hidden]{ display:none; }
   body{ background:#fff; color:#000; }
-  .report-content{ border:none; box-shadow:none; }
+  
 }
 .project-code{font-family:var(--font-mono); color:var(--muted); font-size:11px;}
 
@@ -534,9 +529,6 @@ canvas{ max-width:100%; }
 }
 
 /* Backup completo */
-.backup-panel{margin-top:18px;}
-.backup-actions{display:flex;gap:10px;flex-wrap:wrap;}
-.backup-warning{margin:12px 0 0;font-size:.86rem;}
 
 /* CENTRAL DE PENDÊNCIAS */
 .pendencias-list{display:flex;flex-direction:column;gap:16px;}
@@ -1690,3 +1682,36 @@ button.hi-texto:hover span{ text-decoration:underline; }
 .hi-apagar{ margin-left:auto; }
 .hi-apagar-conta{ font-weight:600; margin:10px 0 6px; }
 @media (max-width:700px){ .hi-apagar{ margin-left:0; } }
+
+/* =========================================================
+   RELATÓRIOS — relatório de atividades + backup (09-relatorios.js)
+   ========================================================= */
+.rl-root button:not(.btn){ font:inherit; }
+.rl-layout{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:start; }
+.rl-principal{ min-width:0; display:flex; flex-direction:column; gap:12px; }
+.rl-controles{ display:flex; flex-direction:column; gap:10px; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface); }
+.rl-linha{ display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; }
+.rl-rotulo{ width:56px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+.rl-datas{ display:flex; gap:8px; }
+.rl-datas label{ display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-soft); }
+.rl-datas input{ width:auto; }
+.rl-secoes{ display:flex; gap:6px 14px; flex-wrap:wrap; }
+.rl-check{ display:inline-flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }
+.rl-botoes{ display:flex; gap:8px; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--border-soft); }
+.rl-previa{ max-height:none; padding:24px; border:1px solid var(--border); border-radius:var(--radius-lg); }
+.rl-erro{ color:var(--danger); font-size:13px; }
+.rl-lateral{ position:sticky; top:calc(var(--topbar-h) + 16px); }
+.rl-texto{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; margin:0 0 12px; }
+.rl-aviso{ margin:12px 0 0; font-size:11.5px; color:var(--muted); }
+.rl-botoes-col{ display:flex; flex-direction:column; gap:8px; }
+@media (max-width:1100px){
+  .rl-layout{ grid-template-columns:minmax(0,1fr); }
+  .rl-lateral{ position:static; }
+}
+@media (max-width:700px){
+  .rl-rotulo{ width:100%; }
+  .rl-previa{ padding:8px; }
+  .rl-previa .rl-resumo{ grid-template-columns:1fr 1fr !important; }
+  .rl-previa table{ font-size:9pt !important; }
+  .rl-botoes-col{ flex-direction:row; flex-wrap:wrap; }
+}

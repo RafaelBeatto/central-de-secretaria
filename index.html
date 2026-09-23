@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Central da Secretaria</title>
-<link rel="stylesheet" href="style.css?v=20260923-2">
+<link rel="stylesheet" href="style.css?v=20260923-3">
 </head>
 <body>
 
@@ -167,39 +167,7 @@
 
       <!-- RELATÓRIOS -->
       <section class="view" id="view-relatorios" data-view="relatorios" hidden>
-        <div class="toolbar">
-          <div class="filters">
-            <select class="input" id="periodoRelatorio">
-              <option value="hoje">Hoje</option>
-              <option value="7dias">Últimos 7 dias</option>
-              <option value="mes" selected>Este mês</option>
-              <option value="mesAnterior">Mês anterior</option>
-              <option value="personalizado">Período personalizado</option>
-            </select>
-            <input type="date" class="input" id="relatorioDe" hidden>
-            <input type="date" class="input" id="relatorioAte" hidden>
-          </div>
-          <div class="toolbar-btns">
-            <button class="btn btn-primary" id="btnGerarRelatorio">Gerar relatório</button>
-            <button class="btn btn-ghost" id="btnImprimirRelatorio">🖨 Imprimir</button>
-          </div>
-        </div>
-
-        <div class="panel backup-panel">
-          <div class="panel-head">
-            <div>
-              <h2>Backup e restauração</h2>
-              <p class="muted">Faça uma cópia de segurança de todos os dados da Central e dos arquivos anexados.</p>
-            </div>
-          </div>
-          <div class="backup-actions">
-            <button class="btn btn-primary" id="btnBackupCompleto">💾 Exportar backup completo</button>
-            <button class="btn btn-ghost" id="btnRestaurarBackup">📥 Restaurar backup</button>
-            <input type="file" id="inputRestaurarBackup" accept=".json,application/json" hidden>
-          </div>
-          <p class="muted backup-warning">O backup completo inclui registros do sistema e anexos armazenados localmente. Guarde o arquivo em um local seguro.</p>
-        </div>
-        <div id="relatorioConteudo" class="report-content"></div>
+        <div id="rlRoot" class="rl-root"></div>
       </section>
 
       <!-- MODELOS DE DOCUMENTOS -->
@@ -248,6 +216,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <!-- Ao publicar mudanças, troque o número de versão (v=) aqui e no style.css acima:
      isso obriga o navegador a baixar os arquivos novos em vez de usar os guardados. -->
-<script src="script.js?v=20260923-2"></script>
+<script src="script.js?v=20260923-3"></script>
 </body>
 </html>
