@@ -157,21 +157,29 @@ function coletarTodasPendencias(){
   return pendencias;
 }
 
+/* Só Execuções (Filhos) — e projetos antigos ainda não classificados,
+   para não quebrar o comportamento anterior — passam pelo checklist
+   operacional. Recursos (Pais) não têm cotações/documentos/pagamentos
+   próprios (isso pertence às Execuções), então rodar o checklist neles
+   sempre mostraria as 7 etapas em falso, o que seria exatamente o
+   "falso alerta" que o sistema deve evitar. */
 function coletarPendenciasDeProjetos(){
   if (typeof projectData !== 'function' || typeof projectChecklist !== 'function') return [];
   const pendencias = [];
   DB.getAll('projetos')
-    .filter(p => !['Concluído', 'Cancelado'].includes(p.status))
+    .filter(p => p.tipo !== 'recurso' && !['Concluído', 'Cancelado'].includes(p.status))
     .forEach(p => {
       const pd = projectData({ ...p });
+      const recurso = pd.paiId ? DB.getById('projetos', pd.paiId) : null;
       const faltando = projectChecklist(pd).filter(item => !item[1]);
+      const rotulo = recurso ? 'Execução' : 'Projeto';
       faltando.forEach(([label, , tabKey]) => {
         pendencias.push({
           id: `prj-${p.id}-${tabKey}`,
           tipo: 'projeto_pendencia',
           prioridade: 'atencao',
-          titulo: `Projeto aguardando ação: ${p.nome} — ${label}`,
-          descricao: `Etapa pendente: ${label}`,
+          titulo: `${rotulo} aguardando ação: ${p.nome} — ${label}`,
+          descricao: recurso ? `Recurso: ${recurso.nome} · Execução: ${p.nome} · Etapa pendente: ${label}` : `Etapa pendente: ${label}`,
           data: p.dataFim || null,
           origem: { modulo: 'projetos', id: p.id, funcao: () => abrirDetalheProjeto(p.id, abaProjetoParaPendencia(tabKey)) },
           icon: '🟣'

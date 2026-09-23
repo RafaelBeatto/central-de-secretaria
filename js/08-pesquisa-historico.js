@@ -146,8 +146,13 @@ function renderPesquisa(){
       return;
     }
 
+    // Recursos (Pai) e Execuções (Filho) são a mesma busca por trás
+    // (resultados.projetos), só exibidas em grupos separados para deixar
+    // claro qual é qual — abrirDetalheProjeto já sabe abrir a tela certa.
     const blocos = [
-      { titulo:'Projetos', itens: resultados.projetos, render: p => ({ titulo:p.nome, data:p.dataInicio, status:p.status||'Sem status', resumo:p.objetivo||p.descricao, action:()=>abrirDetalheProjeto(p.id) }) },
+      { titulo:'Recursos', itens: resultados.projetos.filter(p=>p.tipo==='recurso'), render: p => ({ titulo:`💰 ${p.nome}`, data:p.dataRecebimento||p.dataInicio, status:p.status||'Sem status', resumo:p.fonteRecurso, action:()=>abrirDetalheProjeto(p.id) }) },
+      { titulo:'Execuções', itens: resultados.projetos.filter(p=>p.tipo==='execucao'), render: p => ({ titulo:`📂 ${p.nome}`, data:p.dataInicio, status:p.status||'Sem status', resumo:p.paiId?DB.getById('projetos',p.paiId)?.nome:'', action:()=>abrirDetalheProjeto(p.id) }) },
+      { titulo:'Projetos', itens: resultados.projetos.filter(p=>!p.tipo), render: p => ({ titulo:p.nome, data:p.dataInicio, status:p.status||'Sem status', resumo:p.objetivo||p.descricao, action:()=>abrirDetalheProjeto(p.id) }) },
       { titulo:'Empresas', itens: resultados.empresas, render: e => ({ titulo:e.razaoSocial||e.nomeFantasia, data:null, status:e.cnpj||'CNPJ não informado', resumo:e.municipio, action:()=>abrirFichaEmpresaGlobal(e.id) }) },
       { titulo:'Cotações', itens: resultados.cotacoes, render: c => ({ titulo:`Cotação — ${c.fornecedor}`, data:c.data, status:c.selecionada?'Vencedora':'Em análise', resumo:c._projetoNome, action:()=>abrirDetalheProjeto(c._projetoId,'empresas') }) },
       { titulo:'Ordens de compra', itens: resultados.ordens, render: o => ({ titulo:`Ordem ${o.numero||''}`, data:o.data, status:o.status||'—', resumo:o._projetoNome, action:()=>abrirDetalheProjeto(o._projetoId,'empresas') }) },
@@ -193,7 +198,9 @@ quickSearchInput.addEventListener('input', () => {
   if (!termo.trim()){ quickSearchResults.hidden = true; return; }
   const r = buscarEmTudo(termo);
   const grupos = [
-    { titulo:'Projetos', itens:r.projetos, go: p=>abrirDetalheProjeto(p.id), label:p=>p.nome },
+    { titulo:'Recursos', itens:r.projetos.filter(p=>p.tipo==='recurso'), go: p=>abrirDetalheProjeto(p.id), label:p=>`💰 ${p.nome}` },
+    { titulo:'Execuções', itens:r.projetos.filter(p=>p.tipo==='execucao'), go: p=>abrirDetalheProjeto(p.id), label:p=>`📂 ${p.nome}` },
+    { titulo:'Projetos', itens:r.projetos.filter(p=>!p.tipo), go: p=>abrirDetalheProjeto(p.id), label:p=>p.nome },
     { titulo:'Empresas', itens:r.empresas, go: e=>abrirFichaEmpresaGlobal(e.id), label:e=>e.razaoSocial||e.nomeFantasia },
     { titulo:'Solicitações', itens:r.solicitacoes, go: s=>abrirDetalheSolicitacao(s.id), label:s=>s.titulo },
     { titulo:'Documentos', itens:r.documentos, go: d=>abrirDetalheDocumento(d.id), label:d=>d.nome },

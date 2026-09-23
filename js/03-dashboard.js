@@ -164,22 +164,36 @@ function coletarProximosCompromissos(diasJanela = 3){
    Reaproveita projectProgress/projectData/projetoStatusTom,
    já usados no workspace de Projetos — nenhum cálculo novo.
    --------------------------------------------------------- */
+/* Recursos (Pais) aparecem agrupados (nome, nº de execuções, valor
+   executado, nº de pendências das execuções) em vez de uma barra de
+   progresso solta — evita mostrar a mesma informação da Central de
+   Ações de outra forma. Projetos antigos ainda não classificados
+   continuam com o card por checklist de sempre. */
 function renderProjetosAndamento(){
   const box = document.getElementById('projetosAndamento');
   if (!box) return;
   if (typeof projectData !== 'function' || typeof projectProgress !== 'function'){ box.hidden = true; return; }
 
-  const ativos = DB.getAll('projetos')
-    .filter(p => !['Concluído','Cancelado'].includes(p.status))
-    .map(p => {
-      const pd = projectData({ ...p });
-      return { p, progresso: projectProgress(pd), proximaAcao: typeof projectProximaAcao === 'function' ? projectProximaAcao(pd) : null };
-    })
-    .sort((a,b) => a.progresso - b.progresso)
-    .slice(0, 6);
+  const todos = DB.getAll('projetos');
+  const recursos = todos.filter(p => p.tipo==='recurso' && !p.arquivado && p.status!=='Encerrado');
+  const legados = todos.filter(p => !p.tipo && !['Concluído','Cancelado'].includes(p.status));
+  const pendenciasProjeto = typeof coletarPendenciasDeProjetos === 'function' ? coletarPendenciasDeProjetos() : [];
+
+  const itensRecurso = recursos.map(r => {
+    const fin = typeof recursoResumoFinanceiro === 'function' ? recursoResumoFinanceiro(r) : null;
+    const idsFilhos = typeof recursoExecucoes === 'function' ? new Set(recursoExecucoes(r.id).map(f=>f.id)) : new Set();
+    const pendCount = pendenciasProjeto.filter(p => idsFilhos.has(p.origem.id)).length;
+    return { tipoItem:'recurso', r, fin, pendCount, progresso: fin ? fin.percentualExecucao : 0 };
+  });
+  const itensLegado = legados.map(p => {
+    const pd = projectData({ ...p });
+    return { tipoItem:'legado', p, progresso: projectProgress(pd), proximaAcao: typeof projectProximaAcao === 'function' ? projectProximaAcao(pd) : null };
+  });
+
+  const itens = [...itensRecurso, ...itensLegado].sort((a,b) => a.progresso - b.progresso).slice(0, 6);
 
   box.hidden = false;
-  if (!ativos.length){
+  if (!itens.length){
     box.innerHTML = `<div class="panel-head"><h2>📁 Projetos em andamento</h2></div><p class="muted" style="padding:0 4px">Nenhum projeto em andamento no momento.</p>`;
     return;
   }
@@ -190,15 +204,24 @@ function renderProjetosAndamento(){
       <a href="#" class="link-btn" onclick="goToView('projetos'); return false;">Ver todos os projetos →</a>
     </div>
     <div class="projetos-andamento-list">
-      ${ativos.map(({p, progresso, proximaAcao}) => `
-        <div class="projeto-andamento-item" data-id="${escapeHTML(p.id)}" data-tab="${escapeHTML(proximaAcao?.tab || 'resumo')}">
+      ${itens.map(it => it.tipoItem==='recurso' ? `
+        <div class="projeto-andamento-item" data-id="${escapeHTML(it.r.id)}" data-tab="geral">
           <div class="projeto-andamento-head">
-            <strong>${escapeHTML(p.nome)}</strong>
-            ${badgeHTML(projetoStatusTom(p.status), p.status || 'Sem status')}
+            <strong>💰 ${escapeHTML(it.r.nome)}</strong>
+            ${badgeHTML(projetoStatusTom(it.r.status), it.r.status || 'Sem status')}
           </div>
-          <div class="project-progress"><i style="width:${progresso}%"></i></div>
-          <small class="muted">${progresso}% do processo documentado</small>
-          ${proximaAcao ? `<div class="projeto-proxima-acao">🟠 Próxima ação: ${escapeHTML(proximaAcao.label)}</div>` : `<div class="projeto-proxima-acao is-ok">✓ Checklist completo</div>`}
+          <div class="project-progress"><i style="width:${it.progresso}%"></i></div>
+          <small class="muted">${it.fin.qtdExecucoes} execuç${it.fin.qtdExecucoes===1?'ão':'ões'} · ${formatMoney(it.fin.executado)} executados${it.pendCount?` · ${it.pendCount} pendência${it.pendCount===1?'':'s'}`:''}</small>
+        </div>
+      ` : `
+        <div class="projeto-andamento-item" data-id="${escapeHTML(it.p.id)}" data-tab="${escapeHTML(it.proximaAcao?.tab || 'resumo')}">
+          <div class="projeto-andamento-head">
+            <strong>${escapeHTML(it.p.nome)}</strong>
+            ${badgeHTML(projetoStatusTom(it.p.status), it.p.status || 'Sem status')}
+          </div>
+          <div class="project-progress"><i style="width:${it.progresso}%"></i></div>
+          <small class="muted">${it.progresso}% do processo documentado</small>
+          ${it.proximaAcao ? `<div class="projeto-proxima-acao">🟠 Próxima ação: ${escapeHTML(it.proximaAcao.label)}</div>` : `<div class="projeto-proxima-acao is-ok">✓ Checklist completo</div>`}
         </div>
       `).join('')}
     </div>`;
