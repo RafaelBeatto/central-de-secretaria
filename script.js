@@ -19,7 +19,6 @@
     '10-inicializacao.js',
     '11-pendencias.js',
     '12-relacionamentos.js',
-    '14-graficos-kpis.js',
     '15-kanban.js',
     '16-modelos-documentos.js',
     '17-gerador-documentos.js',

@@ -313,7 +313,7 @@ function abrirJustificativaFalta(id){
   document.getElementById('formFalta').onsubmit = e => {
     e.preventDefault();
     atualizarPresenca(id, 'faltou', document.getElementById('atdMotivoFalta').value, document.getElementById('atdObsFalta').value.trim());
-    closeModal(); renderAtendimentos(); showToast('Falta registrada.');
+    closeModal(); renderCurrentView(); showToast('Falta registrada.');
   };
 }
 
@@ -565,17 +565,6 @@ function abrirGestaoAlunosProfissionais(){
   openModal('Alunos e profissionais', `<div id="atdGestaoConteudo"></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="btnFecharGestaoAtend">Fechar</button></div>`);
   renderGestaoAlunosProfissionais();
   document.getElementById('btnFecharGestaoAtend').onclick = () => { closeModal(); renderAtendimentos(); };
-}
-
-/* ---------- bloco do Dashboard ---------- */
-function renderAtendimentosHojeDashboard(){
-  const alvo = document.getElementById('atendimentosHojeResumo'); if (!alvo) return;
-  const r = atResumo(getAtendimentos().filter(a => a.data === todayISO()));
-  alvo.innerHTML = `
-    <div class="stat-card c-primary"><div class="stat-num">${r.total}</div><div class="stat-label">Atendimentos de hoje</div></div>
-    <div class="stat-card c-ok"><div class="stat-num">${r.veio}</div><div class="stat-label">Vieram</div></div>
-    <div class="stat-card c-danger"><div class="stat-num">${r.faltou}</div><div class="stat-label">Faltaram</div></div>
-    <div class="stat-card c-neutral"><div class="stat-num">${r.semRegistro}</div><div class="stat-label">Sem registro</div></div>`;
 }
 
 /* ---------- despachante ---------- */

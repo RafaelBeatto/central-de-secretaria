@@ -119,14 +119,14 @@ function coletarTodasPendencias(){
     const eventDate = parseISODate(e.data);
     const today = new Date();
     const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    return eventDate && eventDate.getTime() === todayDate.getTime() && e.status !== 'Concluído';
+    return eventDate && eventDate.getTime() === todayDate.getTime() && !e.concluido;
   }).forEach(e => {
     pendencias.push({
       id: `evt-hoje-${e.id}`,
       tipo: 'evento_hoje',
       prioridade: 'proximo',
       titulo: `Compromisso de hoje: ${e.titulo}`,
-      descricao: `${e.horario || 'Sem horário'} (Local: ${e.local || 'Sem local'})`,
+      descricao: `${e.horarioInicio || 'Sem horário'} (Local: ${e.local || 'Sem local'})`,
       data: e.data,
       origem: { modulo: 'eventos', id: e.id, funcao: () => abrirDetalheEvento(e.id) },
       icon: '🟡'

@@ -91,52 +91,7 @@
 
       <!-- DASHBOARD -->
       <section class="view" id="view-dashboard" data-view="dashboard">
-        <div class="dashboard-toolbar">
-          <button class="btn btn-sm" id="btnPersonalizarDashboard">⚙ Personalizar dashboard</button>
-        </div>
-
-        <div class="stat-grid" id="statGrid" data-dash-block="stats"></div>
-
-        <div class="stat-grid resumo-hoje-grid" id="resumoHojeCores" data-dash-block="resumo-hoje"></div>
-
-        <div class="panel" id="painelHoje" data-dash-block="hoje">
-          <div class="panel-head">
-            <h2>📅 Hoje</h2>
-          </div>
-          <div id="hojeTimeline" class="activity-list"></div>
-        </div>
-
-        <div class="dashboard-spotlight" id="dashboardSpotlight" data-dash-block="spotlight"></div>
-
-        <div class="panel" id="projetosAndamento" data-dash-block="projetos-andamento" hidden></div>
-
-        <!-- Gráficos e KPIs -->
-        <div id="dashboardGraphs" data-dash-block="graficos"></div>
-
-        <div class="two-col">
-          <div class="panel" id="painelAtencao" data-dash-block="atencao">
-            <div class="panel-head">
-              <h2>🎯 Central de Ações</h2>
-              <a href="#" class="link-btn" onclick="goToView('pendencias'); return false;">Ver todas as pendências →</a>
-            </div>
-            <div id="attentionList" class="attention-list"></div>
-          </div>
-
-          <div class="panel" id="painelAtividade" data-dash-block="atividade">
-            <div class="panel-head">
-              <h2>Atividade recente</h2>
-            </div>
-            <div id="activityList" class="activity-list"></div>
-          </div>
-        </div>
-
-        <div class="panel" id="painelAtendimentosHoje" data-dash-block="atendimentos-hoje">
-          <div class="panel-head">
-            <h2>Atendimentos de hoje</h2>
-            <a href="#" class="link-btn" onclick="atEstado.dia = todayISO(); atendSemanaAtual = atendSegundaDaSemana(todayISO()); goToView('atendimentos'); return false;">Ver atendimentos de hoje →</a>
-          </div>
-          <div id="atendimentosHojeResumo" class="stat-grid"></div>
-        </div>
+        <div id="dbRoot" class="db-root"></div>
       </section>
 
       <!-- PENDÊNCIAS -->

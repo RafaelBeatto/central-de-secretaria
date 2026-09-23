@@ -2,7 +2,7 @@
    7. NAVEGAÇÃO / TEMA / RELÓGIO
    --------------------------------------------------------- */
 const VIEW_META = {
-  dashboard: { title:'Dashboard', sub:'Visão geral da secretaria' },
+  dashboard: { title:'Dashboard', sub:'O que resolver, o que tem hoje e como estão os projetos' },
   pendencias: { title:'Pendências', sub:'Tudo que exige ação, em um só lugar' },
   projetos: { title:'Projetos', sub:'Recursos recebidos e onde cada real foi aplicado' },
   solicitacoes: { title:'Secretaria', sub:'Tarefas e rotinas do dia a dia' },
@@ -18,7 +18,7 @@ const VIEW_META = {
 };
 
 const HELP_TEXT = {
-  dashboard: 'Mostra um resumo da secretaria: quantidade de registros, prazos que exigem atenção e atividades recentes. Os números são calculados somente a partir dos dados cadastrados por você.',
+  dashboard: 'A página de entrada. Em "Para resolver" ficam o que está atrasado e o que pede atenção, com o botão para resolver ali mesmo (concluir tarefa, renovar documento, marcar presença). Ao lado, o que tem hoje e nos próximos 7 dias. Embaixo, o andamento dos projetos e três números da semana. Clique em qualquer item para abrir o registro.',
   pendencias: 'Reúne automaticamente todas as pendências do sistema: documentos vencidos/vencendo, tarefas atrasadas e compromissos de hoje. Veja tudo por prioridade em um só lugar.',
   projetos: 'Cada recurso é um dinheiro que entrou na APAE (convênio, emenda, doação). Dentro dele ficam as execuções: cada aplicação desse dinheiro, com plano, cotações, compra, documentos e pagamentos. A barra lateral da execução mostra quais etapas já estão registradas.',
   solicitacoes: 'As tarefas aparecem separadas por quando precisam ser feitas: atrasadas, hoje, próximos 7 dias e mais adiante. Escreva no campo do topo e aperte Enter para adicionar rápido; use Mais opções para rotinas que se repetem (toda semana, todo mês). Clique numa tarefa para ver detalhes, checklist e histórico.',
