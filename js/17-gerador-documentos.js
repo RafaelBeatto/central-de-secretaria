@@ -566,6 +566,11 @@ function serieDoModelo(modelo){
 function modeloUsaNumeracao(modelo){
   return extrairCamposChave(modelo && modelo.texto).includes('NUMERO');
 }
+function espiarProximoNumeroGerador(serie){
+  const ano = new Date().getFullYear();
+  const atual = (DB.getConfig().geradorNumeracao || {})[`${serie}::${ano}`] || 0;
+  return `${String(atual + 1).padStart(3, '0')}/${ano}`;
+}
 function proximoNumeroGerador(serie){
   const cfg = DB.getConfig();
   cfg.geradorNumeracao = cfg.geradorNumeracao || {};
@@ -666,16 +671,18 @@ function textoPesquisaDocumento(doc){
 function duplicarDocumentoGerado(id){
   const original = getDocumentosGerados().find(d => d.id === id);
   if (!original) return showToast('Documento não encontrado');
-  const modelo = getGeradorModelos().find(m => m.id === original.modeloId)
-    || { id: original.modeloId, nome: original.modeloNome, titulo: original.titulo, texto: original.textoSnapshot, serie: original.serie };
-  salvarDocumentoGerado(modelo, {
+  // Usa o texto e o formato do próprio documento: se o modelo foi editado
+  // ou excluído depois, a cópia continua igual ao original.
+  const modelo = { id: original.modeloId, nome: original.modeloNome, titulo: original.titulo, texto: original.textoSnapshot, serie: original.serie, formato: original.formato, espacamento: original.espacamento };
+  const copia = salvarDocumentoGerado(modelo, {
     valores: { ...original.valores },
     contexto: { ...original.contexto },
     assinaturas: (original.assinaturas || []).map(l => [...l]),
     vinculo: original.vinculo ? { ...original.vinculo } : null
   });
+  geEstado.sel = copia.id;
   renderGeradorDocumentos();
-  showToast('✓ Documento duplicado com nova numeração.');
+  showToast(copia.numero ? `✓ Cópia criada: ${nomeDocumentoGerado(copia)}.` : '✓ Documento duplicado.');
 }
 
 /* -----------------------------------------------------------
@@ -695,7 +702,7 @@ function listarEmpresasParaVinculo(){
 
   const deProjetos = [];
   DB.getAll('projetos').forEach(p => {
-    (p.empresas || []).forEach(e => {
+    (p.empresas || []).filter(e => !e.empresaGlobalId).forEach(e => {
       const chave = (e.cnpj || e.nome || '').toLowerCase().trim();
       if (chave && chaves.has(chave)) return;
       deProjetos.push({
@@ -763,57 +770,6 @@ function excluirEmpresaGerador(id){
     DB.remove('gerador-empresas', id);
     renderGeradorDocumentos();
     showToast('Empresa excluída.');
-  });
-}
-
-function renderGeradorAbaEmpresas(){
-  const alvo = document.getElementById('geradorAbaConteudo');
-  if (!alvo) return;
-  const proprias = getEmpresasGerador();
-  const doProjeto = listarEmpresasParaVinculo().filter(e => e._origem === 'projeto');
-
-  alvo.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-      <p class="muted" style="margin:0">${proprias.length} empresa${proprias.length !== 1 ? 's' : ''} cadastrada${proprias.length !== 1 ? 's' : ''}${doProjeto.length ? ` · ${doProjeto.length} vinda${doProjeto.length !== 1 ? 's' : ''} dos projetos` : ''}</p>
-      <button class="btn btn-sm btn-primary" id="btnNovaEmpresaGer">＋ Nova empresa</button>
-    </div>
-    ${!proprias.length ? '<p class="muted">Nenhuma empresa cadastrada ainda.</p>' : `
-      <div class="activity-list">
-        ${proprias.map(e => `
-          <div class="workspace-item" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
-            <div style="flex:1;min-width:200px">
-              <strong>${escapeHTML(e.razaoSocial)}</strong>
-              <div><small class="muted">${[e.cnpj && `CNPJ: ${e.cnpj}`, e.telefone, e.representante && `Rep.: ${e.representante}`].filter(Boolean).map(escapeHTML).join(' · ') || 'Sem dados adicionais'}</small></div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button class="btn btn-sm btn-primary" data-emp-act="gerar" data-emp-id="${e.id}">📄 Gerar documento</button>
-              <button class="btn btn-sm btn-ghost" data-emp-act="editar" data-emp-id="${e.id}">Editar</button>
-              <button class="btn btn-sm btn-danger" data-emp-act="excluir" data-emp-id="${e.id}">Excluir</button>
-            </div>
-          </div>`).join('')}
-      </div>`}
-    ${doProjeto.length ? `
-      <div class="panel" style="margin-top:18px">
-        <div class="panel-head"><h2 style="font-size:15px;margin:0">Empresas já cadastradas nos projetos</h2></div>
-        <p class="muted" style="padding:0 12px 6px">Ficam disponíveis para vínculo sem precisar recadastrar. Para usar endereço e representante nos documentos, cadastre-a acima com os dados completos.</p>
-        <div class="activity-list">
-          ${doProjeto.map(e => `
-            <div class="activity-item">
-              <strong>${escapeHTML(e.razaoSocial)}</strong>
-              <small>${[e.cnpj && `CNPJ: ${e.cnpj}`, e.telefone, `Projeto: ${e._projetoNome}`].filter(Boolean).map(escapeHTML).join(' · ')}</small>
-            </div>`).join('')}
-        </div>
-      </div>` : ''}`;
-
-  document.getElementById('btnNovaEmpresaGer').addEventListener('click', () => abrirFormEmpresaGerador());
-  alvo.querySelectorAll('[data-emp-act]').forEach(btn => {
-    const id = btn.dataset.empId;
-    const acao = btn.dataset.empAct;
-    btn.addEventListener('click', () => {
-      if (acao === 'editar') abrirFormEmpresaGerador(id);
-      else if (acao === 'excluir') excluirEmpresaGerador(id);
-      else if (acao === 'gerar') abrirSeletorModeloGerador({ tipo: 'empresa', id });
-    });
   });
 }
 
@@ -920,7 +876,10 @@ function abrirRegistroVinculado(vinculo){
   else if (vinculo.tipo === 'solicitacao') { goToView('solicitacoes'); abrirDetalheSolicitacao(vinculo.id); }
   else if (vinculo.tipo === 'aluno') abrirHistoricoAluno(vinculo.id);
   else if (vinculo.tipo === 'atendimento') abrirAtendimento(vinculo.id);
-  else if (vinculo.tipo === 'empresa') { goToView('gerador'); geradorAbaAtual = 'empresas'; renderGeradorDocumentos(); }
+  else if (vinculo.tipo === 'empresa') {
+    if (getEmpresaGlobal(vinculo.id)) abrirFichaEmpresaGlobal(vinculo.id);
+    else { geEstado.aba = 'empresas'; goToView('gerador'); }
+  }
 }
 
 /* -----------------------------------------------------------
@@ -936,77 +895,6 @@ function formatarTamanhoArquivo(bytes){
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function abrirAnexosDocumento(id){
-  const doc = getDocumentosGerados().find(d => d.id === id);
-  if (!doc) return showToast('Documento não encontrado');
-
-  const desenhar = () => {
-    const atual = DB.getById('gerador-documentos', id);
-    const anexos = atual.anexos || [];
-    document.getElementById('gerAnexosLista').innerHTML = anexos.length
-      ? anexos.map(a => `
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px">
-          <div style="flex:1;min-width:0">
-            <strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHTML(a.nome)}</strong>
-            <small class="muted">${escapeHTML(a.tipo || 'arquivo')} · ${formatarTamanhoArquivo(a.tamanho)}</small>
-          </div>
-          <div style="display:flex;gap:6px">
-            <button type="button" class="btn btn-sm btn-ghost" data-anx-baixar="${a.id}">⭳ Baixar</button>
-            <button type="button" class="btn btn-sm btn-danger" data-anx-remover="${a.id}">✕</button>
-          </div>
-        </div>`).join('')
-      : '<p class="muted">Nenhum anexo neste documento.</p>';
-
-    document.querySelectorAll('[data-anx-baixar]').forEach(b => {
-      b.addEventListener('click', () => baixarAnexo(b.dataset.anxBaixar));
-    });
-    document.querySelectorAll('[data-anx-remover]').forEach(b => {
-      b.addEventListener('click', () => {
-        const anxId = b.dataset.anxRemover;
-        const restantes = (DB.getById('gerador-documentos', id).anexos || []).filter(a => a.id !== anxId);
-        DB.update('gerador-documentos', id, { anexos: restantes });
-        ProjectFiles.remove(anxId).catch(() => {});
-        desenhar();
-        renderGeradorDocumentos();
-        showToast('Anexo removido.');
-      });
-    });
-  };
-
-  openModal(`Anexos: ${nomeDocumentoGerado(doc)}`, `
-    <p class="muted" style="margin-bottom:10px">Anexe PDFs, imagens, comprovantes ou documentos relacionados. Os arquivos ficam guardados junto do documento.</p>
-    <div class="form-group">
-      <input type="file" id="gerAnexoInput" class="input" multiple>
-    </div>
-    <div id="gerAnexosLista" style="max-height:40vh;overflow-y:auto"></div>
-    <div class="modal-actions" style="margin-top:16px">
-      <button type="button" class="btn btn-ghost" id="btnFecharAnexos">Fechar</button>
-    </div>
-  `);
-
-  desenhar();
-  document.getElementById('btnFecharAnexos').addEventListener('click', closeModal);
-  document.getElementById('gerAnexoInput').addEventListener('change', async (e) => {
-    const arquivos = [...e.target.files];
-    if (!arquivos.length) return;
-    showToast('Salvando anexo(s)...');
-    const novos = [];
-    for (const f of arquivos) {
-      const ref = await salvarAnexo(f, 'documento-gerado');
-      if (ref) novos.push(ref);
-    }
-    if (novos.length) {
-      const atual = DB.getById('gerador-documentos', id);
-      DB.update('gerador-documentos', id, { anexos: [...(atual.anexos || []), ...novos] });
-      registrarHistorico({ modulo: 'gerador-documentos', acao: 'anexo', descricao: `${novos.length} anexo(s) adicionado(s) em "${nomeDocumentoGerado(doc)}".`, refId: id });
-      showToast(`✓ ${novos.length} anexo(s) salvo(s).`);
-    }
-    e.target.value = '';
-    desenhar();
-    renderGeradorDocumentos();
-  });
-}
-
 function excluirDocumentoGerado(id){
   const doc = getDocumentosGerados().find(d => d.id === id);
   if (!doc) return showToast('Documento não encontrado');
@@ -1016,224 +904,6 @@ function excluirDocumentoGerado(id){
     registrarHistorico({ modulo: 'gerador-documentos', acao: 'exclusão', descricao: `Documento "${nomeDocumentoGerado(doc)}" excluído.`, refId: id });
     renderGeradorDocumentos();
     showToast('Documento excluído.');
-  });
-}
-
-/* -----------------------------------------------------------
-   17.3 VIEW PRINCIPAL — centro de modelos e documentos
-   ----------------------------------------------------------- */
-let geradorAbaAtual = 'modelos';
-let geradorBuscaDocs = '';
-
-function renderGeradorDocumentos(){
-  const container = document.getElementById('listaGeradorDocumentos');
-  if (!container) return;
-  const inst = getInstituicaoConfig();
-  const docs = getDocumentosGerados();
-
-  container.innerHTML = `
-    <div class="modelos-header">
-      <div>
-        <h2 style="margin:0;font-size:20px">📄 Gerador de Documentos</h2>
-        <p class="muted">Campos <b>{AUTOMÁTICOS}</b> são preenchidos pelo sistema · campos <b>[MANUAIS]</b> você preenche na hora</p>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-ghost" id="btnConfigInstituicao">⚙ Dados da instituição</button>
-        <button class="btn btn-ghost" id="btnNovoModeloGerador">＋ Novo modelo</button>
-        <button class="btn btn-primary" id="btnNovoDocumentoGerador">📄 Novo documento</button>
-      </div>
-    </div>
-    ${!inst.nome ? `<div class="notice-box" style="margin-bottom:16px"><b>! Dados da instituição não configurados</b><br>Configure nome, CNPJ, endereço e logo para que apareçam automaticamente nos documentos gerados.</div>` : ''}
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-      <button class="btn btn-sm ${geradorAbaAtual === 'modelos' ? 'btn-primary' : 'btn-ghost'}" data-ger-aba="modelos">📄 Modelos</button>
-      <button class="btn btn-sm ${geradorAbaAtual === 'documentos' ? 'btn-primary' : 'btn-ghost'}" data-ger-aba="documentos">📂 Meus documentos (${docs.length})</button>
-      <button class="btn btn-sm ${geradorAbaAtual === 'empresas' ? 'btn-primary' : 'btn-ghost'}" data-ger-aba="empresas">🏢 Empresas</button>
-    </div>
-    <div id="geradorAbaConteudo"></div>`;
-
-  container.querySelectorAll('[data-ger-aba]').forEach(btn => {
-    btn.addEventListener('click', () => { geradorAbaAtual = btn.dataset.gerAba; renderGeradorDocumentos(); });
-  });
-  document.getElementById('btnConfigInstituicao').addEventListener('click', abrirConfigInstituicao);
-  document.getElementById('btnNovoModeloGerador').addEventListener('click', () => abrirModalModeloGerador());
-  document.getElementById('btnNovoDocumentoGerador').addEventListener('click', () => abrirSeletorModeloGerador());
-
-  if (geradorAbaAtual === 'documentos') renderGeradorAbaDocumentos();
-  else if (geradorAbaAtual === 'empresas') renderGeradorAbaEmpresas();
-  else renderGeradorAbaModelos();
-}
-
-/* Escolha de modelo para começar um documento. Quando vem de um
-   registro (ex.: botão "Gerar documento" de uma empresa), o vínculo
-   já chega pronto e os campos são preenchidos automaticamente. */
-function abrirSeletorModeloGerador(vinculoPre){
-  const modelos = getGeradorModelos();
-  if (!modelos.length) return showToast('Cadastre um modelo antes de gerar documentos.');
-  const contexto = vinculoPre ? rotuloVinculo({ ...vinculoPre, rotulo: (listarRegistrosVinculo(vinculoPre.tipo).find(r => r.id === vinculoPre.id) || {}).rotulo }) : '';
-
-  openModal('Novo documento — escolha o modelo', `
-    ${contexto ? `<div class="notice-box" style="margin-bottom:12px"><b>Gerando a partir de:</b><br>${escapeHTML(contexto)}</div>` : ''}
-    <div class="modelos-grid">
-      ${modelos.map(m => `
-        <div class="modelo-card">
-          <div class="modelo-icone">📄</div>
-          <div class="modelo-nome">${escapeHTML(m.nome)}</div>
-          <div class="modelo-actions">
-            <button class="btn btn-sm btn-primary" data-sel-modelo="${m.id}">Usar</button>
-          </div>
-        </div>`).join('')}
-    </div>
-    <div class="modal-actions" style="margin-top:16px">
-      <button type="button" class="btn btn-ghost" id="btnFecharSeletorModelo">Cancelar</button>
-    </div>
-  `);
-  document.getElementById('btnFecharSeletorModelo').addEventListener('click', closeModal);
-  document.querySelectorAll('[data-sel-modelo]').forEach(b => {
-    b.addEventListener('click', () => abrirFormularioGerador(b.dataset.selModelo, null, vinculoPre));
-  });
-}
-
-function renderGeradorAbaModelos(){
-  const alvo = document.getElementById('geradorAbaConteudo');
-  if (!alvo) return;
-  const modelos = getGeradorModelos();
-  const recentes = getDocumentosGerados().sort((a, b) => b.criadoEm - a.criadoEm).slice(0, 5);
-
-  alvo.innerHTML = `
-    ${recentes.length ? `
-      <div class="panel" style="margin-bottom:18px">
-        <div class="panel-head"><h2 style="font-size:15px;margin:0">Recentes</h2></div>
-        <div class="activity-list">
-          ${recentes.map(d => `
-            <div class="activity-item" data-ger-recente="${d.id}" style="cursor:pointer">
-              <strong>${escapeHTML(nomeDocumentoGerado(d))}</strong>
-              <small>Gerado em ${formatDateBR(d.dataGeracao)}${d.versao > 1 ? ` · versão ${d.versao}` : ''}</small>
-            </div>`).join('')}
-        </div>
-      </div>` : ''}
-    <p class="muted" style="margin-bottom:10px">${modelos.length} modelo${modelos.length !== 1 ? 's' : ''} disponíve${modelos.length !== 1 ? 'is' : 'l'}</p>
-    <div class="modelos-grid">
-      ${modelos.map(m => {
-        const manuais = extrairVariaveis(m.texto).length;
-        const chaves = classificarCamposChave(m.texto);
-        return `
-        <div class="modelo-card">
-          <div class="modelo-icone">📄</div>
-          <div class="modelo-nome">${escapeHTML(m.nome)}</div>
-          <div class="modelo-campos"><small class="muted">${manuais} campo${manuais !== 1 ? 's' : ''} para preencher${chaves.automaticos.length ? ` · ${chaves.automaticos.length} automático${chaves.automaticos.length !== 1 ? 's' : ''}` : ''}${modeloUsaNumeracao(m) ? ' · numerado' : ''}</small></div>
-          <div class="modelo-actions">
-            <button class="btn btn-sm btn-primary" data-ger-act="usar" data-ger-id="${m.id}">Usar modelo</button>
-            <button class="btn btn-sm btn-ghost" data-ger-act="editar" data-ger-id="${m.id}">Editar</button>
-            <button class="btn btn-sm btn-ghost" data-ger-act="duplicar" data-ger-id="${m.id}">Duplicar</button>
-            ${!m.padrao ? `<button class="btn btn-sm btn-danger" data-ger-act="excluir" data-ger-id="${m.id}">Excluir</button>` : ''}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
-
-  alvo.querySelectorAll('[data-ger-act]').forEach(btn => {
-    const id = btn.dataset.gerId;
-    const acao = btn.dataset.gerAct;
-    btn.addEventListener('click', () => {
-      if (acao === 'usar') abrirFormularioGerador(id);
-      else if (acao === 'editar') abrirModalModeloGerador(id);
-      else if (acao === 'duplicar') duplicarModeloGerador(id);
-      else if (acao === 'excluir') excluirModeloGerador(id);
-    });
-  });
-  alvo.querySelectorAll('[data-ger-recente]').forEach(el => {
-    el.addEventListener('click', () => abrirDocumentoGerado(el.dataset.gerRecente));
-  });
-}
-
-function renderGeradorAbaDocumentos(){
-  const alvo = document.getElementById('geradorAbaConteudo');
-  if (!alvo) return;
-  const termo = geradorBuscaDocs.trim().toLowerCase();
-  const todos = getDocumentosGerados().sort((a, b) => b.criadoEm - a.criadoEm);
-  const docs = termo ? todos.filter(d => textoPesquisaDocumento(d).includes(termo)) : todos;
-
-  alvo.innerHTML = `
-    <div class="form-group" style="margin-bottom:14px">
-      <input type="text" id="geradorBuscaDocs" class="input" placeholder="🔎 Pesquisar por nome, tipo, número, data, pessoa ou empresa..." value="${escapeHTML(geradorBuscaDocs)}">
-    </div>
-    ${!todos.length ? '<p class="muted">Nenhum documento gerado ainda. Use um modelo na aba “Modelos” para gerar o primeiro.</p>'
-      : !docs.length ? '<p class="muted">Nenhum documento encontrado para esta pesquisa.</p>'
-      : `<div class="activity-list">
-        ${docs.map(d => `
-          <div class="workspace-item" data-id="${d.id}" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
-            <div style="flex:1;min-width:200px">
-              <strong>${escapeHTML(nomeDocumentoGerado(d))}</strong>
-              <div><small class="muted">Modelo: ${escapeHTML(d.modeloNome)} · Gerado em ${formatDateBR(d.dataGeracao)}${d.versao > 1 ? ` · <b>versão ${d.versao}</b>` : ''}</small></div>
-              ${d.vinculo ? `<div><small>🔗 <a href="#" data-doc-vinculo="${d.id}">${escapeHTML(rotuloVinculo(d.vinculo))}</a></small></div>` : ''}
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button class="btn btn-sm btn-primary" data-doc-act="ver" data-doc-id="${d.id}">👁 Abrir</button>
-              <button class="btn btn-sm btn-ghost" data-doc-act="editar" data-doc-id="${d.id}">Editar</button>
-              <button class="btn btn-sm btn-ghost" data-doc-act="duplicar" data-doc-id="${d.id}">Duplicar</button>
-              <button class="btn btn-sm btn-ghost" data-doc-act="anexos" data-doc-id="${d.id}">📎 Anexos${(d.anexos || []).length ? ` (${d.anexos.length})` : ''}</button>
-              ${d.versoes && d.versoes.length ? `<button class="btn btn-sm btn-ghost" data-doc-act="versoes" data-doc-id="${d.id}">🕘 ${d.versoes.length + 1} versões</button>` : ''}
-              <button class="btn btn-sm btn-danger" data-doc-act="excluir" data-doc-id="${d.id}">Excluir</button>
-            </div>
-          </div>`).join('')}
-      </div>`}`;
-
-  const busca = document.getElementById('geradorBuscaDocs');
-  busca.addEventListener('input', (e) => {
-    geradorBuscaDocs = e.target.value;
-    renderGeradorAbaDocumentos();
-    const novo = document.getElementById('geradorBuscaDocs');
-    novo.focus();
-    novo.setSelectionRange(novo.value.length, novo.value.length);
-  });
-
-  alvo.querySelectorAll('[data-doc-vinculo]').forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const d = getDocumentosGerados().find(x => x.id === link.dataset.docVinculo);
-      if (d) abrirRegistroVinculado(d.vinculo);
-    });
-  });
-
-  alvo.querySelectorAll('[data-doc-act]').forEach(btn => {
-    const id = btn.dataset.docId;
-    const acao = btn.dataset.docAct;
-    btn.addEventListener('click', () => {
-      if (acao === 'ver') abrirDocumentoGerado(id);
-      else if (acao === 'editar') abrirFormularioGerador(null, id);
-      else if (acao === 'duplicar') duplicarDocumentoGerado(id);
-      else if (acao === 'anexos') abrirAnexosDocumento(id);
-      else if (acao === 'versoes') abrirVersoesDocumento(id);
-      else if (acao === 'excluir') excluirDocumentoGerado(id);
-    });
-  });
-}
-
-function abrirVersoesDocumento(id){
-  const doc = getDocumentosGerados().find(d => d.id === id);
-  if (!doc) return showToast('Documento não encontrado');
-  const anteriores = (doc.versoes || []).slice().reverse();
-  openModal(`Versões: ${nomeDocumentoGerado(doc)}`, `
-    <div class="activity-list">
-      <div class="activity-item">
-        <strong>Versão ${doc.versao} (atual)</strong>
-        <small>Salva em ${new Date(doc.atualizadoEm).toLocaleString('pt-BR')}</small>
-      </div>
-      ${anteriores.map(v => `
-        <div class="activity-item" data-ver-num="${v.versao}" style="cursor:pointer">
-          <strong>Versão ${v.versao}</strong>
-          <small>Salva em ${new Date(v.salvoEm).toLocaleString('pt-BR')} · clique para visualizar</small>
-        </div>`).join('')}
-    </div>
-    <div class="modal-actions" style="margin-top:16px">
-      <button type="button" class="btn btn-ghost" id="btnFecharVersoes">Fechar</button>
-    </div>`);
-  document.getElementById('btnFecharVersoes').addEventListener('click', closeModal);
-  document.querySelectorAll('[data-ver-num]').forEach(el => {
-    el.addEventListener('click', () => {
-      const v = (doc.versoes || []).find(x => String(x.versao) === el.dataset.verNum);
-      if (v) abrirDocumentoGerado(id, v);
-    });
   });
 }
 
@@ -1318,7 +988,7 @@ function duplicarModeloGerador(id){
   const original = getGeradorModelos().find(m => m.id === id);
   if (!original) return showToast('Modelo não encontrado');
   const modelos = getGeradorModelos();
-  modelos.push({ id: uid('ger'), nome: `${original.nome} (cópia)`, titulo: original.titulo, serie: original.serie || '', texto: original.texto, padrao: false, criadoEm: Date.now() });
+  modelos.push({ id: uid('ger'), nome: `${original.nome} (cópia)`, titulo: original.titulo, serie: original.serie || '', texto: original.texto, formato: original.formato, espacamento: original.espacamento, padrao: false, criadoEm: Date.now() });
   DB.saveAll('gerador-modelos', modelos);
   renderGeradorDocumentos();
   showToast('✓ Modelo duplicado.');
@@ -1340,183 +1010,7 @@ function excluirModeloGerador(id){
    17.5 FORMULÁRIO DE PREENCHIMENTO + GERAÇÃO
    ----------------------------------------------------------- */
 /* Campos longos ganham textarea em vez de input de uma linha. */
-const GERADOR_CAMPOS_LONGOS = ['TEXTO','PAUTA','DELIBERACOES','CLAUSULAS','JUSTIFICATIVA','OBJETIVO','ATIVIDADES','RESULTADOS','CONSIDERACOES','PRESENTES','OBJETO','ASSUNTO'];
-
-/* modeloId → gerar documento novo. docId → editar documento já gerado
-   (salva como nova versão, preservando as anteriores). */
-function abrirFormularioGerador(modeloId, docId, vinculoPre){
-  const doc = docId ? getDocumentosGerados().find(d => d.id === docId) : null;
-  const modelo = doc
-    ? (getGeradorModelos().find(m => m.id === doc.modeloId)
-       || { id: doc.modeloId, nome: doc.modeloNome, titulo: doc.titulo, texto: doc.textoSnapshot, serie: doc.serie })
-    : getGeradorModelos().find(m => m.id === modeloId);
-  if (!modelo) return showToast('Modelo não encontrado');
-
-  const textoBase = doc ? (doc.textoSnapshot || modelo.texto) : modelo.texto;
-  const variaveis = extrairVariaveis(textoBase);
-  const chaves = classificarCamposChave(textoBase);
-  const auto = camposAutomaticosGerador({ data: doc ? doc.dataGeracao : todayISO(), numero: doc ? doc.numero : '' });
-  const valoresIniciais = doc ? (doc.valores || {}) : {};
-  const contextoInicial = doc ? (doc.contexto || {}) : {};
-  const alunos = (typeof getAtendAlunos === 'function') ? getAtendAlunos() : [];
-  const vinculoAtual = (doc && doc.vinculo) ? { ...doc.vinculo } : (vinculoPre ? { ...vinculoPre } : {});
-
-  const campoHTML = (nome, idEl, valor) => GERADOR_CAMPOS_LONGOS.includes(nome)
-    ? `<textarea id="${idEl}" class="input" style="height:90px" placeholder="${escapeHTML(nome)}">${escapeHTML(valor || '')}</textarea>`
-    : `<input type="text" id="${idEl}" class="input" placeholder="${escapeHTML(nome)}" value="${escapeHTML(valor || '')}"${nome === 'NOME_ALUNO' ? ' list="gerListaAlunos"' : ''}>`;
-
-  openModal(doc ? `Editar: ${nomeDocumentoGerado(doc)}` : `Gerar documento: ${modelo.nome}`, `
-    <div style="max-height:60vh;overflow-y:auto">
-      ${doc ? `<div class="notice-box" style="margin-bottom:12px"><b>Versão atual: ${doc.versao}</b><br>Ao salvar, será criada a versão ${doc.versao + 1}. As versões anteriores continuam guardadas.</div>` : ''}
-      ${chaves.automaticos.length ? `
-        <div class="notice-box" style="margin-bottom:12px">
-          <b>Preenchidos automaticamente pelo sistema</b>
-          <div style="margin-top:6px;font-size:12px;line-height:1.6">
-            ${chaves.automaticos.map(c => `{${escapeHTML(c)}} → ${auto[c] ? escapeHTML(auto[c]) : '<i>não configurado</i>'}`).join('<br>')}
-          </div>
-        </div>` : ''}
-      ${chaves.contexto.map((c, i) => `
-        <div class="form-group">
-          <label>${escapeHTML(GERADOR_CAMPOS_CONTEXTO_LABEL[c] || c)}:</label>
-          ${campoHTML(c, `gerChave_${i}`, contextoInicial[c])}
-        </div>`).join('')}
-      ${variaveis.length ? variaveis.map((v, i) => `
-        <div class="form-group">
-          <label>${escapeHTML(v)}:</label>
-          ${campoHTML(v, `gerCampo_${i}`, valoresIniciais[v])}
-        </div>
-      `).join('') : (chaves.contexto.length ? '' : '<p class="muted">Este modelo não possui campos variáveis.</p>')}
-      <datalist id="gerListaAlunos">${alunos.map(a => `<option value="${escapeHTML(a.nome)}"></option>`).join('')}</datalist>
-
-      <div class="form-group" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
-        <label>🔗 Vincular este documento a:</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <select id="gerVincTipo" class="input" style="flex:1;min-width:150px">
-            <option value="">Nenhum vínculo</option>
-            ${GERADOR_TIPOS_VINCULO.map(t => `<option value="${t.tipo}"${vinculoAtual.tipo === t.tipo ? ' selected' : ''}>${t.label}</option>`).join('')}
-          </select>
-          <select id="gerVincId" class="input" style="flex:2;min-width:180px"${vinculoAtual.tipo ? '' : ' disabled'}></select>
-        </div>
-        <small class="muted">Ao escolher, os campos em branco são preenchidos com os dados do registro.</small>
-      </div>
-    </div>
-    <div class="form-group" style="margin-top:10px">
-      <label><input type="checkbox" id="gerAssinaturaAtiva"${doc && (doc.assinaturas || []).length ? ' checked' : ''}> Adicionar assinatura</label>
-    </div>
-    <div id="gerAssinaturasArea"${doc && (doc.assinaturas || []).length ? '' : ' hidden'}>
-      <label>Assinaturas</label>
-      <div id="gerAssinaturasLista"></div>
-      <button type="button" class="btn btn-sm btn-ghost" id="btnAddAssinatura">＋ Adicionar assinatura</button>
-    </div>
-    <div class="modal-actions" style="margin-top:16px">
-      <button type="button" class="btn btn-ghost" id="btnCancelarFormGerador">Cancelar</button>
-      <button type="button" class="btn btn-primary" id="btnGerarDocumentoFinal">${doc ? `Salvar versão ${doc.versao + 1}` : 'Gerar Documento'}</button>
-    </div>
-  `);
-
-  // Cada assinatura é um bloco independente com várias linhas de texto livre: [[linha1, linha2, ...], ...]
-  let assinaturas = doc ? (doc.assinaturas || []).map(l => [...l]) : [];
-  const renderAssinaturasLista = () => {
-    document.getElementById('gerAssinaturasLista').innerHTML = assinaturas.map((linhas, bi) => `
-      <div class="form-group" style="border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px">
-        <strong style="display:block;margin-bottom:6px">ASSINATURA ${bi + 1}</strong>
-        ${linhas.map((texto, li) => `
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-            <input type="text" class="input gerLinhaTexto" data-bi="${bi}" data-li="${li}" placeholder="Texto livre" value="${escapeHTML(texto)}" style="flex:1">
-            <button type="button" class="btn btn-sm btn-danger gerRemoverLinha" data-bi="${bi}" data-li="${li}">✕</button>
-          </div>`).join('')}
-        <div style="display:flex;gap:8px">
-          <button type="button" class="btn btn-sm btn-ghost gerAddLinha" data-bi="${bi}">＋ Adicionar linha</button>
-          <button type="button" class="btn btn-sm btn-danger gerRemoverAssinatura" data-bi="${bi}">Remover assinatura</button>
-        </div>
-      </div>`).join('');
-    document.querySelectorAll('.gerLinhaTexto').forEach(inp => {
-      inp.addEventListener('input', (e) => { assinaturas[+e.target.dataset.bi][+e.target.dataset.li] = e.target.value; });
-    });
-    document.querySelectorAll('.gerRemoverLinha').forEach(btn => {
-      btn.addEventListener('click', (e) => { assinaturas[+e.target.dataset.bi].splice(+e.target.dataset.li, 1); renderAssinaturasLista(); });
-    });
-    document.querySelectorAll('.gerAddLinha').forEach(btn => {
-      btn.addEventListener('click', (e) => { assinaturas[+e.target.dataset.bi].push(''); renderAssinaturasLista(); });
-    });
-    document.querySelectorAll('.gerRemoverAssinatura').forEach(btn => {
-      btn.addEventListener('click', (e) => { assinaturas.splice(+e.target.dataset.bi, 1); renderAssinaturasLista(); });
-    });
-  };
-  document.getElementById('gerAssinaturaAtiva').addEventListener('change', (e) => {
-    document.getElementById('gerAssinaturasArea').hidden = !e.target.checked;
-  });
-  document.getElementById('btnAddAssinatura').addEventListener('click', () => {
-    assinaturas.push(['']);
-    renderAssinaturasLista();
-  });
-
-  if (doc && assinaturas.length) renderAssinaturasLista();
-
-  /* ---- Vínculo: lista de registros + preenchimento automático ---- */
-  const selTipo = document.getElementById('gerVincTipo');
-  const selId = document.getElementById('gerVincId');
-
-  const preencherListaRegistros = () => {
-    const registros = listarRegistrosVinculo(selTipo.value);
-    selId.disabled = !selTipo.value;
-    selId.innerHTML = !selTipo.value
-      ? '<option value="">—</option>'
-      : (registros.length
-          ? `<option value="">Selecione...</option>${registros.map(r => `<option value="${escapeHTML(r.id)}"${vinculoAtual.id === r.id ? ' selected' : ''}>${escapeHTML(r.rotulo)}</option>`).join('')}`
-          : '<option value="">Nenhum registro disponível</option>');
-  };
-
-  /* Preenche só os campos ainda vazios — nunca sobrescreve o que foi digitado. */
-  const aplicarDadosDoVinculo = () => {
-    if (!selTipo.value || !selId.value) return;
-    const dados = dadosDoVinculo({ tipo: selTipo.value, id: selId.value });
-    let preenchidos = 0;
-    chaves.contexto.forEach((c, i) => {
-      const el = document.getElementById(`gerChave_${i}`);
-      if (el && !el.value.trim() && dados[c]) { el.value = dados[c]; preenchidos++; }
-    });
-    variaveis.forEach((v, i) => {
-      const el = document.getElementById(`gerCampo_${i}`);
-      if (el && !el.value.trim() && dados[v]) { el.value = dados[v]; preenchidos++; }
-    });
-    if (preenchidos) showToast(`✓ ${preenchidos} campo(s) preenchido(s) automaticamente.`);
-  };
-
-  selTipo.addEventListener('change', () => { vinculoAtual.id = ''; preencherListaRegistros(); });
-  selId.addEventListener('change', aplicarDadosDoVinculo);
-  preencherListaRegistros();
-  if (vinculoPre && vinculoPre.id) aplicarDadosDoVinculo();
-
-  document.getElementById('btnCancelarFormGerador').addEventListener('click', closeModal);
-  document.getElementById('btnGerarDocumentoFinal').addEventListener('click', () => {
-    const valores = {};
-    variaveis.forEach((v, i) => {
-      valores[v] = document.getElementById(`gerCampo_${i}`).value.trim();
-    });
-    const contexto = {};
-    chaves.contexto.forEach((c, i) => {
-      contexto[c] = document.getElementById(`gerChave_${i}`).value.trim();
-    });
-    const assinaturaAtiva = document.getElementById('gerAssinaturaAtiva').checked;
-    const assinaturasFinal = assinaturaAtiva
-      ? assinaturas.map(linhas => linhas.map(t => t.trim()).filter(Boolean)).filter(linhas => linhas.length)
-      : [];
-
-    const vinculo = (selTipo.value && selId.value)
-      ? { tipo: selTipo.value, id: selId.value, rotulo: selId.options[selId.selectedIndex].text }
-      : null;
-
-    const salvo = doc
-      ? salvarNovaVersaoDocumento(doc.id, { valores, contexto, assinaturas: assinaturasFinal, vinculo })
-      : salvarDocumentoGerado(modelo, { valores, contexto, assinaturas: assinaturasFinal, vinculo });
-
-    closeModal();
-    renderGeradorDocumentos();
-    showToast(doc ? `✓ Versão ${salvo.versao} salva.` : `✓ ${nomeDocumentoGerado(salvo)} gerado.`);
-    abrirDocumentoGerado(salvo.id);
-  });
-}
+const GERADOR_CAMPOS_LONGOS = ['TEXTO','PAUTA','DELIBERACOES','CLAUSULAS','JUSTIFICATIVA','OBJETIVO','ATIVIDADES','RESULTADOS','CONSIDERACOES','PRESENTES','OBJETO'];
 
 /* Monta o HTML A4 final de um documento já salvo. "versao" opcional
    permite renderizar uma versão antiga sem alterar a atual. */
@@ -1562,31 +1056,6 @@ async function montarHTMLDocumentoGerado(doc, versao){
     </div>`;
 }
 
-async function abrirDocumentoGerado(docId, versao){
-  const doc = getDocumentosGerados().find(d => d.id === docId);
-  if (!doc) return showToast('Documento não encontrado');
-  const documentoHTML = await montarHTMLDocumentoGerado(doc, versao);
-  const rotulo = nomeDocumentoGerado(doc) + (versao ? ` — versão ${versao.versao}` : '');
-
-  openModal(`Visualizar: ${rotulo}`, `
-    <div class="doc-a4-preview-wrap">${documentoHTML}</div>
-    <div class="modal-actions no-print" style="margin-top:16px">
-      ${versao ? '' : '<button type="button" class="btn btn-ghost" id="btnEditarDocGerado">✎ Editar (nova versão)</button>'}
-      <button type="button" class="btn btn-secondary" id="btnImprimirGerador">🖨 Imprimir</button>
-      <button type="button" class="btn btn-primary" id="btnPdfGerador">⭳ Salvar como PDF</button>
-    </div>
-  `);
-
-  if (!versao) {
-    document.getElementById('btnEditarDocGerado').addEventListener('click', () => {
-      closeModal();
-      abrirFormularioGerador(null, doc.id);
-    });
-  }
-  document.getElementById('btnImprimirGerador').addEventListener('click', () => imprimirDocumentoGerador(documentoHTML, rotulo));
-  document.getElementById('btnPdfGerador').addEventListener('click', () => salvarPdfGerador(documentoHTML, rotulo));
-}
-
 /* Impressão/PDF isolados: janela própria só com o documento,
    sem menus/botões do sistema (mesmo padrão já usado no módulo
    Modelos existente, em 16-modelos-documentos.js). */
@@ -1596,8 +1065,10 @@ function imprimirDocumentoGerador(html, nome){
   janela.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${escapeHTML(nome)}</title>
     <style>${DOC_A4_PRINT_CSS}</style></head><body>${html}</body></html>`);
   janela.document.close();
-  janela.onload = () => { janela.focus(); janela.print(); };
-  setTimeout(() => { try { janela.focus(); janela.print(); } catch (e) {} }, 500);
+  let impresso = false;
+  const imprimir = () => { if (impresso) return; impresso = true; try { janela.focus(); janela.print(); } catch (e) {} };
+  janela.onload = imprimir;
+  setTimeout(imprimir, 500);
 }
 
 function salvarPdfGerador(html, nome){

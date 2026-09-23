@@ -45,7 +45,7 @@ function hiDestino(h){
     case 'projeto': return tenta('projetos', i => abrirDetalheProjeto(i));
     case 'empresa': return typeof getEmpresaGlobal === 'function' && getEmpresaGlobal(id) ? () => abrirFichaEmpresaGlobal(id) : null;
     case 'atendimentos': return tenta('atendimentos', abrirAtendimento) || tenta('atendimento-alunos', abrirHistoricoAluno) || tenta('atendimento-profissionais', abrirFichaProfissional);
-    case 'gerador-documentos': return tenta('gerador-documentos', i => abrirDocumentoGerado(i));
+    case 'gerador-documentos': return tenta('gerador-documentos', abrirDetalheDocumentoGerado);
   }
   return null;
 }

@@ -12,7 +12,7 @@ const VIEW_META = {
   kanban: { title:'Kanban', sub:'Organize com quadros de tarefas' },
   historico: { title:'Histórico', sub:'Tudo o que foi feito no sistema, dia a dia' },
   relatorios: { title:'Relatórios', sub:'Relatório de atividades do período e backup dos dados' },
-  gerador: { title:'Gerador de Documentos', sub:'Gere documentos oficiais com cabeçalho e rodapé institucional' },
+  gerador: { title:'Gerador de Documentos', sub:'Ofícios, declarações, recibos e outros documentos com o cabeçalho da instituição' },
   atendimentos: { title:'Atendimentos', sub:'Controle semanal de atendimentos dos alunos' }
 };
 
@@ -27,7 +27,7 @@ const HELP_TEXT = {
   kanban: 'Crie quadros customizados para organizar tarefas, projetos ou eventos da agenda. Arraste cartões entre colunas de status, filtre por responsável ou prioridade. Você controla a estrutura de cada quadro.',
   historico: 'Tudo o que foi criado, alterado, concluído ou excluído, agrupado por dia. Busque por um nome (aluno, documento, tarefa), escolha o período e filtre pelo módulo ou pelo tipo de ação. Clique numa linha para abrir o registro, se ele ainda existir.',
   relatorios: 'Monta o relatório de atividades do período escolhido, com o cabeçalho da instituição: tarefas concluídas, compromissos, atendimentos, documentos renovados e pagamentos dos projetos. Marque as áreas que quer incluir e salve em PDF ou imprima. Aqui também fica o backup de todos os dados.',
-  gerador: 'Configure os dados da instituição (logo, CNPJ, endereço, rodapé) uma única vez e crie modelos de documentos com variáveis como [NOME], [CPF], [VALOR] e [DATA]. Ao gerar, o sistema aplica automaticamente o cabeçalho e rodapé institucional e mostra uma visualização em formato A4 antes de imprimir ou salvar como PDF.',
+  gerador: 'Clique em "Novo documento", escolha o modelo (ofício, declaração, recibo, ata…) e preencha os campos — a prévia ao lado mostra o documento pronto. Ligar o documento a uma empresa, aluno ou projeto preenche os campos sozinho. Os documentos ficam guardados por mês; clique em um para imprimir, salvar em PDF, editar (as versões antigas ficam guardadas), duplicar ou anexar arquivos. Em Modelos você cria e ajusta os textos; em Empresas, o cadastro usado também nos Projetos. Os dados da instituição (logo, CNPJ, endereço) vão no cabeçalho de todos os documentos.',
   atendimentos: 'A semana dos atendimentos: escolha o dia na faixa e marque Veio ou Faltou com um clique (clicar de novo desfaz). Clique no nome para ver os detalhes, remarcar, excluir ou encerrar um atendimento semanal. No aluno ou no profissional você vê o histórico e a presença. Copiar semana anterior não repete o que já existe; o Relatório gera o PDF da semana, do mês ou de um período.'
 };
 
@@ -182,7 +182,7 @@ document.getElementById('btnNewGeneric').addEventListener('click', () => {
     dashboard: openFormSolicitacao, pendencias: openFormSolicitacao, projetos: abrirEscolhaNovoRecursoOuExecucao, solicitacoes: openFormSolicitacao, agenda: openFormEvento,
     documentos: openFormDocumento,
     pesquisa: openFormSolicitacao, kanban: abrirModalNovoQuadro, historico: openFormSolicitacao, relatorios: openFormSolicitacao,
-    gerador: () => abrirModalModeloGerador(), atendimentos: () => abrirModalNovoAtendimento()
+    gerador: () => abrirSeletorModeloGerador(), atendimentos: () => abrirModalNovoAtendimento()
   };
   (map[currentView] || openFormSolicitacao)();
 });

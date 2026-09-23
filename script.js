@@ -25,6 +25,7 @@
     '12-relacionamentos.js',
     '15-kanban.js',
     '17-gerador-documentos.js',
+    '17b-gerador-telas.js',
     '18-armazenamento.js',
     '19-atendimentos.js'
   ];

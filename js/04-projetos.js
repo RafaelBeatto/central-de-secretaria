@@ -449,7 +449,7 @@ function abrirFichaEmpresaGlobal(empresaGlobalId,aba='dados'){
     // Reaproveita o formulário já existente; precisa de um projeto/link para reabrir a tela depois.
     const rel=relacoes[0];
     if(rel) openFormEmpresaEditar(rel.projeto.id,rel.link.id);
-    else showToast('Vincule esta empresa a um projeto para editá-la.');
+    else abrirFormEmpresaGerador(empresaGlobalId);
   });
   document.querySelectorAll('[data-empresa-action="novo-doc"]').forEach(b=>b.onclick=()=>abrirFormDocumentoEmpresaGlobal(empresaGlobalId));
   document.querySelectorAll('[data-empresa-doc-excluir]').forEach(b=>b.onclick=()=>excluirDocumentoEmpresaGlobal(empresaGlobalId,b.dataset.empresaDocExcluir));
