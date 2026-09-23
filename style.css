@@ -1687,3 +1687,6 @@ button.hi-texto:hover span{ text-decoration:underline; }
   .hi-texto{ grid-column:1 / -1; grid-row:2; }
   .hi-filtros #hiBusca{ max-width:none; flex-basis:100%; }
 }
+.hi-apagar{ margin-left:auto; }
+.hi-apagar-conta{ font-weight:600; margin:10px 0 6px; }
+@media (max-width:700px){ .hi-apagar{ margin-left:0; } }

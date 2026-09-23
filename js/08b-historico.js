@@ -12,7 +12,8 @@ const HI_MODULOS = {
   projeto:      { rotulo:'Projetos',    apelidos:['projetos'] },
   empresa:      { rotulo:'Empresas',    apelidos:[] },
   atendimentos: { rotulo:'Atendimentos',apelidos:[] },
-  'gerador-documentos': { rotulo:'Gerador', apelidos:[] }
+  'gerador-documentos': { rotulo:'Gerador', apelidos:[] },
+  sistema:      { rotulo:'Sistema',     apelidos:[] }
 };
 const HI_POR_PAGINA = 150;
 let hiEstado = { busca:'', modulo:'', acao:'', periodo:'30', dia:'', limite:HI_POR_PAGINA };
@@ -109,6 +110,7 @@ function renderHistorico(){
       ${hiEstado.periodo === 'dia' ? `<input type="date" class="input" id="hiDia" value="${hiEsc(hiEstado.dia)}" max="${todayISO()}" aria-label="Dia">` : ''}
       <select class="input" id="hiAcao" aria-label="Tipo de ação"><option value="">Todas as ações</option>${acoes.map(a => `<option value="${hiEsc(a)}" ${hiEstado.acao===a?'selected':''}>${hiEsc(a.charAt(0).toUpperCase()+a.slice(1))}</option>`).join('')}</select>
       ${filtrando ? '<button type="button" class="btn btn-sm" data-hi="limpar">Limpar filtros</button>' : ''}
+      ${todos.length ? '<button type="button" class="btn btn-sm hi-apagar" data-hi="apagar">Limpar histórico…</button>' : ''}
     </div>
     <div class="hi-chips" role="group" aria-label="Módulo">
       ${chip('', 'Tudo', noPeriodo.length)}
@@ -121,6 +123,51 @@ function renderHistorico(){
   if (focoBusca) { const b = document.getElementById('hiBusca'); b.focus(); b.setSelectionRange(b.value.length, b.value.length); }
 }
 
+/* Apaga ações do histórico: tudo ou só as mais antigas que um prazo.
+   Deixa uma linha registrando a limpeza, para ficar claro depois por que
+   o histórico começa ali. */
+function abrirLimparHistorico(){
+  const total = DB.getAll('historico').length;
+  const opcoes = [['tudo','Tudo'],['30','Mais antigas que 30 dias'],['90','Mais antigas que 90 dias'],['365','Mais antigas que 1 ano']];
+  const alvo = v => {
+    if (v === 'tudo') return DB.getAll('historico');
+    const limite = atendAddDias(todayISO(), -Number(v));
+    return DB.getAll('historico').filter(h => hiDia(h.timestamp) < limite);
+  };
+  openModal('Limpar histórico', `<form id="formLimparHist">
+    <div class="field"><label for="hiApagarQuais">O que apagar</label>
+      <select id="hiApagarQuais" class="input">${opcoes.map(([v,t]) => `<option value="${v}">${t}</option>`).join('')}</select></div>
+    <p class="hi-apagar-conta" id="hiApagarConta"></p>
+    <p class="muted">Isso não apaga tarefas, documentos nem atendimentos — só o registro do que foi feito. Some também do histórico dentro de cada tarefa, documento e empresa, e do número "tarefas concluídas" do Dashboard. Não dá para desfazer.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="hiApagarBackup">⭳ Baixar backup antes</button>
+      <button type="button" class="btn btn-ghost" id="hiApagarCancelar">Cancelar</button>
+      <button class="btn at-perigo" id="hiApagarOk">Apagar</button>
+    </div></form>`);
+  const sel = document.getElementById('hiApagarQuais');
+  const atualizar = () => {
+    const n = alvo(sel.value).length;
+    document.getElementById('hiApagarConta').textContent = n ? `${n} de ${total} ação(ões) serão apagadas.` : 'Nenhuma ação nesse período.';
+    document.getElementById('hiApagarOk').disabled = !n;
+    document.getElementById('hiApagarOk').textContent = n ? `Apagar ${n}` : 'Apagar';
+  };
+  sel.onchange = atualizar; atualizar();
+  document.getElementById('hiApagarCancelar').onclick = closeModal;
+  document.getElementById('hiApagarBackup').onclick = () => exportarBackupCompleto();
+  document.getElementById('formLimparHist').onsubmit = e => {
+    e.preventDefault();
+    const remover = new Set(alvo(sel.value).map(h => h.id));
+    if (!remover.size) return;
+    DB.saveAll('historico', DB.getAll('historico').filter(h => !remover.has(h.id)));
+    const texto = sel.value === 'tudo' ? 'todo o histórico' : opcoes.find(o => o[0] === sel.value)[1].toLowerCase();
+    registrarHistorico({ modulo:'sistema', acao:'limpeza', descricao:`Histórico limpo: ${remover.size} ação(ões) apagadas (${texto}).` });
+    closeModal();
+    hiEstado.limite = HI_POR_PAGINA;
+    renderHistorico();
+    showToast(`✓ ${remover.size} ação(ões) apagadas do histórico.`);
+  };
+}
+
 (function ligarHistorico(){
   const root = document.getElementById('hiRoot'); if (!root) return;
   const reiniciar = () => { hiEstado.limite = HI_POR_PAGINA; renderHistorico(); };
@@ -129,6 +176,7 @@ function renderHistorico(){
     const a = b.dataset.hi;
     if (a === 'abrir') hiDestino(hiVisiveis[Number(b.dataset.idx)])?.();
     else if (a === 'modulo') { hiEstado.modulo = b.dataset.valor; reiniciar(); }
+    else if (a === 'apagar') abrirLimparHistorico();
     else if (a === 'mais') { hiEstado.limite += HI_POR_PAGINA; renderHistorico(); }
     else if (a === 'tudo') { hiEstado.periodo = 'tudo'; reiniciar(); }
     else if (a === 'limpar') { hiEstado = { ...hiEstado, busca:'', modulo:'', acao:'', periodo:'30', dia:'' }; reiniciar(); }
