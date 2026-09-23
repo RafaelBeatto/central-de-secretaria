@@ -313,7 +313,7 @@ function renderPendencias(){
   container.innerHTML = html;
 
   // Bindear ações
-  document.querySelectorAll('.pendencia-action').forEach(btn => {
+  container.querySelectorAll('.pendencia-action[data-idx]').forEach(btn => {
     const idx = btn.dataset.idx;
     const [grupo, i] = idx.split('-');
     const p = grupos[grupo][Number(i)];

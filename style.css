@@ -1525,3 +1525,7 @@ button.sec-grupo-head{ cursor:pointer; }
   .dc-fatos{ grid-template-columns:1fr; }
   .dc-filtros #dcBusca{ max-width:none; }
 }
+.pj-doc.is-vencido{ background:color-mix(in srgb,var(--danger-soft) 60%,var(--surface)); border-color:color-mix(in srgb,var(--danger) 25%,var(--border)); }
+.pj-doc.is-vencido .pj-doc-marca{ color:var(--danger); border-color:color-mix(in srgb,var(--danger) 45%,transparent); background:var(--surface); }
+button.pj-doc-info{ background:none; border:0; padding:0; text-align:left; cursor:pointer; }
+button.pj-doc-info:hover strong{ color:var(--primary); text-decoration:underline; }

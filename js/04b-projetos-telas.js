@@ -458,19 +458,20 @@ function pjExecEmpresasHTML(p){
 }
 
 function pjExecDocsApaeHTML(p){
-  const arr = p.docsApae;
-  const entregues = DOCS_APAE_OBRIGATORIOS.filter(n => arr.find(x => x.nome === n)?.entregue).length;
-  const extras = arr.filter(d => !DOCS_APAE_OBRIGATORIOS.includes(d.nome));
-  return `${pjSecHead('Documentação da APAE', `${entregues} de ${DOCS_APAE_OBRIGATORIOS.length} documentos obrigatórios entregues. Podem ser anexados a qualquer momento.`, `<button type="button" class="btn btn-primary btn-sm" data-pj="doc-apae-novo" data-id="${pjEsc(p.id)}">＋ Anexar documento</button>`)}
-    <div class="pj-docs-grade">${DOCS_APAE_OBRIGATORIOS.map(nome => {
-      const d = arr.find(x => x.nome === nome);
-      return `<div class="pj-doc ${d?.entregue?'is-ok':''}">
-        <span class="pj-doc-marca" aria-hidden="true">${d?.entregue ? '✓' : '○'}</span>
-        <div class="pj-doc-info"><strong>${nome}</strong><small>${d?.anexo ? pjEsc(d.anexo.nome) : d ? 'Cadastrado, sem arquivo' : 'Pendente'}</small></div>
-        ${d ? `<div class="pj-item-acoes">${pjAnexoBtn(d.anexo)}<button type="button" class="btn btn-sm" data-pj="doc-apae-toggle" data-id="${pjEsc(p.id)}" data-item="${pjEsc(d.id)}">${d.entregue ? 'Reabrir' : 'Concluir'}</button></div>` : ''}
-      </div>`;
-    }).join('')}</div>
-    ${extras.length ? `<h4 class="pj-subtitulo">Outros documentos</h4><ul class="pj-itens">${extras.map(d => `<li class="pj-item"><div><strong>${pjEsc(d.nome)}</strong><small>${d.entregue ? '✓ Entregue' : 'Pendente'}${d.observacao ? ' · ' + pjEsc(d.observacao) : ''}</small></div><div class="pj-item-acoes">${pjAnexoBtn(d.anexo)}</div></li>`).join('')}</ul>` : ''}`;
+  const itens=situacaoDocsApae();
+  const emDia=itens.filter(i=>i.ok).length;
+  const antigos=p.docsApae.filter(d=>d.anexo);
+  return `${pjSecHead('Documentação da APAE', `${emDia} de ${itens.length} em dia. Estes documentos são da APAE e ficam em Documentos: cadastrou ou renovou lá, vale para todas as execuções.`, `<button type="button" class="btn btn-sm" data-pj="ir-documentos">Abrir Documentos →</button>`)}
+    <div class="pj-docs-grade">${itens.map(({exig,doc,sit,ok})=>`<div class="pj-doc ${ok?'is-ok':doc?'is-vencido':''}">
+        <span class="pj-doc-marca" aria-hidden="true">${ok?'✓':doc?'!':'○'}</span>
+        ${doc
+          ? `<button type="button" class="pj-doc-info" data-pj="apae-ver" data-doc="${pjEsc(doc.id)}" title="Abrir em Documentos"><strong>${exig}</strong><small>${dcPrazoTexto(doc)}${doc.anexo?'':' · sem arquivo'}</small></button>`
+          : `<div class="pj-doc-info"><strong>${exig}</strong><small>Não cadastrado em Documentos</small></div>`}
+        <div class="pj-item-acoes">${doc
+          ? `${pjAnexoBtn(doc.anexo)}${['vencido','vencendo'].includes(sit.chave)?`<button type="button" class="btn btn-sm ${sit.chave==='vencido'?'btn-primary':''}" data-pj="apae-renovar" data-doc="${pjEsc(doc.id)}">Renovar</button>`:''}`
+          : `<button type="button" class="btn btn-sm btn-primary" data-pj="apae-cadastrar" data-exig="${pjEsc(exig)}">Cadastrar</button>`}</div>
+      </div>`).join('')}</div>
+    ${antigos.length?`<h4 class="pj-subtitulo">Anexados nesta execução antes da mudança</h4><ul class="pj-itens">${antigos.map(d=>`<li class="pj-item"><div><strong>${pjEsc(d.nome)}</strong><small>${d.observacao?pjEsc(d.observacao):'Arquivo guardado nesta execução'}</small></div><div class="pj-item-acoes">${pjAnexoBtn(d.anexo)}</div></li>`).join('')}</ul>`:''}`;
 }
 
 function pjExecDocumentosHTML(p){
@@ -549,8 +550,10 @@ const PJ_ACOES = {
   'selecionar-cotacao': b => selecionarCotacaoProjeto(b.dataset.id, b.dataset.item),
   'nova-ordem': b => openFormOrdem(b.dataset.id, b.dataset.empresa || ''),
   'excluir-item': b => excluirItemProjeto(b.dataset.id, b.dataset.tipo, b.dataset.item),
-  'doc-apae-novo': b => openFormDocChecklist(b.dataset.id),
-  'doc-apae-toggle': b => toggleDocProjeto(b.dataset.id, b.dataset.item),
+  'apae-cadastrar': b => openFormDocumento(null, { exigenciaApae:b.dataset.exig }),
+  'apae-renovar': b => abrirFormRenovarDocumento(b.dataset.doc),
+  'apae-ver': b => abrirDetalheDocumento(b.dataset.doc),
+  'ir-documentos': () => goToView('documentos'),
   'documento-novo': b => openFormDocumentoProjeto(b.dataset.id),
   'pagamento-novo': b => openFormPagamento(b.dataset.id),
   'pendencia-nova': b => openFormPendencia(b.dataset.id),

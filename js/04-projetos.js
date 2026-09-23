@@ -178,6 +178,36 @@ function getEmpresaGlobal(id){ return id ? DB.getById('gerador-empresas', id) : 
    com nomes até diferentes ("CNPJ" vs "CNPJ da empresa"), então nunca
    reconhecia o que já estava cadastrado na ficha global. */
 const DOCS_APAE_OBRIGATORIOS=['CNPJ','Estatuto','Ata de eleição/posse','Certidão federal','Certidão estadual','Certidão municipal','FGTS','CNDT'];
+const CATEGORIA_EXIGENCIA_APAE={'CNPJ':'Documento institucional','Estatuto':'Documento institucional','Ata de eleição/posse':'Ata'};
+
+/* Documentação da APAE: os documentos exigidos em toda execução são da
+   instituição e ficam uma única vez no módulo Documentos (campo
+   exigenciaApae). Arquivos anexados antes dentro de cada execução viram,
+   uma vez só, documentos em Documentos — o mais recente de cada tipo. */
+function migrarDocsApaeParaDocumentos(){
+  const cfg=DB.getConfig();
+  if(cfg.migracoes?.docsApae) return;
+  DB.saveConfig({...cfg, migracoes:{...(cfg.migracoes||{}), docsApae:true}});
+  const jaTem=new Set(DB.getAll('documentos').map(d=>d.exigenciaApae).filter(Boolean));
+  [...DB.getAll('projetos')].reverse().forEach(p=>(p.docsApae||[]).forEach(x=>{
+    if(!x?.anexo || !x.entregue || !DOCS_APAE_OBRIGATORIOS.includes(x.nome) || jaTem.has(x.nome)) return;
+    jaTem.add(x.nome);
+    const id=DB.nextId('DOC','documento');
+    DB.insert('documentos',{id,nome:x.nome,categoria:CATEGORIA_EXIGENCIA_APAE[x.nome]||'Certidão',exigenciaApae:x.nome,numero:'',orgao:'',responsavel:'',dataEmissao:null,dataValidade:null,arquivoRef:'',tags:'',descricao:'',observacoes:`Trazido do projeto "${p.nome}". Confira a validade.`,anexo:x.anexo,versoes:[],criadoEm:Date.now(),atualizadoEm:Date.now()});
+    registrarHistorico({modulo:'documento',acao:'criação',descricao:`"${x.nome}" trazido do projeto "${p.nome}" para Documentos.`,refId:id});
+  }));
+}
+/* Para cada exigência, o documento em Documentos que a atende (o de
+   validade mais longa; sem validade conta como válido). */
+function situacaoDocsApae(){
+  migrarDocsApaeParaDocumentos();
+  const docs=DB.getAll('documentos').filter(d=>d.exigenciaApae);
+  return DOCS_APAE_OBRIGATORIOS.map(exig=>{
+    const doc=docs.filter(d=>d.exigenciaApae===exig).sort((a,b)=>(b.dataValidade||'9999').localeCompare(a.dataValidade||'9999'))[0]||null;
+    const sit=doc?situacaoDocumento(doc):null;
+    return {exig, doc, sit, ok:!!doc && sit.chave!=='vencido'};
+  });
+}
 const EMPRESA_DOCS_SUGERIDOS=['CNPJ','Contrato Social','CND Federal','CND Estadual','CND Municipal','FGTS','CNDT','Outros documentos'];
 
 function projectData(p){
@@ -314,7 +344,7 @@ function projectChecklist(p){
   const cotOk=new Set(p.cotacoes.map(c=>c.empresaId||String(c.fornecedor||'').trim().toLowerCase()).filter(Boolean)).size>=3;
   const planoOk=!!(p.plano?.descricao||p.plano?.anexo);
   const ordemOk=p.ordensCompra.length>0;
-  const apaeOk=DOCS_APAE_OBRIGATORIOS.every(nome=>p.docsApae.some(x=>x.nome===nome && x.entregue));
+  const apaeOk=situacaoDocsApae().every(x=>x.ok);
   // Documentação das empresas: lê direto da ficha global de cada empresa
   // vinculada (statusDocumentacaoEmpresa), a mesma fonte já usada no card
   // de cada empresa — não existe mais um checklist separado por execução.
@@ -1085,8 +1115,6 @@ function removerEmpresaProjeto(projectId,empresaId){
     abrirDetalheProjeto(p.id,'empresas');
   });
 }
-function openFormDocChecklist(projectId){const p=projectData(DB.getById('projetos',projectId));const arr=p.docsApae;const obrig=DOCS_APAE_OBRIGATORIOS;openModal('Adicionar documento da APAE',`<form id="formCheckDoc"><div class="field"><label>Documento *</label><select class="input" id="cd_nome">${obrig.map(x=>`<option>${x}</option>`).join('')}<option>Outro</option></select></div><div class="field"><label>Arquivo *</label><input class="input" type="file" id="cd_arq" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div><div class="field"><label>Observação</label><textarea id="cd_obs"></textarea></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cd_cancel">Cancelar</button><button class="btn btn-primary">Salvar documento</button></div></form>`);document.getElementById('cd_cancel').onclick=closeModal;document.getElementById('formCheckDoc').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('cd_arq').files[0];if(!f)return;const d={id:uid('chk'),nome:document.getElementById('cd_nome').value,observacao:document.getElementById('cd_obs').value.trim(),entregue:true,anexo:await salvarAnexo(f,'doc-apae')};arr.push(d);projectSave(p);closeModal();abrirDetalheProjeto(p.id,'docs-apae');};}
-function toggleDocProjeto(projectId,itemId){const p=projectData(DB.getById('projetos',projectId));const d=p.docsApae.find(x=>x.id===itemId);if(!d)return;d.entregue=!d.entregue;projectSave(p);abrirDetalheProjeto(p.id,'docs-apae');}
 function openFormDocumentoProjeto(projectId){openModal('Anexar documento de execução',`<form id="formDocProjeto"><div class="form-grid"><div class="field full"><label>Nome do documento *</label><input class="input" id="dp_nome" required></div><div class="field"><label>Categoria</label><select class="input" id="dp_cat"><option>Nota fiscal</option><option>Comprovante</option><option>Relatório</option><option>Declaração</option><option>Outro</option></select></div><div class="field"><label>Data</label><input class="input" type="date" id="dp_data" value="${todayISO()}"></div><div class="field full"><label>Arquivo *</label><input class="input" type="file" id="dp_arquivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cancelDp">Cancelar</button><button class="btn btn-primary">Anexar</button></div></form>`);document.getElementById('cancelDp').onclick=closeModal;document.getElementById('formDocProjeto').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('dp_arquivo').files[0];const d={id:uid('docp'),nome:document.getElementById('dp_nome').value.trim(),categoria:document.getElementById('dp_cat').value,data:document.getElementById('dp_data').value,anexo:await salvarAnexo(f,'documento')};if(!d.nome||!f)return;const projetoAtual=projectData(DB.getById('projetos',projectId));projetoAtual.documentosProjeto.push(d);projectSave(projetoAtual);closeModal();abrirDetalheProjeto(projetoAtual.id,'documentos');};}
 function openFormPagamento(projectId){openModal('Registrar pagamento',`<form id="formPag"><div class="form-grid"><div class="field"><label>Fornecedor</label><input class="input" id="pg_fornecedor"></div><div class="field"><label>Data</label><input class="input" type="date" id="pg_data" value="${todayISO()}"></div><div class="field"><label>Valor pago (R$) *</label><input class="input" type="number" min="0" step="0.01" id="pg_valor" required></div><div class="field"><label>Forma de pagamento</label><input class="input" id="pg_forma" placeholder="Transferência, Pix, boleto..."></div><div class="field full"><label>Comprovante *</label><input class="input" type="file" id="pg_arq" required accept=".pdf,.jpg,.jpeg,.png,.webp"></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="pg_cancel">Cancelar</button><button class="btn btn-primary">Salvar pagamento</button></div></form>`);document.getElementById('pg_cancel').onclick=closeModal;document.getElementById('formPag').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('pg_arq').files[0],v=Number(document.getElementById('pg_valor').value);if(!f||!Number.isFinite(v)){showToast('Informe valor e comprovante.');return;}const p=projectData(DB.getById('projetos',projectId));p.pagamentos.push({id:uid('pag'),fornecedor:document.getElementById('pg_fornecedor').value.trim(),data:document.getElementById('pg_data').value,valor:v,forma:document.getElementById('pg_forma').value.trim(),anexo:await salvarAnexo(f,'pagamento')});projectSave(p);closeModal();abrirDetalheProjeto(p.id,'pagamentos');};}
 function excluirItemProjeto(projectId,tipo,itemId){const p=projectData(DB.getById('projetos',projectId));const mapa={cotacao:'cotacoes',ordem:'ordensCompra',documento:'documentosProjeto'};const chave=mapa[tipo];if(!chave)return;const item=p[chave].find(x=>x.id===itemId);if(!item)return;confirmAction('Excluir este item do projeto?',async()=>{if(item.anexo)await ProjectFiles.remove(item.anexo.id);p[chave]=p[chave].filter(x=>x.id!==itemId);projectSave(p);abrirDetalheProjeto(p.id,tipo==='cotacao'?'cotacoes':tipo==='ordem'?'ordens':'documentos');});}

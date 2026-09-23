@@ -40,6 +40,13 @@ function dcPrazoTexto(d){
   if(dias<=30) return `Vence em ${dias} dia${dias===1?'':'s'}`;
   return `Válido até ${formatDateBR(d.dataValidade)}`;
 }
+/* Arquivos trazidos das execuções continuam referenciados lá; só apaga o
+   arquivo se nenhuma execução apontar para ele. */
+function dcRemoverArquivo(anexo){
+  if(!anexo) return;
+  const emUso=DB.getAll('projetos').some(p=>(p.docsApae||[]).some(x=>x?.anexo?.id===anexo.id));
+  if(!emUso) return ProjectFiles.remove(anexo.id);
+}
 function dcSomarDias(iso,n){ const d=parseISODate(iso||todayISO()); d.setDate(d.getDate()+n); return isoFromDate(d); }
 
 /* ---------- abrir a partir de outras telas ---------- */
@@ -107,6 +114,7 @@ function dcDetalheHTML(d){
       ${fato('Emissão',d.dataEmissao?formatDateBR(d.dataEmissao):'')}
       ${fato('Validade',d.dataValidade?formatDateBR(d.dataValidade):'Sem validade')}
       ${fato('Responsável',dcEsc(d.responsavel))}
+      ${fato('Vale nos projetos como',dcEsc(d.exigenciaApae))}
       ${fato('Onde está guardado',dcEsc(d.arquivoRef))}
       ${fato('Tags',dcEsc(d.tags))}
       ${!d.anexo?fato('Arquivo','<span class="dc-sem">Nenhum arquivo anexado</span>'):''}
@@ -153,13 +161,17 @@ function dcLigarAtalhos(){
   }));
 }
 
-function openFormDocumento(id){
+function openFormDocumento(id, pre={}){
   const item=typeof id==='string' ? DB.getById('documentos',id) : null;
+  const exigencia=item ? (item.exigenciaApae||'') : (pre.exigenciaApae||'');
+  const nomeInicial=item?.nome || pre.exigenciaApae || '';
+  const categoriaInicial=item?.categoria || (pre.exigenciaApae ? (CATEGORIA_EXIGENCIA_APAE[pre.exigenciaApae]||'Certidão') : 'Certidão');
   const responsaveis=[...new Set(DB.getAll('documentos').map(d=>d.responsavel).filter(Boolean))];
   const esc=escapeHTML;
   openModal(item?'Editar documento':'Novo documento',`<form id="formDocumento" novalidate><div class="form-grid">
-    <div class="field full"><label for="d_nome">Nome do documento *</label><input class="input" id="d_nome" required placeholder="Ex.: Certidão Negativa de Débitos Federais" value="${esc(item?.nome||'')}"></div>
-    <div class="field"><label for="d_categoria">Categoria</label><select class="input" id="d_categoria">${CATEGORIAS_DOCUMENTO.map(c=>`<option ${(item?.categoria||'Certidão')===c?'selected':''}>${c}</option>`).join('')}</select></div>
+    <div class="field full"><label for="d_nome">Nome do documento *</label><input class="input" id="d_nome" required placeholder="Ex.: Certidão Negativa de Débitos Federais" value="${esc(nomeInicial)}"></div>
+    <div class="field"><label for="d_categoria">Categoria</label><select class="input" id="d_categoria">${CATEGORIAS_DOCUMENTO.map(c=>`<option ${categoriaInicial===c?'selected':''}>${c}</option>`).join('')}</select></div>
+    <div class="field"><label for="d_exigencia">Vale como documento da APAE nos projetos</label><select class="input" id="d_exigencia"><option value="">Não</option>${DOCS_APAE_OBRIGATORIOS.map(x=>`<option ${exigencia===x?'selected':''}>${x}</option>`).join('')}</select></div>
     <div class="field"><label for="d_orgao">Órgão emissor</label><input class="input" id="d_orgao" placeholder="Ex.: Receita Federal" value="${esc(item?.orgao||'')}"></div>
     <div class="field"><label for="d_numero">Número / identificação</label><input class="input" id="d_numero" value="${esc(item?.numero||'')}"></div>
     <div class="field"><label for="d_responsavel">Responsável</label><input class="input" id="d_responsavel" list="dcRespLista" value="${esc(item?.responsavel||'')}"><datalist id="dcRespLista">${responsaveis.map(r=>`<option value="${esc(r)}">`).join('')}</datalist></div>
@@ -180,10 +192,10 @@ function openFormDocumento(id){
     const erro=t=>{ $('formErroDoc').hidden=false; $('formErroDoc').textContent=t; };
     const nome=$('d_nome').value.trim();
     if(!nome) return erro('Informe o nome do documento.');
-    const dados={nome,categoria:$('d_categoria').value,numero:$('d_numero').value.trim(),orgao:$('d_orgao').value.trim(),responsavel:$('d_responsavel').value.trim(),dataEmissao:$('d_dataEmissao').value||null,dataValidade:$('d_dataValidade').value||null,arquivoRef:$('d_arquivoRef').value.trim(),tags:$('d_tags').value.trim(),descricao:$('d_descricao').value.trim(),observacoes:$('d_observacoes').value.trim()};
+    const dados={nome,categoria:$('d_categoria').value,numero:$('d_numero').value.trim(),orgao:$('d_orgao').value.trim(),responsavel:$('d_responsavel').value.trim(),dataEmissao:$('d_dataEmissao').value||null,dataValidade:$('d_dataValidade').value||null,arquivoRef:$('d_arquivoRef').value.trim(),tags:$('d_tags').value.trim(),descricao:$('d_descricao').value.trim(),observacoes:$('d_observacoes').value.trim(),exigenciaApae:$('d_exigencia').value||null};
     if(dados.dataEmissao && dados.dataValidade && dados.dataValidade<dados.dataEmissao) return erro('A validade não pode ser antes da emissão.');
     const f=$('d_arquivo').files[0];
-    if(f){ if(item?.anexo) await ProjectFiles.remove(item.anexo.id); dados.anexo=await salvarAnexo(f,'documento'); }
+    if(f){ await dcRemoverArquivo(item?.anexo); dados.anexo=await salvarAnexo(f,'documento'); }
     if(item){
       DB.update('documentos',item.id,dados);
       registrarHistorico({modulo:'documento',acao:'edição',descricao:`Documento "${nome}" editado.`,refId:item.id});
@@ -240,7 +252,7 @@ function dcExcluir(id){
   const d=DB.getById('documentos',id); if(!d) return;
   const versoes=(d.versoes||[]).filter(v=>v.anexo).length;
   confirmAction(`Excluir "${d.nome}"? O arquivo${versoes?` e os ${versoes} arquivo(s) das versões anteriores também serão removidos`:' anexado também será removido'}.`, async()=>{
-    for(const a of [d.anexo,...(d.versoes||[]).map(v=>v.anexo)].filter(Boolean)) await ProjectFiles.remove(a.id);
+    for(const a of [d.anexo,...(d.versoes||[]).map(v=>v.anexo)].filter(Boolean)) await dcRemoverArquivo(a);
     DB.remove('documentos',id);
     if(typeof RelacionamentosDB!=='undefined') RelacionamentosDB.limparPorRegistro('documento',id);
     registrarHistorico({modulo:'documento',acao:'exclusão',descricao:`Documento "${d.nome}" excluído.`,refId:id});
