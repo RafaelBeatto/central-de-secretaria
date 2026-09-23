@@ -15,6 +15,7 @@
     '05b-backup.js',
     '06-documentos.js',
     '08-pesquisa-historico.js',
+    '08b-historico.js',
     '09-relatorios.js',
     '10-inicializacao.js',
     '11-pendencias.js',

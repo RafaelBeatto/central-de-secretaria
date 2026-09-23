@@ -1635,3 +1635,55 @@ button.pj-doc-info:hover strong{ color:var(--primary); text-decoration:underline
   .db-numero{ flex-direction:row; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
   .db-numero strong{ font-size:18px; }
 }
+
+/* =========================================================
+   HISTÓRICO — ações por dia (08b-historico.js)
+   ========================================================= */
+.hi-root button:not(.btn){ font:inherit; color:inherit; }
+.hi-root{ display:flex; flex-direction:column; gap:12px; max-width:1100px; }
+.hi-filtros{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.hi-filtros #hiBusca{ flex:1; min-width:220px; max-width:420px; }
+.hi-filtros select, .hi-filtros input[type="date"]{ width:auto; }
+.hi-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+.hi-chip{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border:1px solid var(--border); border-radius:999px; background:var(--surface); cursor:pointer; font-size:12.5px !important; color:var(--ink-soft) !important; }
+.hi-chip span{ font:600 11px var(--font-mono); color:var(--muted); }
+.hi-chip:hover{ border-color:var(--primary); }
+.hi-chip.is-ativo{ background:var(--primary); border-color:var(--primary); color:#fff !important; }
+.hi-chip.is-ativo span{ color:#fff; opacity:.8; }
+[data-theme="dark"] .hi-chip.is-ativo, [data-theme="dark"] .hi-chip.is-ativo span{ color:var(--bg) !important; }
+
+.hi-dia{ border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface); overflow:hidden; }
+.hi-dia h3{ display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12.5px; font-weight:600; background:var(--surface-2); border-bottom:1px solid var(--border-soft); }
+.hi-dia h3 span{ font:600 11px var(--font-mono); color:var(--muted); }
+.hi-dia ul{ list-style:none; margin:0; padding:0; }
+.hi-linha{ display:grid; grid-template-columns:44px 96px minmax(0,1fr) auto; align-items:center; gap:10px; padding:7px 14px; border-bottom:1px solid var(--border-soft); font-size:13px; }
+.hi-linha:last-child{ border-bottom:0; }
+.hi-linha time{ font:12px var(--font-mono); color:var(--muted); }
+.hi-modulo{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hi-modulo::before{ content:''; flex-shrink:0; width:7px; height:7px; border-radius:50%; background:var(--hi-cor, var(--muted)); }
+.m-secretaria{ --hi-cor:var(--ag-secretaria); }
+.m-agenda{ --hi-cor:var(--ag-evento); }
+.m-documento, .m-projeto, .m-empresa{ --hi-cor:var(--ag-prazo); }
+.m-atendimentos{ --hi-cor:var(--purple, #8a63d2); }
+.hi-texto{ display:flex; align-items:center; gap:8px; min-width:0; background:none; border:0; padding:0; text-align:left; color:var(--ink); }
+button.hi-texto{ cursor:pointer; }
+button.hi-texto:hover span{ text-decoration:underline; }
+.hi-texto span{ overflow-wrap:anywhere; line-height:1.45; }
+.hi-texto i{ font-style:normal; color:var(--primary); opacity:0; transition:opacity .15s; }
+.hi-linha:hover .hi-texto i{ opacity:1; }
+.hi-acao{ font-size:11px; padding:2px 8px; border-radius:999px; background:var(--surface-2); color:var(--ink-soft); white-space:nowrap; }
+.hi-acao.a-exclusão{ background:var(--danger-soft); color:var(--danger); }
+.hi-acao.a-conclusão{ background:var(--ok-soft); color:var(--ok); }
+.hi-acao.a-criação{ background:var(--primary-soft); color:var(--primary); }
+[data-theme="dark"] .hi-acao.a-criação{ color:var(--primary-light); }
+.hi-vazio{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:40px 16px; text-align:center; color:var(--ink-softer); font-size:13px; border:1px dashed var(--border); border-radius:var(--radius-lg); }
+.hi-mais{ align-self:center; }
+.hi-nota{ font-size:12px; color:var(--muted); text-align:center; }
+
+@media (max-width:700px){
+  .hi-linha{ grid-template-columns:44px minmax(0,1fr) auto; gap:4px 8px; }
+  .hi-modulo{ grid-column:2; grid-row:1; }
+  .hi-acao{ grid-column:3; grid-row:1; }
+  .hi-texto{ grid-column:1 / -1; grid-row:2; }
+  .hi-filtros #hiBusca{ max-width:none; flex-basis:100%; }
+}

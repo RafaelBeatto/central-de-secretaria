@@ -239,24 +239,3 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('.quick-search') && !e.target.closest('.qs-results')) quickSearchResults.hidden = true;
   if (!e.target.closest('#btnNotif') && !e.target.closest('#notifPanel')) document.getElementById('notifPanel').hidden = true;
 });
-
-/* ---------------------------------------------------------
-   18. HISTÓRICO
-   --------------------------------------------------------- */
-function renderHistorico(){
-  const filtros = getFiltrosValores('filtrosHistorico');
-  let lista = DB.getAll('historico');
-  if (filtros.data) lista = lista.filter(h => new Date(h.timestamp).toISOString().slice(0,10) === filtros.data);
-  if (filtros.modulo) lista = lista.filter(h => h.modulo === filtros.modulo);
-  if (filtros.acao) lista = lista.filter(h => h.acao === filtros.acao);
-
-  const container = document.getElementById('listaHistorico');
-  document.getElementById('vazioHistorico').hidden = lista.length !== 0;
-  container.innerHTML = lista.map(h => `
-    <div class="history-row">
-      <div class="h-meta">${timestampToBR(h.timestamp)} · ${h.modulo}</div>
-      <div>${escapeHTML(h.descricao)}</div>
-    </div>`).join('');
-}
-document.querySelectorAll('#filtrosHistorico [data-filter]').forEach(el => el.addEventListener('input', renderHistorico));
-

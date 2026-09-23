@@ -162,32 +162,7 @@
 
       <!-- HISTÓRICO -->
       <section class="view" id="view-historico" data-view="historico" hidden>
-        <div class="toolbar">
-          <div class="filters" id="filtrosHistorico">
-            <input type="date" class="input" data-filter="data" title="Data">
-            <select class="input" data-filter="modulo">
-              <option value="">Módulo: todos</option>
-              <option value="secretaria">Secretaria (tarefas)</option>
-              <option value="agenda">Agenda</option>
-              <option value="documento">Documentos</option>
-              <option value="projeto">Projetos</option>
-              <option value="empresa">Empresas</option>
-              <option value="atendimentos">Atendimentos</option>
-            </select>
-            <select class="input" data-filter="acao">
-              <option value="">Ação: todas</option>
-              <option value="criação">Criação</option>
-              <option value="edição">Edição</option>
-              <option value="exclusão">Exclusão</option>
-              <option value="conclusão">Conclusão</option>
-              <option value="movimentação">Movimentação</option>
-              <option value="renovação">Renovação</option>
-              <option value="status">Mudança de status</option>
-            </select>
-          </div>
-        </div>
-        <div id="listaHistorico" class="history-list"></div>
-        <div class="empty-state" id="vazioHistorico" hidden>Nenhum registro encontrado.</div>
+        <div id="hiRoot" class="hi-root"></div>
       </section>
 
       <!-- RELATÓRIOS -->
