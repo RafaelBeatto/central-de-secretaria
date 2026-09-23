@@ -231,7 +231,8 @@ document.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
     const empresaGlobalId = verFichaEmpresa.getAttribute('data-empresa-global');
-    if (empresaGlobalId) abrirFichaEmpresaGlobal(empresaGlobalId);
+    const abaAlvo = verFichaEmpresa.getAttribute('data-ficha-aba') || 'dados';
+    if (empresaGlobalId) abrirFichaEmpresaGlobal(empresaGlobalId, abaAlvo);
     else showToast('Esta empresa ainda não possui ficha vinculada.');
     return;
   }
