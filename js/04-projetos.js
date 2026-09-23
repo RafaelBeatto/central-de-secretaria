@@ -1069,6 +1069,22 @@ function openFormEmpresaEditar(projectId,empresaId){
     closeModal();abrirDetalheProjeto(projectId,'empresas');
   };
 }
+/* Tira a empresa só desta execução; o cadastro global continua disponível
+   para os outros projetos. Cotações e ordens precisam ser excluídas antes,
+   para nada sumir sem o usuário ver. */
+function removerEmpresaProjeto(projectId,empresaId){
+  const p=projectData(DB.getById('projetos',projectId));
+  const e=p.empresas.find(x=>x.id===empresaId); if(!e)return;
+  const cot=p.cotacoes.filter(c=>c.empresaId===e.id).length, ord=p.ordensCompra.filter(o=>o.empresaId===e.id).length;
+  if(cot||ord){ showToast(`⚠ "${e.nome}" tem ${cot} cotação(ões) e ${ord} ordem(ns) nesta execução. Exclua-as primeiro (botão ✕) e depois remova a empresa.`); return; }
+  confirmAction(`Remover "${e.nome}" desta execução? O cadastro da empresa continua no sistema para outros projetos.`,()=>{
+    p.empresas=p.empresas.filter(x=>x.id!==e.id);
+    projectSave(p);
+    registrarHistorico({modulo:'empresa',acao:'desvínculo',descricao:`Empresa "${e.nome}" removida do projeto "${p.nome}".`,refId:e.empresaGlobalId||p.id});
+    showToast('Empresa removida desta execução.');
+    abrirDetalheProjeto(p.id,'empresas');
+  });
+}
 function openFormDocChecklist(projectId){const p=projectData(DB.getById('projetos',projectId));const arr=p.docsApae;const obrig=DOCS_APAE_OBRIGATORIOS;openModal('Adicionar documento da APAE',`<form id="formCheckDoc"><div class="field"><label>Documento *</label><select class="input" id="cd_nome">${obrig.map(x=>`<option>${x}</option>`).join('')}<option>Outro</option></select></div><div class="field"><label>Arquivo *</label><input class="input" type="file" id="cd_arq" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div><div class="field"><label>Observação</label><textarea id="cd_obs"></textarea></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cd_cancel">Cancelar</button><button class="btn btn-primary">Salvar documento</button></div></form>`);document.getElementById('cd_cancel').onclick=closeModal;document.getElementById('formCheckDoc').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('cd_arq').files[0];if(!f)return;const d={id:uid('chk'),nome:document.getElementById('cd_nome').value,observacao:document.getElementById('cd_obs').value.trim(),entregue:true,anexo:await salvarAnexo(f,'doc-apae')};arr.push(d);projectSave(p);closeModal();abrirDetalheProjeto(p.id,'docs-apae');};}
 function toggleDocProjeto(projectId,itemId){const p=projectData(DB.getById('projetos',projectId));const d=p.docsApae.find(x=>x.id===itemId);if(!d)return;d.entregue=!d.entregue;projectSave(p);abrirDetalheProjeto(p.id,'docs-apae');}
 function openFormDocumentoProjeto(projectId){openModal('Anexar documento de execução',`<form id="formDocProjeto"><div class="form-grid"><div class="field full"><label>Nome do documento *</label><input class="input" id="dp_nome" required></div><div class="field"><label>Categoria</label><select class="input" id="dp_cat"><option>Nota fiscal</option><option>Comprovante</option><option>Relatório</option><option>Declaração</option><option>Outro</option></select></div><div class="field"><label>Data</label><input class="input" type="date" id="dp_data" value="${todayISO()}"></div><div class="field full"><label>Arquivo *</label><input class="input" type="file" id="dp_arquivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cancelDp">Cancelar</button><button class="btn btn-primary">Anexar</button></div></form>`);document.getElementById('cancelDp').onclick=closeModal;document.getElementById('formDocProjeto').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('dp_arquivo').files[0];const d={id:uid('docp'),nome:document.getElementById('dp_nome').value.trim(),categoria:document.getElementById('dp_cat').value,data:document.getElementById('dp_data').value,anexo:await salvarAnexo(f,'documento')};if(!d.nome||!f)return;const projetoAtual=projectData(DB.getById('projetos',projectId));projetoAtual.documentosProjeto.push(d);projectSave(projetoAtual);closeModal();abrirDetalheProjeto(projetoAtual.id,'documentos');};}

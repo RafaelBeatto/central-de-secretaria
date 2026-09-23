@@ -449,6 +449,7 @@ function pjExecEmpresasHTML(p){
         <span class="pj-flex"></span>
         <button type="button" class="btn btn-sm btn-ghost" data-project-action="ver-ficha-empresa" data-empresa-global="${pjEsc(e.empresaGlobalId||'')}">Ficha da empresa</button>
         <button type="button" class="btn btn-sm btn-ghost" data-pj="editar-empresa" data-id="${pjEsc(p.id)}" data-empresa="${pjEsc(e.id)}">Editar</button>
+        <button type="button" class="btn btn-sm pj-btn-perigo" data-pj="remover-empresa" data-id="${pjEsc(p.id)}" data-empresa="${pjEsc(e.id)}">Remover</button>
       </footer>
     </article>`;
   }).join('');
@@ -543,6 +544,7 @@ const PJ_ACOES = {
   'nova-empresa': b => openFormEmpresa(b.dataset.id),
   'vincular-empresa': b => abrirVincularEmpresaExistente(b.dataset.id),
   'editar-empresa': b => openFormEmpresaEditar(b.dataset.id, b.dataset.empresa),
+  'remover-empresa': b => removerEmpresaProjeto(b.dataset.id, b.dataset.empresa),
   'nova-cotacao': b => openFormCotacao(b.dataset.id, b.dataset.empresa || ''),
   'selecionar-cotacao': b => selecionarCotacaoProjeto(b.dataset.id, b.dataset.item),
   'nova-ordem': b => openFormOrdem(b.dataset.id, b.dataset.empresa || ''),
