@@ -110,7 +110,7 @@ function renderHistorico(){
       ${hiEstado.periodo === 'dia' ? `<input type="date" class="input" id="hiDia" value="${hiEsc(hiEstado.dia)}" max="${todayISO()}" aria-label="Dia">` : ''}
       <select class="input" id="hiAcao" aria-label="Tipo de ação"><option value="">Todas as ações</option>${acoes.map(a => `<option value="${hiEsc(a)}" ${hiEstado.acao===a?'selected':''}>${hiEsc(a.charAt(0).toUpperCase()+a.slice(1))}</option>`).join('')}</select>
       ${filtrando ? '<button type="button" class="btn btn-sm" data-hi="limpar">Limpar filtros</button>' : ''}
-      ${todos.length ? '<button type="button" class="btn btn-sm hi-apagar" data-hi="apagar">Limpar histórico…</button>' : ''}
+      <button type="button" class="btn btn-sm hi-apagar" data-hi="apagar">🗑 Limpar histórico…</button>
     </div>
     <div class="hi-chips" role="group" aria-label="Módulo">
       ${chip('', 'Tudo', noPeriodo.length)}

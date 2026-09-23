@@ -4,6 +4,9 @@
    do projeto original sem transformar tudo em ES Modules.
    ========================================================= */
 (function(){
+  // Repassa a versão do script.js (?v=…) para cada módulo, para o navegador
+  // não misturar arquivos novos com antigos guardados em cache.
+  const versao=new URL(document.currentScript.src).searchParams.get('v')||'';
   const scripts=[
     '01-core.js',
     '02-navigation.js',
@@ -30,7 +33,7 @@
   function load(src){
     return new Promise((resolve,reject)=>{
       const s=document.createElement('script');
-      s.src=base+src; s.async=false;
+      s.src=base+src+(versao?`?v=${versao}`:''); s.async=false;
       s.onload=resolve; s.onerror=()=>reject(new Error('Não foi possível carregar '+src));
       document.body.appendChild(s);
     });
