@@ -260,7 +260,7 @@ function renderHojeTimeline(){
         icone: '🟢', tipo: 'atendimento',
         titulo: a.alunoNome || 'Atendimento',
         sub: a.profissionalNome ? `Profissional: ${a.profissionalNome}` : '',
-        onClick: () => { goToView('atendimentos'); atendSemanaAtual = atendSegundaDaSemana(a.data); renderAtendimentos(); }
+        onClick: () => abrirAtendimento(a.id)
       });
     });
   }

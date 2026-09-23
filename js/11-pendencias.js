@@ -144,7 +144,7 @@ function coletarTodasPendencias(){
         titulo: `Atendimento sem presença: ${a.alunoNome} (${a.profissionalNome})`,
         descricao: `${formatDateBR(a.data)} às ${a.horario}`,
         data: a.data,
-        origem: { modulo: 'atendimentos', id: a.id, funcao: () => { goToView('atendimentos'); atendSemanaAtual = atendSegundaDaSemana(a.data); renderAtendimentos(); } },
+        origem: { modulo: 'atendimentos', id: a.id, funcao: () => abrirAtendimento(a.id) },
         icon: atrasado ? '🔴' : '🟠'
       });
     });

@@ -881,12 +881,8 @@ function abrirRegistroVinculado(vinculo){
   if (vinculo.tipo === 'projeto') { goToView('projetos'); abrirDetalheProjeto(vinculo.id); }
   else if (vinculo.tipo === 'documento') { goToView('documentos'); abrirDetalheDocumento(vinculo.id); }
   else if (vinculo.tipo === 'solicitacao') { goToView('solicitacoes'); abrirDetalheSolicitacao(vinculo.id); }
-  else if (vinculo.tipo === 'aluno') { goToView('atendimentos'); abrirHistoricoAluno(vinculo.id); }
-  else if (vinculo.tipo === 'atendimento') {
-    const a = DB.getById('atendimentos', vinculo.id);
-    goToView('atendimentos');
-    if (a && typeof atendSegundaDaSemana === 'function') { atendSemanaAtual = atendSegundaDaSemana(a.data); renderAtendimentos(); }
-  }
+  else if (vinculo.tipo === 'aluno') abrirHistoricoAluno(vinculo.id);
+  else if (vinculo.tipo === 'atendimento') abrirAtendimento(vinculo.id);
   else if (vinculo.tipo === 'empresa') { goToView('gerador'); geradorAbaAtual = 'empresas'; renderGeradorDocumentos(); }
 }
 

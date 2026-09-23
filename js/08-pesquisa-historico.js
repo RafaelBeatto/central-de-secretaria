@@ -159,7 +159,7 @@ function renderPesquisa(){
       { titulo:'Solicitações', itens: resultados.solicitacoes, render: s => ({ titulo:s.titulo, data:prazoAtividade(s).data, status:s.status, resumo:s.descricao, action:()=>abrirDetalheSolicitacao(s.id) }) },
       { titulo:'Agenda', itens: resultados.eventos, render: e => ({ titulo:e.titulo, data:e.data, status:e.tipo, resumo:e.local, action:()=>abrirDetalheEvento(e.id) }) },
       { titulo:'Documentos', itens: resultados.documentos, render: d => ({ titulo:d.nome, data:d.dataEmissao, status:situacaoDocumento(d).label, resumo:d.descricao, action:()=>abrirDetalheDocumento(d.id) }) },
-      { titulo:'Atendimentos', itens: resultados.atendimentos, render: a => ({ titulo:`${a.alunoNome} — ${a.profissionalNome}`, data:a.data, status:a.presenca||'—', resumo:a.horario, action:()=>{ goToView('atendimentos'); if (typeof atendSegundaDaSemana==='function') atendSemanaAtual = atendSegundaDaSemana(a.data); renderAtendimentos(); } }) }
+      { titulo:'Atendimentos', itens: resultados.atendimentos, render: a => ({ titulo:`${a.alunoNome} — ${a.profissionalNome}`, data:a.data, status:a.presenca||'—', resumo:a.horario, action:()=>abrirAtendimento(a.id) }) }
     ];
 
     container.innerHTML = blocos.filter(b=>b.itens.length).map(b => `
@@ -205,7 +205,7 @@ quickSearchInput.addEventListener('input', () => {
     { titulo:'Solicitações', itens:r.solicitacoes, go: s=>abrirDetalheSolicitacao(s.id), label:s=>s.titulo },
     { titulo:'Documentos', itens:r.documentos, go: d=>abrirDetalheDocumento(d.id), label:d=>d.nome },
     { titulo:'Agenda', itens:r.eventos, go: e=>abrirDetalheEvento(e.id), label:e=>e.titulo },
-    { titulo:'Atendimentos', itens:r.atendimentos, go: a=>{ goToView('atendimentos'); if (typeof atendSegundaDaSemana==='function') atendSemanaAtual = atendSegundaDaSemana(a.data); renderAtendimentos(); }, label:a=>`${a.alunoNome} — ${a.profissionalNome}` }
+    { titulo:'Atendimentos', itens:r.atendimentos, go: a=>abrirAtendimento(a.id), label:a=>`${a.alunoNome} — ${a.profissionalNome}` }
   ].filter(g => g.itens.length);
 
   if (!grupos.length){

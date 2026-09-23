@@ -133,7 +133,7 @@
         <div class="panel" id="painelAtendimentosHoje" data-dash-block="atendimentos-hoje">
           <div class="panel-head">
             <h2>Atendimentos de hoje</h2>
-            <a href="#" class="link-btn" onclick="goToView('atendimentos'); return false;">Ver atendimentos de hoje →</a>
+            <a href="#" class="link-btn" onclick="atEstado.dia = todayISO(); atendSemanaAtual = atendSegundaDaSemana(todayISO()); goToView('atendimentos'); return false;">Ver atendimentos de hoje →</a>
           </div>
           <div id="atendimentosHojeResumo" class="stat-grid"></div>
         </div>
@@ -284,37 +284,7 @@
 
       <!-- ATENDIMENTOS -->
       <section class="view" id="view-atendimentos" data-view="atendimentos" hidden>
-        <div id="atendimentosConteudo" style="padding:20px">
-          <div class="toolbar">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <button class="btn btn-ghost" id="btnAtendSemanaAnterior">← Semana anterior</button>
-              <strong id="atendSemanaLabel"></strong>
-              <button class="btn btn-ghost" id="btnAtendProximaSemana">Próxima semana →</button>
-              <button class="btn btn-ghost" id="btnAtendEscolherSemana">📅 Escolher semana</button>
-            </div>
-            <div class="toolbar-btns" style="margin-top:8px">
-              <button class="btn btn-primary" id="btnNovoAtendimento">➕ Novo atendimento</button>
-              <button class="btn btn-ghost" id="btnDuplicarSemanaAtend">📋 Duplicar semana anterior</button>
-              <button class="btn btn-ghost" id="btnGerarPdfAtend">📄 Gerar PDF</button>
-              <button class="btn btn-ghost" id="btnRelatorioPersonalizadoAtend">📊 Relatório personalizado/mensal</button>
-              <button class="btn btn-ghost" id="btnFechamentoSemana">✓ Fechamento da semana</button>
-              <button class="btn btn-ghost" id="btnGestaoAlunosProfissionais">👥 Alunos e Profissionais</button>
-            </div>
-          </div>
-          <div class="filters" id="filtrosAtendimentos" style="margin-bottom:14px">
-            <input type="search" class="input" data-filter="busca" placeholder="🔎 Pesquisar aluno ou profissional">
-            <select class="input" data-filter="aluno"><option value="">Aluno: todos</option></select>
-            <select class="input" data-filter="profissional"><option value="">Profissional: todos</option></select>
-            <select class="input" data-filter="presenca">
-              <option value="">Presença: todas</option>
-              <option value="veio">🟢 Veio</option>
-              <option value="faltou">🔴 Faltou</option>
-              <option value="nao_informado">⚪ Não informado</option>
-            </select>
-          </div>
-          <div id="atendResumo"></div>
-          <div id="atendPorDia" style="margin-top:16px"></div>
-        </div>
+        <div id="atRoot" class="at-root"></div>
       </section>
 
     </main>

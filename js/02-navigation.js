@@ -30,7 +30,7 @@ const HELP_TEXT = {
   relatorios: 'Gera indicadores com base nos registros cadastrados e permite imprimir o resultado para acompanhamento ou prestação de informações.',
   modelos: 'Crie e use modelos de documentos para gerar ofícios, memorandos, cartas e outros documentos formatados. Use templates predefinidos ou crie seus próprios com campos personalizados. Gere documentos em PDF com um clique.',
   gerador: 'Configure os dados da instituição (logo, CNPJ, endereço, rodapé) uma única vez e crie modelos de documentos com variáveis como [NOME], [CPF], [VALOR] e [DATA]. Ao gerar, o sistema aplica automaticamente o cabeçalho e rodapé institucional e mostra uma visualização em formato A4 antes de imprimir ou salvar como PDF.',
-  atendimentos: 'Organize a agenda semanal de atendimentos dos alunos: cadastre atendimentos (um a um ou vários de uma vez), marque presença/falta rapidamente, justifique faltas, remarque sem perder o histórico, duplique a programação da semana anterior e gere relatórios em PDF com o mesmo cabeçalho institucional do Gerador de Documentos.'
+  atendimentos: 'A semana dos atendimentos: escolha o dia na faixa e marque Veio ou Faltou com um clique (clicar de novo desfaz). Clique no nome para ver os detalhes, remarcar, excluir ou encerrar um atendimento semanal. No aluno ou no profissional você vê o histórico e a presença. Copiar semana anterior não repete o que já existe; o Relatório gera o PDF da semana, do mês ou de um período.'
 };
 
 function mostrarAjuda(view){
