@@ -172,18 +172,6 @@ function getFiltrosValores(containerId){
   });
   return valores;
 }
-function populateResponsavelFilter(selector, documentos){
-  const select = document.querySelector(selector);
-  if (!select) return;
-  const atual = select.value || '';
-  const nomes = [...new Set((documentos || [])
-    .map(d => String(d?.responsavel || '').trim())
-    .filter(Boolean))]
-    .sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  select.innerHTML = '<option value="">Responsável: todos</option>' +
-    nomes.map(nome => `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`).join('');
-  if (atual && nomes.includes(atual)) select.value = atual;
-}
 function prazoTexto(iso){
   if (!iso) return { texto: 'Sem prazo definido', tom: 'neutral' };
   const dias = daysDiffFromToday(iso);
@@ -215,10 +203,9 @@ function registrarHistorico({ modulo, acao, descricao, refId }){
   return registro;
 }
 
-/* Tarefas de renovação de documento são criadas automaticamente
-   (ver garantirTarefaRenovacaoDocumento, em 06-documentos-prazos.js)
-   e devem aparecer apenas em Pendências e no módulo Documentos —
-   nunca no Dashboard nem na Agenda. */
+/* Tarefas "Renovar documento" criadas automaticamente por versões antigas
+   do módulo Documentos: ficam fora das listas (a renovação hoje é
+   acompanhada direto em Documentos). */
 function ehTarefaRenovacaoDocumento(s){
   return !!(s && s.criadoAutomaticamente && s.origemDocumentoId);
 }

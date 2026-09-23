@@ -188,46 +188,7 @@
 
       <!-- DOCUMENTOS -->
       <section class="view" id="view-documentos" data-view="documentos" hidden>
-        <div class="section-intro">
-          <button class="btn btn-primary" data-action="novo-documento">＋ Novo documento</button>
-        </div>
-
-        <div class="stats-grid docs-stats">
-          <div class="stat-card c-primary"><div class="stat-num" id="docStatTotal">0</div><div class="stat-label">Total de documentos</div></div>
-          <div class="stat-card c-ok"><div class="stat-num" id="docStatValidos">0</div><div class="stat-label">Válidos</div></div>
-          <div class="stat-card c-warn"><div class="stat-num" id="docStatVencendo">0</div><div class="stat-label">Vencendo em até 30 dias</div></div>
-          <div class="stat-card c-danger"><div class="stat-num" id="docStatVencidos">0</div><div class="stat-label">Vencidos</div></div>
-        </div>
-
-        <div class="toolbar">
-          <div class="filters" id="filtrosDocumentos">
-            <input type="search" class="input" data-filter="busca" placeholder="Pesquisar por nome, número, responsável, órgão...">
-            <select class="input" data-filter="categoria">
-              <option value="">Categoria: todas</option>
-              <option>Certidão</option><option>Ofício</option><option>Ata</option><option>Contrato</option>
-              <option>Relatório</option><option>Declaração</option><option>Comprovante</option>
-              <option>Documento financeiro</option><option>Documento institucional</option><option>Convênio</option><option>Outros</option>
-            </select>
-            <select class="input" data-filter="situacao">
-              <option value="">Situação: todas</option><option value="valido">🟢 Válido</option>
-              <option value="vencendo">🟡 Vencendo</option><option value="vencido">🔴 Vencido</option><option value="sem_validade">⚪ Sem validade</option>
-            </select>
-            <select class="input" data-filter="responsavel"><option value="">Responsável: todos</option></select><button class="btn btn-primary" type="button" id="btnAplicarFiltrosDocumentos">Filtrar</button><button class="btn btn-ghost" type="button" id="btnLimparFiltrosDocumentos">Mostrar todos</button>
-          </div>
-        </div>
-
-        <div class="panel" id="painelVencendo">
-          <div class="panel-head"><h2>⚠️ Documentos que exigem atenção</h2></div>
-          <div id="listaVencendo" class="attention-list"></div>
-        </div>
-
-        <div class="table-wrap">
-          <table class="data-table" id="tabelaDocumentos">
-            <thead><tr><th>ID</th><th>Documento</th><th>Categoria</th><th>Responsável</th><th>Emissão</th><th>Validade</th><th>Situação</th><th>Arquivo</th><th></th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="empty-state" id="vazioDocumentos" hidden>Nenhum documento encontrado.</div>
+        <div id="dcRoot" class="dc-root"></div>
       </section>
 
 
