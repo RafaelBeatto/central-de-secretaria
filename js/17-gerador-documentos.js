@@ -284,11 +284,48 @@ function seedModelosProntos(){
   DB.saveConfig(cfg);
 }
 
+/* A aba "Modelos" (antigo 16-modelos-documentos.js) foi incorporada a
+   esta. Os modelos que o usuário criou lá ({{ campo }} em HTML) são
+   copiados para cá uma única vez, como [CAMPO]. A coleção antiga
+   'modelos-documentos' não é apagada (continua no backup). A "Carta",
+   único modelo pronto de lá que não existia aqui, entra também. */
+const GERADOR_MODELO_CARTA = {
+  id: 'ger-carta', nome: 'Carta', titulo: 'CARTA', serie: '', padrao: false,
+  texto: '{CIDADE_UF}, {DATA}\n\n[DESTINATARIO]\n[ENDERECO_DESTINATARIO]\n\nPrezado(a) [TRATAMENTO],\n\n[TEXTO]\n\nAtenciosamente,'
+};
+function incorporarModelosAntigos(){
+  const cfg = DB.getConfig();
+  cfg.migracoes = cfg.migracoes || {};
+  if (cfg.migracoes.modelosParaGerador) return 0;
+  const atuais = DB.getAll('gerador-modelos');
+  const ids = new Set(atuais.map(m => m && m.id));
+  const novos = [];
+  if (!ids.has(GERADOR_MODELO_CARTA.id)) novos.push({ ...GERADOR_MODELO_CARTA });
+  (DB.getAll('modelos-documentos') || [])
+    .filter(m => m && typeof m.nome === 'string' && m.template && Array.isArray(m.campos))
+    .forEach(m => {
+      const id = `ger-de-${m.id}`;
+      if (ids.has(id)) return;
+      let texto = String(m.template);
+      m.campos.forEach(campo => {
+        const nomeVar = String(campo).trim().toUpperCase().replace(/[^A-ZÀ-Ú0-9_ ]/g, '_');
+        const marcador = new RegExp('\\{\\{\\s*' + String(campo).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\}\\}', 'g');
+        texto = texto.replace(marcador, `[${nomeVar}]`);
+      });
+      novos.push({ id, nome: m.nome, titulo: m.nome.toUpperCase(), serie: '', texto, formato: 'html', padrao: false, criadoEm: Date.now(), origem: 'modelos' });
+    });
+  if (novos.length) DB.saveAll('gerador-modelos', [...atuais, ...novos]);
+  cfg.migracoes.modelosParaGerador = true;
+  DB.saveConfig(cfg);
+  return novos.length;
+}
+
 function initGeradorDocumentos(){
   if (!DB.getAll('gerador-modelos').length) {
     DB.saveAll('gerador-modelos', [GERADOR_MODELO_INICIAL]);
   }
   seedModelosProntos();
+  incorporarModelosAntigos();
   seedInstituicaoPadrao();
   limparRodapeAutomaticoAntigo();
 }

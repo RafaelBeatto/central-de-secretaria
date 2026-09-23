@@ -618,7 +618,7 @@ canvas{ max-width:100%; }
 .modelo-card:hover{box-shadow:var(--shadow);transform:translateY(-2px);}
 .modelo-icone{font-size:48px;margin-bottom:12px;}
 .modelo-nome{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:8px;}
-.modelo-desc{font-size:13px;color:var(--ink-soft);margin-bottom:16px;line-height:1.4;}
+
 .modelo-campos{margin-bottom:16px;}
 .modelo-card .form-group{width:100%;text-align:left;}
 .modelo-actions{display:flex;gap:8px;width:100%;justify-content:center;}

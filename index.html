@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Central da Secretaria</title>
-<link rel="stylesheet" href="style.css?v=20260923-4">
+<link rel="stylesheet" href="style.css?v=20260923-5">
 </head>
 <body>
 
@@ -21,7 +21,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <span class="brand-mark">CS</span>
-      <span class="brand-name">Central da Secretaria<small id="brandInstituicao"></small></span>
+      <span class="brand-name">Central da Secretaria</span>
     </div>
 
     <nav class="nav" aria-label="Navegação principal">
@@ -38,10 +38,7 @@
       <div class="nav-grupo"><span class="nav-grupo-titulo">Controle</span>
         <button class="nav-item" data-view="projetos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4L11 8.5h8.5A1.5 1.5 0 0 1 21 10v7.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z"/></svg></span><span class="nav-rotulo">Projetos</span><span class="nav-conta" data-conta="projetos" hidden></span></button>
         <button class="nav-item" data-view="documentos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span><span class="nav-rotulo">Documentos</span><span class="nav-conta" data-conta="documentos" hidden></span></button>
-      </div>
-      <div class="nav-grupo"><span class="nav-grupo-titulo">Emitir</span>
         <button class="nav-item" data-view="gerador"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13.5h6M9 17h6"/><circle cx="9.6" cy="10" r="1.1"/></svg></span><span class="nav-rotulo">Gerador de Documentos</span><span class="nav-conta" data-conta="gerador" hidden></span></button>
-        <button class="nav-item" data-view="modelos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="13" height="16" rx="2"/><path d="M16.5 19v1.5a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 20.5V7.5"/><path d="M11 8h5M11 12h5"/></svg></span><span class="nav-rotulo">Modelos</span><span class="nav-conta" data-conta="modelos" hidden></span></button>
       </div>
       <div class="nav-grupo"><span class="nav-grupo-titulo">Consultar</span>
         <button class="nav-item" data-view="historico"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v4.5h4.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><span class="nav-rotulo">Histórico</span><span class="nav-conta" data-conta="historico" hidden></span></button>
@@ -180,10 +177,6 @@
       </section>
 
       <!-- MODELOS DE DOCUMENTOS -->
-      <section class="view" id="view-modelos" data-view="modelos" hidden>
-        <div id="listaModelos" style="padding: 20px;"></div>
-      </section>
-
       <!-- GERADOR DE DOCUMENTOS -->
       <section class="view" id="view-gerador" data-view="gerador" hidden>
         <div id="listaGeradorDocumentos" style="padding: 20px;"></div>
@@ -225,6 +218,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <!-- Ao publicar mudanças, troque o número de versão (v=) aqui e no style.css acima:
      isso obriga o navegador a baixar os arquivos novos em vez de usar os guardados. -->
-<script src="script.js?v=20260923-4"></script>
+<script src="script.js?v=20260923-5"></script>
 </body>
 </html>
