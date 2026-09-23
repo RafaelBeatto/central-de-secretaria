@@ -171,26 +171,9 @@
         <div class="empty-state" id="vazioPendencias" hidden>Nenhuma pendência! Tudo está em dia. 🎉</div>
       </section>
 
-      <!-- PROJETOS E DEMANDAS -->
+      <!-- PROJETOS -->
       <section class="view" id="view-projetos" data-view="projetos" hidden>
-        <div class="section-intro">
-          <button class="btn btn-primary" data-action="novo-projeto-demanda">＋ Novo registro</button>
-        </div>
-        <div class="toolbar">
-          <div class="filters" id="filtrosProjetos">
-            <input type="search" class="input" data-filter="busca" placeholder="Pesquisar registros...">
-            <select class="input" data-filter="tipo">
-              <option value="">Todos os tipos</option>
-              <option value="projeto">Projetos</option>
-            </select>
-            <select class="input" data-filter="status"><option value="">Todos os status</option></select>
-          </div>
-          <button class="btn" id="btnFiltrarProjetosDemandas">Filtrar</button>
-          <button class="btn btn-ghost" id="btnMostrarTodosProjetosDemandas">Mostrar todos</button>
-        </div>
-        <div class="project-summary" id="projectSummary"></div>
-        <div class="card-grid" id="gridProjetos"></div>
-        <div class="empty-state" id="vazioProjetos" hidden>Nenhum registro encontrado. Clique em “Novo registro” para começar.</div>
+        <div id="pjRoot" class="pj-root"></div>
       </section>
 
       <!-- SECRETARIA V1 -->

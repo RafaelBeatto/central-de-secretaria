@@ -236,26 +236,6 @@ document.addEventListener('click', (e) => {
     else showToast('Esta empresa ainda não possui ficha vinculada.');
     return;
   }
-  const acessarEmpresa = e.target.closest?.('[data-project-action="acessar-empresa"]');
-  if (acessarEmpresa) {
-    e.preventDefault();
-    e.stopPropagation();
-    const empresaId = acessarEmpresa.getAttribute('data-empresa');
-    const projetoId = acessarEmpresa.getAttribute('data-project');
-    if (empresaId && projetoId) {
-      const projeto = DB.getById('projetos', projetoId);
-      if (projeto) {
-        renderEmpresaProjeto(projetoId, empresaId);
-      } else {
-        console.error('Projeto não encontrado:', projetoId);
-        showToast('Não foi possível abrir a empresa. Projeto não encontrado.');
-      }
-    } else {
-      console.error('Dados do botão incompletos:', { projetoId, empresaId });
-      showToast('Não foi possível abrir a empresa.');
-    }
-    return;
-  }
   if (!e.target.closest('.quick-search') && !e.target.closest('.qs-results')) quickSearchResults.hidden = true;
   if (!e.target.closest('#btnNotif') && !e.target.closest('#notifPanel')) document.getElementById('notifPanel').hidden = true;
 });

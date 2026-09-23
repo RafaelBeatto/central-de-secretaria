@@ -9,6 +9,7 @@
     '02-navigation.js',
     '03-dashboard.js',
     '04-projetos.js',
+    '04b-projetos-telas.js',
     '05-atividades-agenda.js',
     '06-documentos-prazos.js',
     '08-pesquisa-historico.js',

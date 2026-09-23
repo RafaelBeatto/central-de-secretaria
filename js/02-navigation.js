@@ -4,7 +4,7 @@
 const VIEW_META = {
   dashboard: { title:'Dashboard', sub:'Visão geral da secretaria' },
   pendencias: { title:'Pendências', sub:'Tudo que exige ação, em um só lugar' },
-  projetos: { title:'Projetos e Demandas', sub:'Projetos e demandas em um só lugar' },
+  projetos: { title:'Projetos', sub:'Recursos recebidos e onde cada real foi aplicado' },
   solicitacoes: { title:'Atividades', sub:'Solicitações, tarefas e lembretes da secretaria' },
   agenda: { title:'Agenda', sub:'Compromissos, reuniões, atendimentos e eventos' },
   documentos: { title:'Documentos', sub:'Gestão de documentos e validade' },
@@ -20,7 +20,7 @@ const VIEW_META = {
 const HELP_TEXT = {
   dashboard: 'Mostra um resumo da secretaria: quantidade de registros, prazos que exigem atenção e atividades recentes. Os números são calculados somente a partir dos dados cadastrados por você.',
   pendencias: 'Reúne automaticamente todas as pendências do sistema: documentos vencidos/vencendo, tarefas atrasadas e compromissos de hoje. Veja tudo por prioridade em um só lugar.',
-  projetos: 'Centraliza projetos e demandas. Use um único lugar para acompanhar responsáveis, status, prazos, etapas e documentos relacionados, sem separar registros parecidos em telas diferentes.',
+  projetos: 'Cada recurso é um dinheiro que entrou na APAE (convênio, emenda, doação). Dentro dele ficam as execuções: cada aplicação desse dinheiro, com plano, cotações, compra, documentos e pagamentos. A barra lateral da execução mostra quais etapas já estão registradas.',
   solicitacoes: 'Central da rotina da secretaria. Registre solicitações mais importantes, tarefas do dia a dia e lembretes recorrentes, como enviar uma mensagem aos pais toda semana. Cada atividade pode ter responsável, prioridade, prazo, projeto relacionado e histórico.',
   agenda: 'Agenda é o calendário de compromissos da instituição. Use para reuniões, atendimentos, visitas, eventos e outros compromissos com data e horário. Ela é separada das tarefas da Secretaria.',
   documentos: 'Centraliza documentos da instituição e permite controlar categoria, responsável, emissão e validade. Documentos próximos do vencimento aparecem em destaque.',
@@ -158,7 +158,7 @@ scrimEl.addEventListener('click', closeSidebarMobile);
 /* botão genérico "novo registro" no topo — direciona conforme a view atual */
 document.getElementById('btnNewGeneric').addEventListener('click', () => {
   const map = {
-    dashboard: openFormSolicitacao, pendencias: openFormSolicitacao, projetos: openFormProjeto, solicitacoes: openFormSolicitacao, agenda: openFormEvento,
+    dashboard: openFormSolicitacao, pendencias: openFormSolicitacao, projetos: abrirEscolhaNovoRecursoOuExecucao, solicitacoes: openFormSolicitacao, agenda: openFormEvento,
     documentos: openFormDocumento,
     pesquisa: openFormSolicitacao, kanban: abrirModalNovoQuadro, historico: openFormSolicitacao, relatorios: openFormSolicitacao, modelos: abrirModalNovoModelo,
     gerador: () => abrirModalModeloGerador(), atendimentos: () => abrirModalNovoAtendimento()

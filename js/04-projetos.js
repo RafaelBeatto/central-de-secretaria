@@ -2,7 +2,7 @@
    12. PROJETOS
    --------------------------------------------------------- */
 function projetoStatusTom(status){
-  return ({'Planejamento':'neutral','Em execução':'primary','Concluído':'ok','Suspenso':'warn','Cancelado':'danger'})[status] || 'neutral';
+  return ({'Em execução':'primary','Parcialmente distribuído':'primary','Concluído':'ok','Encerrado':'ok','Suspenso':'warn','Com pendências':'warn','Cancelado':'danger'})[status] || 'neutral';
 }
 
 function formatMoney(value){
@@ -11,154 +11,6 @@ function formatMoney(value){
   return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
 }
 
-function uniqueFontesProjetos(){
-  return [...new Set(DB.getAll('projetos').map(p => String(p.fonteRecurso||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-}
-
-/* ---------------------------------------------------------
-   LISTAGEM: árvore Recursos (Pais) → Execuções (Filhos), mais uma
-   seção separada para projetos antigos (tipo ainda não definido).
-   --------------------------------------------------------- */
-function renderProjetos(){
-  const filtros=getFiltrosValores('filtrosProjetos');
-  const todosRegistros=DB.getAll('projetos');
-  const mostrarArquivados=!!document.getElementById('chkMostrarArquivadosRecursos')?.checked;
-
-  const recursosBase=todosRegistros.filter(p=>p.tipo==='recurso' && (mostrarArquivados||!p.arquivado));
-  const legados=todosRegistros.filter(p=>!p.tipo);
-
-  const statusEl=document.querySelector('#filtrosProjetos [data-filter="status"]');
-  const statusAtual=statusEl?.value||'';
-  const statuses=[...new Set(todosRegistros.map(x=>x.status).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  if(statusEl) statusEl.innerHTML='<option value="">Todos os status</option>'+statuses.map(st=>`<option value="${escapeHTML(st)}" ${st===statusAtual?'selected':''}>${escapeHTML(st)}</option>`).join('');
-
-  const q=(filtros.busca||'').toLowerCase();
-  const statusFiltro=filtros.status||'';
-  const bate=(...campos)=>campos.join(' ').toLowerCase().includes(q);
-
-  const grupos=recursosBase.map(r=>{
-    let filhos=recursoExecucoes(r.id);
-    if(statusFiltro) filhos=filhos.filter(f=>f.status===statusFiltro);
-    if(q){
-      const recursoBate=bate(r.nome,r.codigo,r.fonteRecurso,r.orgaoRepassador);
-      if(!recursoBate) filhos=filhos.filter(f=>bate(f.nome,f.codigo));
-    }
-    return { r, filhos, financeiro:recursoResumoFinanceiro(r) };
-  }).filter(({r,filhos})=>{
-    if(statusFiltro && r.status!==statusFiltro && !filhos.length) return false;
-    if(q && !bate(r.nome,r.codigo,r.fonteRecurso,r.orgaoRepassador) && !filhos.length) return false;
-    return true;
-  });
-
-  const legadosFiltrados=legados.filter(p=>{
-    if(statusFiltro && p.status!==statusFiltro) return false;
-    if(q && !bate(p.nome,p.codigo,p.fonteRecurso)) return false;
-    return true;
-  });
-
-  const totalExecucoes=todosRegistros.filter(p=>p.tipo==='execucao').length;
-  const totalExecutado=grupos.reduce((s,{financeiro})=>s+financeiro.executado,0);
-  document.getElementById('projectSummary').innerHTML=`
-    <div class="project-summary-card"><span>Recursos</span><strong>${recursosBase.length}</strong></div>
-    <div class="project-summary-card"><span>Execuções</span><strong>${totalExecucoes}</strong></div>
-    <div class="project-summary-card"><span>Total executado</span><strong>${formatMoney(totalExecutado)}</strong></div>
-    ${legados.length?`<div class="project-summary-card"><span>Antigos não classificados</span><strong>${legados.length}</strong></div>`:''}
-  `;
-
-  const grid=document.getElementById('gridProjetos'), vazio=document.getElementById('vazioProjetos');
-  vazio.hidden = !!(grupos.length || legadosFiltrados.length);
-
-  let html=`<div class="recursos-toolbar">
-    <h3 style="margin:0">📁 Recursos</h3>
-    <label class="muted" style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-      <input type="checkbox" id="chkMostrarArquivadosRecursos" ${mostrarArquivados?'checked':''}> Mostrar arquivados
-    </label>
-  </div>`;
-
-  html+=grupos.map(({r,filhos,financeiro})=>`
-    <div class="recurso-lista-card ${r.arquivado?'is-arquivado':''}">
-      <div class="recurso-lista-head" data-abrir-recurso-lista="${escapeHTML(r.id)}">
-        <div><span class="project-code">RECURSO${r.arquivado?' · ARQUIVADO':''}</span><h3>💰 ${escapeHTML(r.nome)}</h3><small class="muted">${escapeHTML(r.fonteRecurso||'Origem não informada')}</small></div>
-        ${badgeHTML(projetoStatusTom(r.status),r.status||'Sem status')}
-      </div>
-      <div class="recurso-lista-financeiro">
-        <span>Recebido: <b>${formatMoney(financeiro.recebido)}</b></span>
-        <span>Executado: <b>${formatMoney(financeiro.executado)}</b></span>
-        <span>Disponível: <b>${formatMoney(financeiro.saldoTotalDisponivel)}</b></span>
-      </div>
-      <div class="recurso-lista-filhos">
-        ${filhos.length?filhos.map(f=>{
-          const fin=execucaoFinanceiro(f);
-          return `<div class="execucao-lista-item" data-abrir-execucao-lista="${escapeHTML(f.id)}">
-            <span>📂 ${escapeHTML(f.nome)}</span>
-            ${badgeHTML(projetoStatusTom(f.status),f.status||'Sem status')}
-            <span class="muted">${formatMoney(fin.planejado)} · ${fin.pct}% executado</span>
-            <button class="btn btn-sm btn-danger" data-excluir-execucao-lista="${escapeHTML(f.id)}" title="Excluir execução">✕</button>
-          </div>`;
-        }).join(''):'<div class="empty-inline">Nenhuma execução cadastrada ainda.</div>'}
-      </div>
-      <div class="recurso-lista-foot">
-        <button class="btn btn-sm btn-primary" data-nova-execucao-lista="${escapeHTML(r.id)}">＋ Nova execução</button>
-        <button class="btn btn-sm" data-ver-recurso-lista="${escapeHTML(r.id)}">Ver recurso →</button>
-        <button class="btn btn-sm btn-danger" data-excluir-recurso-lista="${escapeHTML(r.id)}">Excluir</button>
-      </div>
-    </div>
-  `).join('') || (q||statusFiltro?'':'<p class="muted" style="padding:0 4px">Nenhum recurso cadastrado ainda. Clique em "Novo registro" para começar.</p>');
-
-  if(legadosFiltrados.length){
-    html+=`<div class="projetos-legado-section">
-      <h3>🗂 Projetos antigos (defina o tipo)</h3>
-      <p class="muted">Esses registros existiam antes desta atualização e continuam funcionando normalmente. Classifique cada um quando puder, para que passem a fazer parte da nova estrutura de Recursos/Execuções — a classificação nunca é feita automaticamente.</p>
-      ${legadosFiltrados.map(p=>`<div class="workspace-item">
-        <div><strong>${escapeHTML(p.nome)}</strong><small>${formatMoney(p.valorOrcado)} · ${escapeHTML(p.status||'Sem status')}</small></div>
-        <div class="item-actions" style="flex-wrap:wrap">
-          <button class="btn btn-sm" data-ver-legado="${escapeHTML(p.id)}">Ver</button>
-          <button class="btn btn-sm" data-classificar-recurso="${escapeHTML(p.id)}">📦 É um Recurso</button>
-          <button class="btn btn-sm" data-classificar-execucao="${escapeHTML(p.id)}">📂 É uma Execução de...</button>
-          <button class="btn btn-sm btn-danger" data-excluir-legado="${escapeHTML(p.id)}">Excluir</button>
-        </div>
-      </div>`).join('')}
-    </div>`;
-  }
-
-  grid.innerHTML=html;
-
-  document.getElementById('chkMostrarArquivadosRecursos')?.addEventListener('change',renderProjetos);
-  document.querySelectorAll('[data-abrir-recurso-lista]').forEach(el=>el.addEventListener('click',()=>abrirDetalheRecurso(el.dataset.abrirRecursoLista)));
-  document.querySelectorAll('[data-ver-recurso-lista]').forEach(el=>el.addEventListener('click',()=>abrirDetalheRecurso(el.dataset.verRecursoLista)));
-  document.querySelectorAll('[data-abrir-execucao-lista]').forEach(el=>el.addEventListener('click',()=>abrirDetalheProjeto(el.dataset.abrirExecucaoLista)));
-  document.querySelectorAll('[data-nova-execucao-lista]').forEach(el=>el.addEventListener('click',()=>openFormProjeto(null,{tipo:'execucao',paiId:el.dataset.novaExecucaoLista})));
-  document.querySelectorAll('[data-ver-legado]').forEach(el=>el.addEventListener('click',()=>abrirDetalheProjeto(el.dataset.verLegado)));
-  document.querySelectorAll('[data-classificar-recurso]').forEach(el=>el.addEventListener('click',()=>abrirClassificarComoRecurso(el.dataset.classificarRecurso)));
-  document.querySelectorAll('[data-classificar-execucao]').forEach(el=>el.addEventListener('click',()=>abrirClassificarComoExecucao(el.dataset.classificarExecucao)));
-  document.querySelectorAll('[data-excluir-legado]').forEach(el=>el.addEventListener('click',()=>{
-    const item=DB.getById('projetos',el.dataset.excluirLegado);
-    confirmAction(`Tem certeza que deseja excluir "${item.nome}"?`,()=>{
-      DB.remove('projetos',item.id);
-      registrarHistorico({modulo:'projeto',acao:'exclusão',descricao:`Projeto "${item.nome}" excluído.`,refId:item.id});
-      showToast('Registro excluído.'); renderProjetos();
-    });
-  }));
-  document.querySelectorAll('[data-excluir-recurso-lista]').forEach(el=>el.addEventListener('click',()=>{
-    const r=DB.getById('projetos',el.dataset.excluirRecursoLista);
-    if(recursoExecucoes(r.id).length){ showToast('⚠ Exclua ou reclassifique as execuções deste recurso antes de excluí-lo (ou prefira "Arquivar", dentro do recurso).'); return; }
-    confirmAction(`Tem certeza que deseja excluir o recurso "${r.nome}"? Prefira "Arquivar" (dentro do recurso) se ele só estiver encerrado.`,()=>{
-      DB.remove('projetos',r.id);
-      registrarHistorico({modulo:'projeto',acao:'exclusão',descricao:`Recurso "${r.nome}" excluído.`,refId:r.id});
-      showToast('Recurso excluído.'); renderProjetos();
-    });
-  }));
-  document.querySelectorAll('[data-excluir-execucao-lista]').forEach(el=>el.addEventListener('click',(ev)=>{
-    ev.stopPropagation();
-    const f=DB.getById('projetos',el.dataset.excluirExecucaoLista);
-    confirmAction(`Tem certeza que deseja excluir a execução "${f.nome}"? O valor volta a ficar disponível no recurso.`,()=>{
-      DB.remove('projetos',f.id);
-      registrarHistorico({modulo:'projeto',acao:'exclusão',descricao:`Execução "${f.nome}" excluída.`,refId:f.id});
-      if(f.paiId) recursoRegistrarMovimentacao(f.paiId,{tipo:'ajuste',valor:-(Number(f.valorOrcado)||0),descricao:`Execução "${f.nome}" excluída — valor devolvido ao saldo não distribuído.`,origemExecucaoId:f.id});
-      showToast('Execução excluída.'); renderProjetos();
-    });
-  }));
-}
 
 /* Classificação segura de projetos antigos (item 23 do pedido): nunca
    automática, sempre uma escolha explícita do usuário, sem perder dados. */
@@ -198,11 +50,6 @@ function abrirClassificarComoExecucao(id){
   }));
 }
 
-document.querySelectorAll('#filtrosProjetos [data-filter]').forEach(el=>el.addEventListener('input',()=>{}));
-document.getElementById('btnFiltrarProjetosDemandas')?.addEventListener('click',()=>renderProjetos());
-document.getElementById('btnMostrarTodosProjetosDemandas')?.addEventListener('click',()=>{document.querySelectorAll('#filtrosProjetos [data-filter]').forEach(el=>el.value='');renderProjetos();});
-document.querySelector('#filtrosProjetos [data-filter="busca"]')?.addEventListener('keydown',e=>{if(e.key==='Enter')renderProjetos();});
-document.querySelector('[data-action="novo-projeto-demanda"]')?.addEventListener('click',()=>abrirEscolhaNovoRecursoOuExecucao());
 
 /* Botão "Novo registro" do módulo Projetos: primeiro decide se é um
    Recurso novo ou uma Execução de um recurso já existente. */
@@ -330,6 +177,7 @@ function getEmpresaGlobal(id){ return id ? DB.getById('gerador-empresas', id) : 
    esse checklist mantinha uma segunda lista de documentos por execução,
    com nomes até diferentes ("CNPJ" vs "CNPJ da empresa"), então nunca
    reconhecia o que já estava cadastrado na ficha global. */
+const DOCS_APAE_OBRIGATORIOS=['CNPJ','Estatuto','Ata de eleição/posse','Certidão federal','Certidão estadual','Certidão municipal','FGTS','CNDT'];
 const EMPRESA_DOCS_SUGERIDOS=['CNPJ','Contrato Social','CND Federal','CND Estadual','CND Municipal','FGTS','CNDT','Outros documentos'];
 
 function projectData(p){
@@ -384,9 +232,6 @@ function projectSave(p){
    Mesma entidade 'projetos', mesmo DB.insert/update/remove — só dois
    campos novos (tipo, paiId) mudam o que o registro representa.
    --------------------------------------------------------- */
-function ehRecurso(p){ return p?.tipo === 'recurso'; }
-function ehExecucao(p){ return p?.tipo === 'execucao'; }
-function ehProjetoLegado(p){ return !p?.tipo; }
 
 function recursoExecucoes(recursoId){
   return DB.getAll('projetos').filter(p => p.tipo === 'execucao' && p.paiId === recursoId);
@@ -447,8 +292,8 @@ function recursoRegistrarMovimentacao(recursoId, dados){
   projectSave(r);
   return mov;
 }
-function projectCount(p,key){ return (p[key]||[]).length; }
-function projectAttachments(p){ return [...(p.cotacoes||[]),...(p.ordensCompra||[]),...(p.documentosProjeto||[]),...(p.docsApae||[]),...(p.pagamentos||[])].filter(x=>x.anexo).length + (p.plano?.anexo?1:0); }
+
+
 function cotacoesValidasParaOrdem(p){
   const empresasComCotacao=new Set(p.cotacoes.map(c=>c.empresaId||String(c.fornecedor||'').trim().toLowerCase()).filter(Boolean));
   return empresasComCotacao.size >= 3 && !!projectFornecedorSelecionado(p);
@@ -469,7 +314,7 @@ function projectChecklist(p){
   const cotOk=new Set(p.cotacoes.map(c=>c.empresaId||String(c.fornecedor||'').trim().toLowerCase()).filter(Boolean)).size>=3;
   const planoOk=!!(p.plano?.descricao||p.plano?.anexo);
   const ordemOk=p.ordensCompra.length>0;
-  const apaeOk=p.docsApae.length>0 && p.docsApae.every(x=>x.entregue);
+  const apaeOk=DOCS_APAE_OBRIGATORIOS.every(nome=>p.docsApae.some(x=>x.nome===nome && x.entregue));
   // Documentação das empresas: lê direto da ficha global de cada empresa
   // vinculada (statusDocumentacaoEmpresa), a mesma fonte já usada no card
   // de cada empresa — não existe mais um checklist separado por execução.
@@ -505,63 +350,6 @@ function projectProximaAcao(p){
   return { label: proximo[0], tab: abaProjetoParaPendencia(proximo[2]) };
 }
 
-function renderWorkspaceProjeto(p,aba='resumo'){
-  p=projectData(p);
-  const tabs=[['resumo','Visão geral'],['plano','Plano'],['empresas','Empresas'],['docs-apae','Docs. APAE'],['documentos','Documentos'],['pagamentos','Pagamentos'],['prestacao','Prestação de contas'],['pendencias','Pendências']];
-  const active=tabs.some(t=>t[0]===aba)?aba:'resumo';
-  const map={resumo:projectResumoHTML,plano:projectPlanoHTML,empresas:projectEmpresasHTML,'docs-apae':projectDocsApaeHTML,documentos:projectDocumentosHTML,pagamentos:projectPagamentosHTML,prestacao:projectPrestacaoHTML,pendencias:projectPendenciasHTML};
-  const content=map[active](p);
-  const recursoPai = p.paiId ? DB.getById('projetos', p.paiId) : null;
-  openModal(`${recursoPai?'Execução':'Projeto'} ${escapeHTML(p.codigo)} — ${escapeHTML(p.nome)}`,`<div class="project-workspace"><div class="project-workspace-head"><div>${recursoPai?`<a href="#" class="link-btn" data-abrir-recurso="${escapeHTML(recursoPai.id)}">💰 ${escapeHTML(recursoPai.nome)}</a><br>`:''}<span class="project-code">${escapeHTML(p.codigo)}</span><h2>${escapeHTML(p.nome)}</h2><p>${escapeHTML(p.fonteRecurso||'Fonte não informada')} · ${recursoPai?'Planejado':'Recurso'}: ${formatMoney(p.valorOrcado||0)}</p></div>${badgeHTML(projetoStatusTom(p.status),p.status)}</div><div class="project-progress-box"><div><strong>${projectProgress(p)}%</strong><span>do processo documentado</span></div><div class="project-progress"><i style="width:${projectProgress(p)}%"></i></div></div><div class="project-steps">${projectChecklist(p).map((x,i)=>`<button class="project-step ${x[1]?'done':''} ${active===x[2]?'current':''}" data-step="${x[2]}"><span>${x[1]?'✓':i+1}</span>${x[0]}</button>`).join('')}</div><div class="project-tabs">${tabs.map(([key,label])=>`<button class="project-tab ${active===key?'active':''}" data-tab="${key}">${label}${['empresas','docs-apae','documentos','pagamentos','pendencias'].includes(key)?` <span>${key==='empresas'?p.empresas.length:key==='docs-apae'?p.docsApae.length:key==='pagamentos'?p.pagamentos.length:key==='documentos'?p.documentosProjeto.length:p.pendencias.length}</span>`:''}</button>`).join('')}</div><div class="project-workspace-body">${content}</div></div>`);
-  document.querySelectorAll('.project-tab,.project-step').forEach(btn=>btn.addEventListener('click',()=>renderWorkspaceProjeto(projectData(DB.getById('projetos',p.id)),btn.dataset.tab||btn.dataset.step)));
-  document.querySelectorAll('[data-abrir-recurso]').forEach(b=>b.onclick=(ev)=>{ev.preventDefault();abrirDetalheRecurso(b.dataset.abrirRecurso);});
-  document.querySelectorAll('[data-project-action="editar"]').forEach(b=>b.onclick=()=>openFormProjeto(p.id));
-  document.querySelectorAll('[data-project-action="ir-proxima-acao"]').forEach(b=>b.onclick=()=>renderWorkspaceProjeto(projectData(DB.getById('projetos',p.id)),b.dataset.tab));
-  document.querySelectorAll('[data-project-action="plano"]').forEach(b=>b.onclick=()=>openFormPlano(p.id));
-  document.querySelectorAll('[data-project-action="nova-cotacao"]').forEach(b=>b.onclick=()=>openFormCotacao(p.id,b.dataset.empresa||''));
-  document.querySelectorAll('[data-project-action="selecionar-cotacao"]').forEach(b=>b.onclick=()=>selecionarCotacaoProjeto(p.id,b.dataset.item));
-  document.querySelectorAll('[data-project-action="nova-ordem"]').forEach(b=>b.onclick=()=>{ const atual=projectData(DB.getById('projetos',p.id)); if(!podeCriarOrdem(atual)){ showToast('⚠ '+motivoBloqueioOrdem(atual)); return; } openFormOrdem(atual.id,b.dataset.empresa||''); });
-  document.querySelectorAll('[data-project-action="novo-doc-apae"]').forEach(b=>b.onclick=()=>openFormDocChecklist(p.id));
-  document.querySelectorAll('[data-project-action="nova-empresa"]').forEach(b=>b.onclick=()=>openFormEmpresa(p.id));
-  document.querySelectorAll('[data-project-action="vincular-empresa"]').forEach(b=>b.onclick=()=>abrirVincularEmpresaExistente(p.id));
-  // Acesso à empresa e à ficha completa são tratados por delegação global
-  // (em 08-pesquisa-historico.js) para não depender de listeners recriados
-  // quando o conteúdo do modal é renderizado novamente.
-  document.getElementById('modalBody').querySelectorAll('[data-project-action="acessar-empresa"],[data-project-action="ver-ficha-empresa"]').forEach(b=>{
-    b.onclick=null;
-  });
-  document.querySelectorAll('[data-project-action="editar-empresa"]').forEach(b=>b.onclick=()=>openFormEmpresaEditar(p.id,b.dataset.empresa));
-  document.querySelectorAll('[data-project-action="novo-documento"]').forEach(b=>b.onclick=()=>openFormDocumentoProjeto(p.id));
-  document.querySelectorAll('[data-project-action="novo-pagamento"]').forEach(b=>b.onclick=()=>openFormPagamento(p.id));
-  document.querySelectorAll('[data-project-action="nova-pendencia"]').forEach(b=>b.onclick=()=>openFormPendencia(p.id));
-  document.querySelectorAll('[data-project-action="toggle-pendencia"]').forEach(b=>b.onclick=()=>togglePendenciaProjeto(p.id,b.dataset.item));
-  document.querySelectorAll('[data-project-action="excluir-pendencia"]').forEach(b=>b.onclick=()=>excluirPendenciaProjeto(p.id,b.dataset.item));
-  document.querySelectorAll('[data-project-action="toggle-doc"]').forEach(b=>b.onclick=()=>toggleDocProjeto(p.id,b.dataset.item));
-  document.querySelectorAll('[data-file-download]').forEach(b=>b.onclick=()=>baixarAnexo(b.dataset.fileDownload));
-  document.querySelectorAll('[data-project-action="excluir-item"]').forEach(b=>b.onclick=()=>excluirItemProjeto(p.id,b.dataset.tipo,b.dataset.item));
-}
-/* Ponto único de entrada usado por Pendências, Pesquisa, Dashboard e
-   Relacionados — decide sozinho se abre o painel do Recurso (Pai) ou o
-   workspace operacional da Execução (Filho), então quem chama não
-   precisa saber qual é qual. */
-function abrirDetalheProjeto(id,aba='resumo'){
-  const p=DB.getById('projetos',id);if(!p)return;
-  if(p.tipo==='recurso'){ renderWorkspaceRecurso(p, aba==='resumo'?'geral':aba); return; }
-  renderWorkspaceProjeto(p,aba);
-}
-function projectResumoHTML(p){
-  const checklist=projectChecklist(p), pend=checklist.filter(x=>!x[1]);
-  const cotMin=p.cotacoes.length>=3, fornecedor=projectFornecedorSelecionado(p);
-  const previsto=p.cotacoes.filter(c=>c.selecionada).reduce((s,c)=>s+(Number(c.valor)||0),0);
-  const gasto=p.pagamentos.reduce((s,x)=>s+(Number(x.valor)||0),0);
-  const relacionados=renderRelacionados('projeto',p.id);
-  const proximaAcao=projectProximaAcao(p);
-  const proximaAcaoHTML=proximaAcao
-    ? `<div class="notice-box warning proxima-acao-box"><b>🟠 Próxima ação</b><br>${escapeHTML(proximaAcao.label)}<div class="modal-actions" style="margin-top:10px"><button class="btn btn-sm btn-primary" data-project-action="ir-proxima-acao" data-tab="${escapeHTML(proximaAcao.tab)}">Ir para a ação →</button></div></div>`
-    : `<div class="notice-box success"><b>✓ Processo completo</b><br>Todas as etapas do checklist estão concluídas.</div>`;
-  return `<div class="project-kpi-grid"><div><span>${p.paiId?'Planejado':'Recurso'}</span><strong>${formatMoney(p.valorOrcado||0)}</strong></div><div><span>Comprometido</span><strong>${formatMoney(previsto||0)}</strong></div><div><span>Pago (executado)</span><strong>${formatMoney(gasto)}</strong></div><div><span>Saldo</span><strong>${formatMoney((Number(p.valorOrcado)||0)-gasto)}</strong></div></div>${proximaAcaoHTML}<div class="workspace-grid"><div class="detail-block"><div class="detail-label">Dados do projeto</div><div class="detail-value"><b>Fonte:</b> ${escapeHTML(p.fonteRecurso||'—')}<br><b>Instrumento:</b> ${escapeHTML(p.convenio||'—')}<br><b>Período:</b> ${formatDateBR(p.dataInicio)} → ${formatDateBR(p.dataFim)}<br><b>Responsável:</b> ${escapeHTML(p.responsavel||'—')}<br><b>Objetivo:</b> ${escapeHTML(p.objetivo||'—')}</div></div><div class="detail-block"><div class="detail-label">Situação</div><div class="detail-value">${cotMin?`<span class="status-inline ok">✓ ${p.cotacoes.length} cotações cadastradas</span>`:`<span class="status-inline danger">! Faltam ${Math.max(0,3-p.cotacoes.length)} cotação(ões)</span>`}<br>${fornecedor?`<span class="status-inline ok">Fornecedor: ${escapeHTML(fornecedor.fornecedor)}</span>`:''}</div></div></div>${pend.length?`<div class="notice-box warning"><b>! O que falta</b><br>${pend.map(x=>`• ${escapeHTML(x[0])}`).join('<br>')}</div>`:''}${relacionados}<div class="modal-actions"><button class="btn btn-ghost" data-project-action="editar">Editar projeto</button></div>`;
-}
-function projectPlanoHTML(p){return `<div class="workspace-toolbar"><div><h3>Plano do projeto</h3><p>Registre o que será feito com o recurso e guarde o plano aprovado.</p></div><button class="btn btn-primary" data-project-action="plano">${p.plano?.anexo||p.plano?.descricao?'Editar plano':'＋ Cadastrar plano'}</button></div>${p.plano?.descricao?`<div class="detail-block"><div class="detail-label">Descrição / aplicação do recurso</div><div class="detail-value">${escapeHTML(p.plano.descricao)}</div></div>`:'<div class="empty-inline">O plano ainda não foi registrado.</div>'}${p.plano?.anexo?`<div class="workspace-item"><div><strong>📎 ${escapeHTML(p.plano.anexo.nome)}</strong><small>Plano anexado</small></div><button class="btn btn-sm" data-file-download="${p.plano.anexo.id}">Abrir arquivo</button></div>`:''}<div class="notice-box"><b>! Antes de comprar</b><br>Confira se o item está previsto no plano e se o valor é compatível com o recurso recebido.</div>`;}
 /* Indicador de documentação da empresa, calculado a partir dos
    documentos reais cadastrados na ficha global (reusa situacaoDocumento). */
 function statusDocumentacaoEmpresa(empresaGlobalId){
@@ -572,54 +360,6 @@ function statusDocumentacaoEmpresa(empresaGlobalId){
   if(docs.some(d=>!d.anexo)) return {emoji:'🟠',label:'Documentação incompleta'};
   return {emoji:'🟢',label:'Documentação OK'};
 }
-function projectEmpresasHTML(p){
-  const empresas=p.empresas||[];
-  const esc=escapeHTML;
-  const cards=empresas.map(e=>{
-    const cot=p.cotacoes.filter(c=>c.empresaId===e.id || (!c.empresaId && String(c.fornecedor||'').trim().toLowerCase()===String(e.nome||'').trim().toLowerCase()));
-    const ord=p.ordensCompra.filter(o=>o.empresaId===e.id || (!o.empresaId && String(o.fornecedor||'').trim().toLowerCase()===String(e.nome||'').trim().toLowerCase()));
-    const docs=getEmpresaGlobal(e.empresaGlobalId)?.documentos||[];
-    const vencedora=cot.find(c=>c.selecionada);
-    const situacao=statusDocumentacaoEmpresa(e.empresaGlobalId);
-    return `<div class="empresa-project-card empresa-card-compact">
-      <div class="empresa-project-head"><div><span class="project-code">EMPRESA</span><h3>${esc(e.nome)}</h3><p>${e.cnpj?esc(e.cnpj):'CNPJ não informado'}${e.contato?' · '+esc(e.contato):''}</p></div>${vencedora?badgeHTML('success','Cotação vencedora'):''}</div>
-      <div class="empresa-project-stats"><span><b>${cot.length}</b> cotação(ões)</span><span><b>${docs.length}</b> documento(s) da empresa</span><span><b>${ord.length}</b> ordem(ns)</span></div>
-      <div class="empresa-project-stats"><span>${situacao.emoji} ${situacao.label}</span></div>
-      <div class="empresa-project-foot empresa-card-action"><span>${vencedora?'✓ Fornecedor selecionado':'Fornecedor cadastrado'}</span><div style="display:flex;gap:8px"><button class="btn btn-ghost" data-project-action="ver-ficha-empresa" data-empresa-global="${esc(e.empresaGlobalId||'')}">🏢 Ficha completa</button><button class="btn btn-primary" data-project-action="acessar-empresa" data-project="${esc(p.id)}" data-empresa="${esc(e.id)}">Acessar empresa →</button></div></div>
-    </div>`;
-  }).join('');
-  return `<div class="workspace-toolbar"><div><h3>Empresas</h3><p>Cadastre ou vincule fornecedores aqui. Para adicionar cotações, documentos do projeto ou ordens, primeiro acesse a empresa.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" data-project-action="vincular-empresa">🔗 Vincular empresa existente</button><button class="btn btn-primary" data-project-action="nova-empresa">＋ Nova empresa</button></div></div>
-  <div class="notice-box"><b>! Organização</b><br>Cada empresa funciona como uma pasta própria dentro do projeto. Abra "Ficha completa" para ver dados, documentos, cotações e ordens desta empresa em todos os projetos em que ela participa.</div>
-  ${cards||'<div class="empty-inline">Nenhuma empresa cadastrada. Comece adicionando ou vinculando uma empresa.</div>'}`;
-}
-
-function renderEmpresaProjeto(projectId,empresaId,aba='resumo'){
-  const esc=escapeHTML;
-  const p=projectData(DB.getById('projetos',projectId));
-  const e=p.empresas.find(x=>x.id===empresaId); if(!e)return renderWorkspaceProjeto(p,'empresas');
-  const cot=p.cotacoes.filter(c=>c.empresaId===e.id || (!c.empresaId && String(c.fornecedor||'').trim().toLowerCase()===String(e.nome||'').trim().toLowerCase()));
-  const ord=p.ordensCompra.filter(o=>o.empresaId===e.id || (!o.empresaId && String(o.fornecedor||'').trim().toLowerCase()===String(e.nome||'').trim().toLowerCase()));
-  const vencedora=cot.find(c=>c.selecionada);
-  // Documentos da empresa vivem só na ficha global (empresaDocumentosGlobais
-  // mais abaixo) — aqui só se lê e se linka pra lá, sem upload duplicado.
-  const docsGlobais=getEmpresaGlobal(e.empresaGlobalId)?.documentos||[];
-  const situacaoDocs=statusDocumentacaoEmpresa(e.empresaGlobalId);
-  const tabs=[['resumo','Resumo'],['cotacoes','Cotações'],['documentos','Documentos'],['ordens','Ordens de compra']];
-  let content='';
-  if(aba==='cotacoes') content=`<div class="workspace-toolbar"><div><h3>Cotações da empresa</h3><p>Adicione aqui os itens que esta empresa está cotando e anexe o orçamento recebido.</p></div><button class="btn btn-primary" data-project-action="nova-cotacao" data-empresa="${esc(e.id)}">＋ Nova cotação</button></div>${cot.length?cot.map(c=>`<div class="workspace-item"><div><strong>${esc(c.data?formatDateBR(c.data):'Sem data')} · ${formatMoney(c.valor||0)} ${c.selecionada?'· ✓ Vencedora':''}</strong><small>${(c.itens||[]).map(i=>`${esc(i.nome)} (${i.quantidade} × ${formatMoney(i.valor)})`).join(' · ')}</small></div><div class="item-actions">${c.anexo?`<button class="btn btn-sm" data-file-download="${c.anexo.id}">📎 Abrir</button>`:''}<button class="btn btn-sm" data-project-action="selecionar-cotacao" data-item="${c.id}" ${(!c.selecionada&&new Set(p.cotacoes.map(x=>x.empresaId||String(x.fornecedor||'').trim().toLowerCase()).filter(Boolean)).size<3)?'disabled':''}>${c.selecionada?'Selecionada':'Escolher'}</button></div></div>`).join(''):'<div class="empty-inline">Nenhuma cotação desta empresa.</div>'}`;
-  else if(aba==='documentos') content=`<div class="workspace-toolbar"><div><h3>Documentos da empresa</h3><p>Os documentos ficam guardados uma única vez na ficha da empresa e valem para todos os projetos em que ela participa.</p></div><button class="btn btn-primary" data-project-action="ver-ficha-empresa" data-empresa-global="${esc(e.empresaGlobalId||'')}" data-ficha-aba="documentos">🏢 Gerenciar documentos na ficha</button></div><div class="notice-box"><b>${situacaoDocs.emoji} ${situacaoDocs.label}</b></div>${docsGlobais.length?docsGlobais.map(d=>{const sit=situacaoDocumento(d);return `<div class="workspace-item"><div><strong>${esc(d.nome)}</strong><small>${sit.emoji} ${esc(sit.label)}${d.dataValidade?' · válido até '+formatDateBR(d.dataValidade):''}</small></div>${d.anexo?`<button class="btn btn-sm" data-file-download="${d.anexo.id}">📎 Abrir</button>`:''}</div>`;}).join(''):'<div class="empty-inline">Nenhum documento cadastrado para esta empresa ainda. Use "Gerenciar documentos na ficha" para adicionar.</div>'}`;
-  else if(aba==='ordens') content=`<div class="workspace-toolbar"><div><h3>Ordens de compra</h3><p>A ordem só fica disponível para a empresa vencedora, depois das cotações necessárias.</p></div><button class="btn btn-primary" data-project-action="nova-ordem" data-empresa="${esc(e.id)}" ${podeCriarOrdem(p)&&vencedora?'':'disabled'}>＋ Nova ordem</button></div>${ord.length?ord.map(o=>`<div class="workspace-item"><div><strong>${esc(o.numero||'Ordem sem número')}</strong><small>${formatMoney(o.valor||0)} · ${esc(o.status||'')}</small></div>${o.anexo?`<button class="btn btn-sm" data-file-download="${o.anexo.id}">📎 Abrir</button>`:''}</div>`).join(''):'<div class="empty-inline">Nenhuma ordem de compra cadastrada.</div>'}`;
-  else content=`<div class="empresa-detail-hero"><div><span class="project-code">EMPRESA</span><h3>${esc(e.nome)}</h3><p>${e.cnpj?`CNPJ: ${esc(e.cnpj)}`:'CNPJ não informado'}${e.contato?' · '+esc(e.contato):''}</p></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" data-project-action="editar-empresa" data-empresa="${esc(e.id)}">Editar empresa</button><button class="btn btn-primary" data-project-action="ver-ficha-empresa" data-empresa-global="${esc(e.empresaGlobalId||'')}">🏢 Ficha completa (todos os projetos)</button></div></div><div class="project-kpi-grid"><div><span>Cotações</span><strong>${cot.length}</strong></div><div><span>Documentação</span><strong>${situacaoDocs.emoji} ${situacaoDocs.label}</strong></div><div><span>Ordens</span><strong>${ord.length}</strong></div><div><span>Situação</span><strong>${vencedora?'Vencedora':'Em análise'}</strong></div></div><div class="notice-box"><b>Como usar esta empresa</b><br>Entre nas abas acima para adicionar os itens das cotações e, quando liberada, criar a ordem de compra. Os documentos da empresa (CNPJ, certidões...) ficam na "Ficha completa", compartilhados com todos os projetos em que ela participa.</div>`;
-  openModal(`Empresa — ${escapeHTML(e.nome)}`,`<div class="empresa-workspace"><div class="empresa-back"><button class="btn btn-ghost" data-project-action="voltar-empresas">← Voltar para empresas</button></div><div class="empresa-tabs">${tabs.map(([k,l])=>`<button class="project-tab ${aba===k?'active':''}" data-empresa-tab="${k}">${l}${k==='cotacoes'?` <span>${cot.length}</span>`:k==='documentos'?` <span>${docsGlobais.length}</span>`:k==='ordens'?` <span>${ord.length}</span>`:''}</button>`).join('')}</div><div class="project-workspace-body">${content}</div></div>`);
-  document.getElementById('modalBody').querySelectorAll('[data-empresa-tab]').forEach(b=>b.onclick=(ev)=>{ev.preventDefault();renderEmpresaProjeto(projectId,empresaId,b.dataset.empresaTab);});
-  const voltarEmp=document.getElementById('modalBody').querySelector('[data-project-action="voltar-empresas"]'); if(voltarEmp) voltarEmp.onclick=(ev)=>{ev.preventDefault();renderWorkspaceProjeto(projectData(DB.getById('projetos',projectId)),'empresas');};
-  document.querySelectorAll('[data-project-action="nova-cotacao"]').forEach(b=>b.onclick=()=>openFormCotacao(projectId,b.dataset.empresa||empresaId));
-  document.querySelectorAll('[data-project-action="nova-ordem"]').forEach(b=>b.onclick=()=>{const atual=projectData(DB.getById('projetos',projectId));if(!podeCriarOrdem(atual)){showToast('⚠ '+motivoBloqueioOrdem(atual));return;}openFormOrdem(projectId,b.dataset.empresa||empresaId);});
-  document.querySelectorAll('[data-project-action="selecionar-cotacao"]').forEach(b=>b.onclick=()=>selecionarCotacaoProjeto(projectId,b.dataset.item));
-  document.querySelectorAll('[data-project-action="editar-empresa"]').forEach(b=>b.onclick=()=>openFormEmpresaEditar(projectId,b.dataset.empresa||empresaId));
-  document.querySelectorAll('[data-file-download]').forEach(b=>b.onclick=()=>baixarAnexo(b.dataset.fileDownload));
-}
-
 /* -----------------------------------------------------------
    FICHA GLOBAL DA EMPRESA
    Ponto único de acesso aos dados de uma empresa, reunindo o que já
@@ -813,126 +553,11 @@ function abrirVincularEmpresaAOutroProjeto(empresaGlobalId){
   });
 }
 
-function checklistDocsHTML(p){const arr=p.docsApae;const titulo='Documentação da APAE';const obrig=['CNPJ','Estatuto','Ata de eleição/posse','Certidão federal','Certidão estadual','Certidão municipal','FGTS','CNDT'];const grupo='apae';return `<div class="workspace-toolbar"><div><h3>${titulo}</h3><p>Os documentos podem ser cadastrados a qualquer momento, independentemente das cotações ou da ordem de compra.</p></div><button class="btn btn-primary" data-project-action="novo-doc-${grupo}">＋ Adicionar documento</button></div><div class="checklist-progress"><strong>${arr.filter(x=>x.entregue).length}/${arr.length||0}</strong> documentos entregues</div><div class="required-docs">${obrig.map(nome=>{const d=arr.find(x=>x.nome===nome);return `<div class="required-doc ${d?.entregue?'done':''}"><span>${d?.entregue?'✓':'○'}</span><div><strong>${nome}</strong><small>${d?.anexo?escapeHTML(d.anexo.nome):d?'Cadastrado, sem arquivo':'Pendente'}</small></div>${d?.anexo?`<button class="btn btn-sm" data-file-download="${d.anexo.id}">Abrir</button>`:''}${d?`<button class="btn btn-sm" data-project-action="toggle-doc" data-grupo="${grupo}" data-item="${d.id}">${d.entregue?'Reabrir':'Concluir'}</button>`:''}</div>`}).join('')}</div>${arr.filter(d=>!obrig.includes(d.nome)).map(d=>`<div class="workspace-item"><div><strong>${escapeHTML(d.nome)}</strong><small>${d.entregue?'✓ Entregue':'Pendente'}</small></div>${d.anexo?`<button class="btn btn-sm" data-file-download="${d.anexo.id}">Abrir</button>`:''}</div>`).join('')}`;}
-function projectDocsApaeHTML(p){return checklistDocsHTML(p);}
-function projectDocumentosHTML(p){return `<div class="workspace-toolbar"><div><h3>Documentos da execução</h3><p>Notas fiscais, comprovantes, relatórios e demais documentos que não entram nas checklists.</p></div><button class="btn btn-primary" data-project-action="novo-documento">＋ Anexar documento</button></div>${p.documentosProjeto.length?`<div class="workspace-list">${p.documentosProjeto.map(d=>`<div class="workspace-item"><div><strong>${escapeHTML(d.nome)}</strong><small>${escapeHTML(d.categoria||'Outro')} · ${d.data?formatDateBR(d.data):'Sem data'}</small></div><div class="item-actions">${d.anexo?`<button class="btn btn-sm" data-file-download="${d.anexo.id}">📎 Abrir</button>`:''}<button class="btn btn-sm btn-danger" data-project-action="excluir-item" data-tipo="documento" data-item="${d.id}">Excluir</button></div></div>`).join('')}</div>`:'<div class="empty-inline">Nenhum documento de execução anexado.</div>'}`;}
-function projectPagamentosHTML(p){return `<div class="workspace-toolbar"><div><h3>Pagamentos</h3><p>Registre quanto foi pago e anexe o comprovante. Isso alimenta o saldo do projeto.</p></div><button class="btn btn-primary" data-project-action="novo-pagamento">＋ Registrar pagamento</button></div>${p.pagamentos.length?`<div class="workspace-list">${p.pagamentos.map(x=>`<div class="workspace-item"><div><strong>${formatMoney(x.valor)} — ${escapeHTML(x.fornecedor||'Pagamento')}</strong><small>${x.data?formatDateBR(x.data):'Sem data'} · ${escapeHTML(x.forma||'Forma não informada')}</small></div>${x.anexo?`<button class="btn btn-sm" data-file-download="${x.anexo.id}">📎 Comprovante</button>`:''}</div>`).join('')}</div>`:'<div class="empty-inline">Nenhum pagamento registrado.</div>'}`;}
-function projectPrestacaoHTML(p){const checklist=projectChecklist(p);const pendentes=checklist.filter(x=>!x[1]);const nf=p.documentosProjeto.filter(x=>['Nota fiscal','NF','Nota fiscal / recibo'].includes(x.categoria)).length;const pago=p.pagamentos.reduce((s,x)=>s+(Number(x.valor)||0),0);const saldo=(Number(p.valorOrcado)||0)-pago;return `<div class="workspace-toolbar"><div><h3>Prestação de contas</h3><p>Visão final para conferir se o processo está documentado antes de fechar o projeto. O detalhe de cada etapa está nas abas e na barra de progresso no topo.</p></div></div><div class="project-kpi-grid"><div><span>Recurso recebido</span><strong>${formatMoney(p.valorOrcado||0)}</strong></div><div><span>Total pago</span><strong>${formatMoney(pago)}</strong></div><div><span>Saldo</span><strong>${formatMoney(saldo)}</strong></div><div><span>Notas fiscais</span><strong>${nf}</strong></div></div>${pendentes.length?`<div class="notice-box warning"><b>! Ainda não está pronto (${checklist.length-pendentes.length}/${checklist.length})</b><br>Clique nas etapas destacadas na barra do topo para resolver: ${pendentes.map(x=>escapeHTML(x[0])).join(', ')}.</div>`:'<div class="notice-box success"><b>✓ Projeto pronto para conferência final</b><br>Todos os itens principais estão registrados. A conferência humana e as regras do financiador continuam sendo necessárias.</div>'}`;}
-function projectPendenciasHTML(p){return `<div class="workspace-toolbar"><div><h3>Pendências</h3><p>Use quando houver algo específico que precise ser resolvido.</p></div><button class="btn btn-primary" data-project-action="nova-pendencia">＋ Nova pendência</button></div>${p.pendencias.length?`<div class="workspace-list">${p.pendencias.map(x=>`<div class="workspace-item ${x.status==='Concluída'?'selected-item':''}"><div><strong>${escapeHTML(x.titulo)}</strong><small>${escapeHTML(x.prioridade||'Normal')} · ${escapeHTML(x.status||'Pendente')}</small>${x.descricao?`<small>${escapeHTML(x.descricao)}</small>`:''}</div><div class="item-actions"><button class="btn btn-sm" data-project-action="toggle-pendencia" data-item="${x.id}">${x.status==='Concluída'?'Reabrir':'✓ Concluir'}</button><button class="btn btn-sm btn-danger" data-project-action="excluir-pendencia" data-item="${x.id}">Excluir</button></div></div>`).join('')}</div>`:'<div class="empty-inline">Nenhuma pendência manual.</div>'}`;}
-
-/* ---------------------------------------------------------
-   WORKSPACE DO RECURSO (Pai) — visão financeira e administrativa
-   geral. Nunca mistura planejado com gasto: os três conceitos
-   (recebido/distribuído/executado) vêm de recursoResumoFinanceiro().
-   --------------------------------------------------------- */
 const MOVIMENTACAO_LABEL = {
   entrada:'🟢 Entrada do recurso', distribuicao:'🔵 Distribuição para execução',
   execucao:'🟠 Execução/gasto', pagamento:'🟠 Pagamento',
   transferencia:'🔁 Transferência entre execuções', ajuste:'✎ Ajuste'
 };
-
-function recursoGeralHTML(r){
-  const f=recursoResumoFinanceiro(r);
-  return `<div class="project-kpi-grid">
-      <div><span>Recebido</span><strong>${formatMoney(f.recebido)}</strong></div>
-      <div><span>Distribuído</span><strong>${formatMoney(f.distribuido)}</strong></div>
-      <div><span>Executado</span><strong>${formatMoney(f.executado)}</strong></div>
-      <div><span>Saldo não distribuído</span><strong>${formatMoney(f.naoDistribuido)}</strong></div>
-    </div>
-    <div class="project-kpi-grid">
-      <div><span>Saldo das execuções</span><strong>${formatMoney(f.saldoExecucoes)}</strong></div>
-      <div><span>Saldo total disponível</span><strong>${formatMoney(f.saldoTotalDisponivel)}</strong></div>
-      <div><span>Execuções</span><strong>${f.qtdExecucoes}</strong></div>
-      <div><span>Status</span><strong>${escapeHTML(r.status||'—')}</strong></div>
-    </div>
-    <div class="workspace-grid">
-      <div class="detail-block"><div class="detail-label">% distribuído do recurso</div><div class="project-progress"><i style="width:${f.percentualDistribuicao}%"></i></div><small class="muted">${f.percentualDistribuicao}% do valor recebido já foi destinado a execuções</small></div>
-      <div class="detail-block"><div class="detail-label">% executado do distribuído</div><div class="project-progress"><i style="width:${f.percentualExecucao}%"></i></div><small class="muted">${f.percentualExecucao}% do valor distribuído já foi gasto</small></div>
-    </div>
-    <div class="detail-block"><div class="detail-label">Dados do recurso</div><div class="detail-value">
-      <b>Tipo/origem:</b> ${escapeHTML(r.fonteRecurso||'—')}<br>
-      <b>Órgão/entidade que repassou:</b> ${escapeHTML(r.orgaoRepassador||'—')}<br>
-      <b>Convênio/termo/processo:</b> ${escapeHTML(r.convenio||'—')}<br>
-      <b>Data do recebimento:</b> ${r.dataRecebimento?formatDateBR(r.dataRecebimento):'—'}<br>
-      <b>Período:</b> ${formatDateBR(r.dataInicio)} → ${formatDateBR(r.dataFim)}<br>
-      <b>Conta bancária:</b> ${escapeHTML(r.contaBancaria||'—')}<br>
-      <b>Responsável:</b> ${escapeHTML(r.responsavel||'—')}<br>
-      <b>Finalidade:</b> ${escapeHTML(r.objetivo||'—')}<br>
-      ${r.descricao?`<b>Observações:</b> ${escapeHTML(r.descricao)}`:''}
-    </div></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" data-recurso-action="editar">Editar recurso</button>
-      <button class="btn btn-ghost" data-recurso-action="relatorio">📄 Gerar relatório</button>
-      <button class="btn btn-ghost" data-recurso-action="${r.arquivado?'desarquivar':'arquivar'}">${r.arquivado?'↩ Reabrir recurso':'🗄 Arquivar recurso'}</button>
-    </div>`;
-}
-
-function recursoExecucoesHTML(r){
-  const filhos=recursoExecucoes(r.id);
-  const check=podeCriarExecucao(r,0);
-  const cards=filhos.map(f=>{
-    const fin=execucaoFinanceiro(f);
-    return `<div class="empresa-project-card empresa-card-compact" data-execucao-abrir="${escapeHTML(f.id)}" style="cursor:pointer">
-      <div class="empresa-project-head"><div><span class="project-code">EXECUÇÃO</span><h3>${escapeHTML(f.nome)}</h3></div>${badgeHTML(projetoStatusTom(f.status),f.status||'Sem status')}</div>
-      <div class="empresa-project-stats"><span>Planejado: <b>${formatMoney(fin.planejado)}</b></span><span>Executado: <b>${formatMoney(fin.executado)}</b></span><span>Saldo: <b>${formatMoney(fin.saldo)}</b></span></div>
-      <div class="project-progress"><i style="width:${fin.pct}%"></i></div>
-      <small class="muted">${fin.pct}% executado</small>
-    </div>`;
-  }).join('');
-  return `<div class="workspace-toolbar"><div><h3>Execuções deste recurso</h3><p>Disponível para novas execuções: <b>${formatMoney(check.disponivel)}</b></p></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" data-recurso-action="transferir-saldo">🔁 Transferir saldo</button><button class="btn btn-primary" data-recurso-action="nova-execucao">＋ Nova execução</button></div></div>
-    ${cards || '<div class="empty-inline">Nenhuma execução cadastrada ainda.</div>'}`;
-}
-
-function recursoDocumentosHTML(r){
-  const docs=r.documentosRecurso||[];
-  return `<div class="workspace-toolbar"><div><h3>Documentos gerais do recurso</h3><p>Termo, convênio, plano geral, comprovante de recebimento — documentos do recurso como um todo, separados dos documentos de cada execução.</p></div><button class="btn btn-primary" data-recurso-action="novo-documento">＋ Adicionar documento</button></div>
-  ${docs.length?docs.map(d=>`<div class="workspace-item"><div><strong>${escapeHTML(d.nome)}</strong><small>${d.data?formatDateBR(d.data):''}${d.observacao?' · '+escapeHTML(d.observacao):''}</small></div><div class="item-actions">${d.anexo?`<button class="btn btn-sm" data-file-download="${d.anexo.id}">📎 Abrir</button>`:''}<button class="btn btn-sm btn-danger" data-recurso-action="excluir-documento" data-item="${d.id}">Excluir</button></div></div>`).join(''):'<div class="empty-inline">Nenhum documento geral cadastrado.</div>'}`;
-}
-
-function recursoHistoricoFinanceiroHTML(r){
-  const movs=[...(r.movimentacoes||[])].sort((a,b)=>b.criadoEm-a.criadoEm);
-  return `<h3 style="margin-top:0">Histórico financeiro</h3><p class="muted">Toda entrada, distribuição, gasto, transferência ou ajuste é registrado aqui — os valores nunca mudam "por baixo".</p>
-  ${movs.length?movs.map(m=>`<div class="history-row"><div class="h-meta">${formatDateBR(m.data)} · ${MOVIMENTACAO_LABEL[m.tipo]||m.tipo}</div><div>${formatMoney(m.valor)}${m.descricao?' — '+escapeHTML(m.descricao):''}</div></div>`).join(''):'<div class="empty-inline">Nenhuma movimentação registrada.</div>'}`;
-}
-
-function recursoLinhaDoTempoHTML(r){
-  const idsFilhos=recursoExecucoes(r.id).map(f=>f.id);
-  const relevantes=new Set([r.id,...idsFilhos]);
-  const itens=DB.getAll('historico').filter(h=>relevantes.has(h.refId)).sort((a,b)=>b.timestamp-a.timestamp);
-  return `<h3 style="margin-top:0">Linha do tempo</h3><p class="muted">Reaproveita o histórico já registrado pelo sistema para o recurso e todas as suas execuções.</p>
-  ${itens.length?itens.map(h=>`<div class="history-row"><div class="h-meta">${timestampToBR(h.timestamp)}</div><div>${escapeHTML(h.descricao)}</div></div>`).join(''):'<div class="empty-inline">Nenhum evento registrado ainda.</div>'}`;
-}
-
-function renderWorkspaceRecurso(r, aba='geral'){
-  r = projectData(DB.getById('projetos', r.id) || r);
-  const tabs=[['geral','Visão geral'],['execucoes','Execuções'],['documentos','Documentos'],['historico','Histórico financeiro'],['linha-tempo','Linha do tempo']];
-  const active=tabs.some(t=>t[0]===aba)?aba:'geral';
-  const mapa={geral:recursoGeralHTML,execucoes:recursoExecucoesHTML,documentos:recursoDocumentosHTML,historico:recursoHistoricoFinanceiroHTML,'linha-tempo':recursoLinhaDoTempoHTML};
-  const content=mapa[active](r);
-  const f=recursoResumoFinanceiro(r);
-  openModal(`💰 Recurso ${escapeHTML(r.codigo)} — ${escapeHTML(r.nome)}`,`<div class="project-workspace">
-    <div class="project-workspace-head"><div><span class="project-code">RECURSO</span><h2>${escapeHTML(r.nome)}</h2><p>${escapeHTML(r.fonteRecurso||'Origem não informada')} · Recebido: ${formatMoney(r.valorOrcado||0)}</p></div>${badgeHTML(projetoStatusTom(r.status),r.status||'Sem status')}${r.arquivado?badgeHTML('neutral','Arquivado'):''}</div>
-    <div class="project-kpi-grid"><div><span>Executado</span><strong>${formatMoney(f.executado)}</strong></div><div><span>Disponível total</span><strong>${formatMoney(f.saldoTotalDisponivel)}</strong></div><div><span>Execuções</span><strong>${f.qtdExecucoes}</strong></div></div>
-    <div class="project-tabs">${tabs.map(([key,label])=>`<button class="project-tab ${active===key?'active':''}" data-recurso-tab="${key}">${label}${key==='execucoes'?` <span>${f.qtdExecucoes}</span>`:''}</button>`).join('')}</div>
-    <div class="project-workspace-body">${content}</div>
-  </div>`);
-  document.querySelectorAll('[data-recurso-tab]').forEach(btn=>btn.onclick=()=>renderWorkspaceRecurso(r,btn.dataset.recursoTab));
-  document.querySelectorAll('[data-execucao-abrir]').forEach(el=>el.onclick=()=>abrirDetalheProjeto(el.dataset.execucaoAbrir));
-  document.querySelectorAll('[data-recurso-action="editar"]').forEach(b=>b.onclick=()=>openFormProjeto(r.id));
-  document.querySelectorAll('[data-recurso-action="nova-execucao"]').forEach(b=>b.onclick=()=>openFormProjeto(null,{tipo:'execucao',paiId:r.id}));
-  document.querySelectorAll('[data-recurso-action="transferir-saldo"]').forEach(b=>b.onclick=()=>abrirTransferenciaSaldo(r.id));
-  document.querySelectorAll('[data-recurso-action="relatorio"]').forEach(b=>b.onclick=()=>gerarRelatorioRecurso(r.id));
-  document.querySelectorAll('[data-recurso-action="arquivar"]').forEach(b=>b.onclick=()=>arquivarRecurso(r.id,true));
-  document.querySelectorAll('[data-recurso-action="desarquivar"]').forEach(b=>b.onclick=()=>arquivarRecurso(r.id,false));
-  document.querySelectorAll('[data-recurso-action="novo-documento"]').forEach(b=>b.onclick=()=>abrirFormDocumentoRecurso(r.id));
-  document.querySelectorAll('[data-recurso-action="excluir-documento"]').forEach(b=>b.onclick=()=>excluirDocumentoRecurso(r.id,b.dataset.item));
-  document.querySelectorAll('[data-file-download]').forEach(b=>b.onclick=()=>baixarAnexo(b.dataset.fileDownload));
-}
-function abrirDetalheRecurso(id, aba='geral'){
-  const r=DB.getById('projetos',id); if(!r) return;
-  renderWorkspaceRecurso(r,aba);
-}
 
 function arquivarRecurso(id, arquivar){
   const r=DB.getById('projetos',id); if(!r) return;
@@ -965,7 +590,7 @@ function abrirFormDocumentoRecurso(recursoId){
     projectSave(r);
     registrarHistorico({modulo:'projeto',acao:'documento',descricao:`Documento "${doc.nome}" adicionado ao recurso "${r.nome}".`,refId:recursoId});
     closeModal();
-    renderWorkspaceRecurso(r,'documentos');
+    abrirDetalheProjeto(r.id,'documentos');
   };
 }
 function excluirDocumentoRecurso(recursoId, docId){
@@ -975,7 +600,7 @@ function excluirDocumentoRecurso(recursoId, docId){
     if(doc.anexo) await ProjectFiles.remove(doc.anexo.id);
     r.documentosRecurso=r.documentosRecurso.filter(d=>d.id!==docId);
     projectSave(r);
-    renderWorkspaceRecurso(r,'documentos');
+    abrirDetalheProjeto(r.id,'documentos');
   });
 }
 
@@ -1010,7 +635,7 @@ function abrirTransferenciaSaldo(recursoId){
     registrarHistorico({modulo:'projeto',acao:'transferência',descricao:`Transferência de ${formatMoney(valor)} de "${origem.nome}" para "${destino.nome}": ${motivo}`,refId:recursoId});
     showToast('✓ Saldo transferido.');
     closeModal();
-    abrirDetalheRecurso(recursoId,'execucoes');
+    abrirDetalheProjeto(recursoId,'execucoes');
   };
 }
 
@@ -1058,18 +683,20 @@ const STATUS_EXECUCAO = ['Planejamento','Em execução','Concluído','Suspenso',
    gravado no próprio item. */
 function openFormProjeto(id, opts={}){
   const item = id ? projectData(DB.getById('projetos',id)) : null;
-  const tipo = item?.tipo || opts.tipo || 'execucao';
+  // Ao editar, mantém o tipo gravado — um projeto antigo (tipo null) continua
+  // antigo; só a classificação explícita muda isso.
+  const tipo = item ? item.tipo : (opts.tipo || 'execucao');
   const paiId = item?.paiId || opts.paiId || null;
   const recurso_ = tipo==='recurso' ? item : null;
   const paiRegistro = tipo==='execucao' ? DB.getById('projetos', paiId) : null;
   const statusOpcoes = tipo==='recurso' ? STATUS_RECURSO : STATUS_EXECUCAO;
-  const titulo = item ? (tipo==='recurso'?'Editar recurso':'Editar execução') : (tipo==='recurso'?'Novo recurso':'Nova execução');
+  const titulo = item ? (tipo==='recurso'?'Editar recurso':tipo==='execucao'?'Editar execução':'Editar projeto') : (tipo==='recurso'?'Novo recurso':'Nova execução');
 
   openModal(titulo,`<form id="formProjeto" novalidate>
     ${paiRegistro ? `<div class="notice-box">Execução do recurso <b>${escapeHTML(paiRegistro.nome)}</b></div>` : ''}
     <div class="form-grid">
       <div class="field full"><label>Nome ${tipo==='recurso'?'do recurso':'da execução'} *</label><input class="input" id="pr_nome" required placeholder="${tipo==='recurso'?'Ex.: Sicredi 2026':'Ex.: Reforma da sala de fisioterapia'}" value="${escapeHTML(item?.nome||'')}"></div>
-      <div class="field"><label>${tipo==='recurso'?'Tipo/origem do recurso':'Observação da fonte'} *</label><input class="input" id="pr_fonte" required placeholder="Ex.: Convênio, emenda, recurso próprio" value="${escapeHTML(item?.fonteRecurso||(paiRegistro?.fonteRecurso||''))}"></div>
+      <div class="field"><label>${tipo==='recurso'?'Tipo/origem do recurso':'Fonte do recurso'} *</label><input class="input" id="pr_fonte" required placeholder="Ex.: Convênio, emenda, recurso próprio" value="${escapeHTML(item?.fonteRecurso||(paiRegistro?.fonteRecurso||''))}"></div>
       ${tipo==='recurso'?`<div class="field"><label>Órgão/empresa/entidade que repassou</label><input class="input" id="pr_orgao" value="${escapeHTML(item?.orgaoRepassador||'')}"></div>`:''}
       <div class="field"><label>Convênio / termo / processo</label><input class="input" id="pr_convenio" value="${escapeHTML(item?.convenio||'')}"></div>
       ${tipo==='recurso'?`<div class="field"><label>Data do recebimento</label><input class="input" type="date" id="pr_recebimento" value="${item?.dataRecebimento||todayISO()}"></div>`:''}
@@ -1081,7 +708,7 @@ function openFormProjeto(id, opts={}){
       <div class="field"><label>Status</label><select class="input" id="pr_status">${statusOpcoes.map(st=>`<option ${item?.status===st?'selected':''}>${st}</option>`).join('')}</select></div>
       <div class="field full"><label>${tipo==='recurso'?'Finalidade':'Objetivo'}</label><textarea id="pr_objetivo">${escapeHTML(item?.objetivo||'')}</textarea></div>
       <div class="field full"><label>Observações</label><textarea id="pr_descricao">${escapeHTML(item?.descricao||'')}</textarea></div>
-      ${tipo==='execucao'?`<div class="field full"><label>🔗 Vincular a outros registros</label><div class="relacionados-form-section">${item?renderSelectorRelacionados('projeto',item.id,'documento'):'<p class="empty-inline">Salve a execução primeiro para adicionar vínculos.</p>'}${item?renderSelectorRelacionados('projeto',item.id,'solicitacao'):''}</div><small class="muted">Você pode vincular esta execução a documentos e tarefas.</small></div>`:''}
+      ${tipo!=='recurso'?`<div class="field full"><label>🔗 Vincular a outros registros</label><div class="relacionados-form-section">${item?renderSelectorRelacionados('projeto',item.id,'documento'):'<p class="empty-inline">Salve a execução primeiro para adicionar vínculos.</p>'}${item?renderSelectorRelacionados('projeto',item.id,'solicitacao'):''}</div><small class="muted">Você pode vincular esta execução a documentos e tarefas.</small></div>`:''}
     </div>
     <p class="field-error" id="formProjetoErro" hidden></p>
     <div class="modal-actions"><button type="button" class="btn btn-ghost" id="btnCancelarProjeto">Cancelar</button><button class="btn btn-primary">${item?'Salvar alterações':(tipo==='recurso'?'Cadastrar recurso':'Cadastrar execução')}</button></div>
@@ -1124,6 +751,7 @@ function openFormProjeto(id, opts={}){
       descricao:document.getElementById('pr_descricao').value.trim(),
       tipo, paiId: tipo==='execucao'?paiId:null
     };
+    if(tipo===null) delete dados.tipo;
     if(tipo==='recurso'){
       dados.orgaoRepassador=document.getElementById('pr_orgao').value.trim();
       dados.contaBancaria=document.getElementById('pr_conta').value.trim();
@@ -1156,15 +784,11 @@ function openFormProjeto(id, opts={}){
       }
       showToast(tipo==='recurso'?'✓ Recurso cadastrado.':'✓ Execução cadastrada.');
     }
-    closeModal();
-    if(tipo==='execucao' && paiId){ abrirDetalheRecurso(paiId,'execucoes'); }
-    else if(tipo==='recurso'){ abrirDetalheRecurso(idSalvo); }
-    else { renderCurrentView(); }
+    abrirDetalheProjeto(idSalvo);
   };
-  if(item && tipo==='execucao') processarRelacionadosEmForm('projeto',item.id,'formProjeto');
+  if(item && tipo!=='recurso') processarRelacionadosEmForm('projeto',item.id,'formProjeto');
 }
-function openFormPlano(projectId){const p=projectData(DB.getById('projetos',projectId));openModal('Plano do projeto',`<form id="formPlano"><div class="field"><label>Como o recurso será utilizado? *</label><textarea id="pl_desc" required>${escapeHTML(p.plano?.descricao||'')}</textarea></div><div class="field"><label>Plano aprovado / documento</label><input class="input" type="file" id="pl_arq" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="pl_cancel">Cancelar</button><button class="btn btn-primary">Salvar plano</button></div></form>`);document.getElementById('pl_cancel').onclick=closeModal;document.getElementById('formPlano').onsubmit=async e=>{e.preventDefault();const desc=document.getElementById('pl_desc').value.trim();if(!desc){showToast('Descreva o plano.');return;}const f=document.getElementById('pl_arq').files[0];p.plano={descricao:desc,anexo:f?await salvarAnexo(f,'plano'):p.plano?.anexo||null};projectSave(p);registrarHistorico({modulo:'projeto',acao:'plano',descricao:`Plano do projeto "${p.nome}" atualizado.`,refId:p.id});closeModal();renderWorkspaceProjeto(p,'plano');};}
-function openFormItemProjeto(projectId){openModal('Novo item do projeto',`<form id="formItem"><div class="form-grid"><div class="field full"><label>Item *</label><input class="input" id="it_nome" required placeholder="Ex.: Computador"></div><div class="field"><label>Quantidade</label><input class="input" type="number" id="it_qtd" min="1" value="1"></div><div class="field"><label>Unidade</label><input class="input" id="it_un" value="un."></div><div class="field"><label>Valor previsto por unidade</label><input class="input" type="number" id="it_val" min="0" step="0.01" value="0"></div><div class="field full"><label>Observação</label><textarea id="it_obs"></textarea></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="it_cancel">Cancelar</button><button class="btn btn-primary">Salvar item</button></div></form>`);document.getElementById('it_cancel').onclick=closeModal;document.getElementById('formItem').onsubmit=e=>{e.preventDefault();const p=projectData(DB.getById('projetos',projectId));const item={id:uid('item'),nome:document.getElementById('it_nome').value.trim(),quantidade:Number(document.getElementById('it_qtd').value)||1,unidade:document.getElementById('it_un').value.trim()||'un.',valorPrevisto:Number(document.getElementById('it_val').value)||0,observacao:document.getElementById('it_obs').value.trim()};if(!item.nome){showToast('Informe o item.');return;}p.itensCompra.push(item);projectSave(p);closeModal();renderWorkspaceProjeto(p,'itens');};}
+function openFormPlano(projectId){const p=projectData(DB.getById('projetos',projectId));openModal('Plano do projeto',`<form id="formPlano"><div class="field"><label>Como o recurso será utilizado? *</label><textarea id="pl_desc" required>${escapeHTML(p.plano?.descricao||'')}</textarea></div><div class="field"><label>Plano aprovado / documento</label><input class="input" type="file" id="pl_arq" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="pl_cancel">Cancelar</button><button class="btn btn-primary">Salvar plano</button></div></form>`);document.getElementById('pl_cancel').onclick=closeModal;document.getElementById('formPlano').onsubmit=async e=>{e.preventDefault();const desc=document.getElementById('pl_desc').value.trim();if(!desc){showToast('Descreva o plano.');return;}const f=document.getElementById('pl_arq').files[0];p.plano={descricao:desc,anexo:f?await salvarAnexo(f,'plano'):p.plano?.anexo||null};projectSave(p);registrarHistorico({modulo:'projeto',acao:'plano',descricao:`Plano do projeto "${p.nome}" atualizado.`,refId:p.id});closeModal();abrirDetalheProjeto(p.id,'plano');};}
 function openFormCotacao(projectId,empresaId=''){
   const p=projectData(DB.getById('projetos',projectId));
   const empresaInicial=p.empresas.find(e=>e.id===empresaId);
@@ -1173,10 +797,10 @@ function openFormCotacao(projectId,empresaId=''){
   const addRow=()=>{const box=document.getElementById('co_itens');const row=box.querySelector('.quote-item-row').cloneNode(true);row.querySelectorAll('input').forEach(x=>x.value=x.classList.contains('qi_qtd')?'1':'');box.appendChild(row);wireRows();};
   const wireRows=()=>document.querySelectorAll('.qi-remover').forEach(btn=>btn.onclick=()=>{const rows=document.querySelectorAll('.quote-item-row');if(rows.length>1)btn.closest('.quote-item-row').remove();});
   document.getElementById('qi_add').onclick=addRow;wireRows();document.getElementById('cancelCo').onclick=closeModal;
-  document.getElementById('formCotacao').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('co_arquivo').files[0];const itens=[...document.querySelectorAll('.quote-item-row')].map(r=>({nome:r.querySelector('.qi_nome').value.trim(),quantidade:Number(r.querySelector('.qi_qtd').value)||1,valor:Number(r.querySelector('.qi_val').value)||0})).filter(x=>x.nome);const empresa=p.empresas.find(e=>e.id===document.getElementById('co_empresa').value);const c={id:uid('cot'),itens,empresaId:empresa?.id||'',fornecedor:empresa?.nome||'',data:document.getElementById('co_data').value,valor:Number(document.getElementById('co_valor').value),observacao:document.getElementById('co_obs').value.trim(),selecionada:false};if(!c.fornecedor||!itens.length||!Number.isFinite(c.valor)||!f){showToast('Informe fornecedor, pelo menos um item, valor total e anexe o orçamento.');return;}c.anexo=await salvarAnexo(f,'cotacao');p.cotacoes.push(c);projectSave(p);registrarHistorico({modulo:'projeto',acao:'cotação',descricao:`Cotação de ${c.fornecedor} adicionada ao projeto "${p.nome}".`,refId:p.id});closeModal();renderWorkspaceProjeto(p,'cotacoes');};
+  document.getElementById('formCotacao').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('co_arquivo').files[0];const itens=[...document.querySelectorAll('.quote-item-row')].map(r=>({nome:r.querySelector('.qi_nome').value.trim(),quantidade:Number(r.querySelector('.qi_qtd').value)||1,valor:Number(r.querySelector('.qi_val').value)||0})).filter(x=>x.nome);const empresa=p.empresas.find(e=>e.id===document.getElementById('co_empresa').value);const c={id:uid('cot'),itens,empresaId:empresa?.id||'',fornecedor:empresa?.nome||'',data:document.getElementById('co_data').value,valor:Number(document.getElementById('co_valor').value),observacao:document.getElementById('co_obs').value.trim(),selecionada:false};if(!c.fornecedor||!itens.length||!Number.isFinite(c.valor)||!f){showToast('Informe fornecedor, pelo menos um item, valor total e anexe o orçamento.');return;}c.anexo=await salvarAnexo(f,'cotacao');p.cotacoes.push(c);projectSave(p);registrarHistorico({modulo:'projeto',acao:'cotação',descricao:`Cotação de ${c.fornecedor} adicionada ao projeto "${p.nome}".`,refId:p.id});closeModal();abrirDetalheProjeto(p.id,'cotacoes');};
 }
-function selecionarCotacaoProjeto(projectId,cotId){const p=projectData(DB.getById('projetos',projectId));const qtdEmpresas=new Set(p.cotacoes.map(x=>x.empresaId||String(x.fornecedor||'').trim().toLowerCase()).filter(Boolean)).size;if(qtdEmpresas<3){showToast('⚠ É preciso ter cotações de pelo menos 3 empresas antes de escolher a vencedora.');return;}const c=p.cotacoes.find(x=>x.id===cotId);if(!c)return;p.cotacoes.forEach(x=>x.selecionada=x.id===cotId);projectSave(p);showToast('✓ Cotação vencedora selecionada.');renderWorkspaceProjeto(p,'cotacoes');}
-function openFormOrdem(projectId,empresaId=''){const p=projectData(DB.getById('projetos',projectId));if(!podeCriarOrdem(p)){showToast('⚠ '+motivoBloqueioOrdem(p));renderWorkspaceProjeto(p,'cotacoes');return;}const forn=projectFornecedorSelecionado(p);if(empresaId && forn?.empresaId!==empresaId){showToast('⚠ A ordem de compra só pode ser criada para a empresa cuja cotação foi escolhida como vencedora.');return;}openModal('Nova ordem de compra',`<form id="formOrdem"><div class="form-grid"><div class="field"><label>Número da ordem *</label><input class="input" id="oc_numero" required></div><div class="field"><label>Fornecedor *</label><input class="input" id="oc_fornecedor" required value="${escapeHTML(forn?.fornecedor||'')}"></div><div class="field full"><label>Itens da compra</label><div class="notice-box">${(forn?.itens||[]).map(i=>`${escapeHTML(i.nome)} — ${i.quantidade} × ${formatMoney(i.valor)}`).join('<br>')||'Itens conforme cotação vencedora'}</div></div><div class="field"><label>Data</label><input class="input" type="date" id="oc_data" value="${todayISO()}"></div><div class="field"><label>Valor total (R$) *</label><input class="input" type="number" min="0" step="0.01" id="oc_valor" required value="${forn?.valor||''}"></div><div class="field"><label>Status</label><select class="input" id="oc_status"><option>Rascunho</option><option>Emitida</option><option>Recebida</option><option>Cancelada</option></select></div><div class="field full"><label>Ordem de compra *</label><input class="input" type="file" id="oc_arquivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div></div><div class="notice-box">! Recomenda-se emitir a ordem somente após conferir as cotações e a documentação do fornecedor.</div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cancelOc">Cancelar</button><button class="btn btn-primary">Salvar ordem</button></div></form>`);document.getElementById('cancelOc').onclick=closeModal;document.getElementById('formOrdem').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('oc_arquivo').files[0];const o={id:uid('oc'),numero:document.getElementById('oc_numero').value.trim(),fornecedor:document.getElementById('oc_fornecedor').value.trim(),itens:forn?.itens||[],data:document.getElementById('oc_data').value,valor:Number(document.getElementById('oc_valor').value),status:document.getElementById('oc_status').value};if(!o.numero||!o.fornecedor||!Number.isFinite(o.valor)||!f){showToast('Preencha os campos e anexe a ordem.');return;}o.anexo=await salvarAnexo(f,'ordem');p.ordensCompra.push(o);projectSave(p);registrarHistorico({modulo:'projeto',acao:'ordem de compra',descricao:`Ordem ${o.numero} adicionada ao projeto "${p.nome}".`,refId:p.id});closeModal();renderWorkspaceProjeto(p,'ordens');};}
+function selecionarCotacaoProjeto(projectId,cotId){const p=projectData(DB.getById('projetos',projectId));const qtdEmpresas=new Set(p.cotacoes.map(x=>x.empresaId||String(x.fornecedor||'').trim().toLowerCase()).filter(Boolean)).size;if(qtdEmpresas<3){showToast('⚠ É preciso ter cotações de pelo menos 3 empresas antes de escolher a vencedora.');return;}const c=p.cotacoes.find(x=>x.id===cotId);if(!c)return;p.cotacoes.forEach(x=>x.selecionada=x.id===cotId);projectSave(p);showToast('✓ Cotação vencedora selecionada.');abrirDetalheProjeto(p.id,'cotacoes');}
+function openFormOrdem(projectId,empresaId=''){const p=projectData(DB.getById('projetos',projectId));if(!podeCriarOrdem(p)){showToast('⚠ '+motivoBloqueioOrdem(p));abrirDetalheProjeto(p.id,'cotacoes');return;}const forn=projectFornecedorSelecionado(p);if(empresaId && forn?.empresaId!==empresaId){showToast('⚠ A ordem de compra só pode ser criada para a empresa cuja cotação foi escolhida como vencedora.');return;}openModal('Nova ordem de compra',`<form id="formOrdem"><div class="form-grid"><div class="field"><label>Número da ordem *</label><input class="input" id="oc_numero" required></div><div class="field"><label>Fornecedor *</label><input class="input" id="oc_fornecedor" required value="${escapeHTML(forn?.fornecedor||'')}"></div><div class="field full"><label>Itens da compra</label><div class="notice-box">${(forn?.itens||[]).map(i=>`${escapeHTML(i.nome)} — ${i.quantidade} × ${formatMoney(i.valor)}`).join('<br>')||'Itens conforme cotação vencedora'}</div></div><div class="field"><label>Data</label><input class="input" type="date" id="oc_data" value="${todayISO()}"></div><div class="field"><label>Valor total (R$) *</label><input class="input" type="number" min="0" step="0.01" id="oc_valor" required value="${forn?.valor||''}"></div><div class="field"><label>Status</label><select class="input" id="oc_status"><option>Rascunho</option><option>Emitida</option><option>Recebida</option><option>Cancelada</option></select></div><div class="field full"><label>Ordem de compra *</label><input class="input" type="file" id="oc_arquivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div></div><div class="notice-box">! Recomenda-se emitir a ordem somente após conferir as cotações e a documentação do fornecedor.</div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cancelOc">Cancelar</button><button class="btn btn-primary">Salvar ordem</button></div></form>`);document.getElementById('cancelOc').onclick=closeModal;document.getElementById('formOrdem').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('oc_arquivo').files[0];const o={id:uid('oc'),numero:document.getElementById('oc_numero').value.trim(),fornecedor:document.getElementById('oc_fornecedor').value.trim(),itens:forn?.itens||[],data:document.getElementById('oc_data').value,valor:Number(document.getElementById('oc_valor').value),status:document.getElementById('oc_status').value};if(!o.numero||!o.fornecedor||!Number.isFinite(o.valor)||!f){showToast('Preencha os campos e anexe a ordem.');return;}o.anexo=await salvarAnexo(f,'ordem');p.ordensCompra.push(o);projectSave(p);registrarHistorico({modulo:'projeto',acao:'ordem de compra',descricao:`Ordem ${o.numero} adicionada ao projeto "${p.nome}".`,refId:p.id});closeModal();abrirDetalheProjeto(p.id,'ordens');};}
 /* ===== CNPJá API Integration ===== */
 function validateCNPJ(cnpj){
   const clean = (cnpj||'').replace(/\D/g,'');
@@ -1332,7 +956,7 @@ function openFormEmpresa(projectId){
     p.empresas.push({id:uid('emp'),empresaGlobalId,...dados,documentos:[],criadoEm:Date.now()});
     projectSave(p);
     registrarHistorico({modulo:'empresa',acao:'vínculo',descricao:`Empresa "${nome}" vinculada ao projeto "${p.nome}".`,refId:empresaGlobalId});
-    closeModal();renderWorkspaceProjeto(p,'empresas');
+    closeModal();abrirDetalheProjeto(p.id,'empresas');
   };
 }
 
@@ -1365,7 +989,7 @@ function abrirVincularEmpresaExistente(projectId){
         p.empresas.push({id:uid('emp'),empresaGlobalId:g.id,nome:g.razaoSocial,cnpj:g.cnpj||'',contato:g.contato||g.telefone||'',email:g.email||'',endereco:g.endereco||'',nomeFantasia:g.nomeFantasia||'',municipio:g.municipio||'',uf:g.uf||'',observacao:'',documentos:[],criadoEm:Date.now()});
         projectSave(p);
         registrarHistorico({modulo:'empresa',acao:'vínculo',descricao:`Empresa "${g.razaoSocial}" vinculada ao projeto "${p.nome}".`,refId:g.id});
-        closeModal();renderWorkspaceProjeto(p,'empresas');
+        closeModal();abrirDetalheProjeto(p.id,'empresas');
       });
     });
   };
@@ -1442,14 +1066,14 @@ function openFormEmpresaEditar(projectId,empresaId){
       p.ordensCompra.filter(o=>o.empresaId===e.id).forEach(o=>o.fornecedor=e.nome);
       projectSave(p);
     }
-    closeModal();renderWorkspaceProjeto(projectData(DB.getById('projetos',projectId)),'empresas');
+    closeModal();abrirDetalheProjeto(projectId,'empresas');
   };
 }
-function openFormDocChecklist(projectId){const p=projectData(DB.getById('projetos',projectId));const arr=p.docsApae;const obrig=['CNPJ','Estatuto','Ata de eleição/posse','Certidão federal','Certidão estadual','Certidão municipal','FGTS','CNDT'];openModal('Adicionar documento da APAE',`<form id="formCheckDoc"><div class="field"><label>Documento *</label><select class="input" id="cd_nome">${obrig.map(x=>`<option>${x}</option>`).join('')}<option>Outro</option></select></div><div class="field"><label>Arquivo *</label><input class="input" type="file" id="cd_arq" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div><div class="field"><label>Observação</label><textarea id="cd_obs"></textarea></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cd_cancel">Cancelar</button><button class="btn btn-primary">Salvar documento</button></div></form>`);document.getElementById('cd_cancel').onclick=closeModal;document.getElementById('formCheckDoc').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('cd_arq').files[0];if(!f)return;const d={id:uid('chk'),nome:document.getElementById('cd_nome').value,observacao:document.getElementById('cd_obs').value.trim(),entregue:true,anexo:await salvarAnexo(f,'doc-apae')};arr.push(d);projectSave(p);closeModal();renderWorkspaceProjeto(p,'docs-apae');};}
-function toggleDocProjeto(projectId,itemId){const p=projectData(DB.getById('projetos',projectId));const d=p.docsApae.find(x=>x.id===itemId);if(!d)return;d.entregue=!d.entregue;projectSave(p);renderWorkspaceProjeto(p,'docs-apae');}
-function openFormDocumentoProjeto(projectId){openModal('Anexar documento de execução',`<form id="formDocProjeto"><div class="form-grid"><div class="field full"><label>Nome do documento *</label><input class="input" id="dp_nome" required></div><div class="field"><label>Categoria</label><select class="input" id="dp_cat"><option>Nota fiscal</option><option>Comprovante</option><option>Relatório</option><option>Declaração</option><option>Outro</option></select></div><div class="field"><label>Data</label><input class="input" type="date" id="dp_data" value="${todayISO()}"></div><div class="field full"><label>Arquivo *</label><input class="input" type="file" id="dp_arquivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cancelDp">Cancelar</button><button class="btn btn-primary">Anexar</button></div></form>`);document.getElementById('cancelDp').onclick=closeModal;document.getElementById('formDocProjeto').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('dp_arquivo').files[0];const d={id:uid('docp'),nome:document.getElementById('dp_nome').value.trim(),categoria:document.getElementById('dp_cat').value,data:document.getElementById('dp_data').value,anexo:await salvarAnexo(f,'documento')};if(!d.nome||!f)return;const projetoAtual=projectData(DB.getById('projetos',projectId));projetoAtual.documentosProjeto.push(d);projectSave(projetoAtual);closeModal();renderWorkspaceProjeto(projetoAtual,'documentos');};}
-function openFormPagamento(projectId){openModal('Registrar pagamento',`<form id="formPag"><div class="form-grid"><div class="field"><label>Fornecedor</label><input class="input" id="pg_fornecedor"></div><div class="field"><label>Data</label><input class="input" type="date" id="pg_data" value="${todayISO()}"></div><div class="field"><label>Valor pago (R$) *</label><input class="input" type="number" min="0" step="0.01" id="pg_valor" required></div><div class="field"><label>Forma de pagamento</label><input class="input" id="pg_forma" placeholder="Transferência, Pix, boleto..."></div><div class="field full"><label>Comprovante *</label><input class="input" type="file" id="pg_arq" required accept=".pdf,.jpg,.jpeg,.png,.webp"></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="pg_cancel">Cancelar</button><button class="btn btn-primary">Salvar pagamento</button></div></form>`);document.getElementById('pg_cancel').onclick=closeModal;document.getElementById('formPag').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('pg_arq').files[0],v=Number(document.getElementById('pg_valor').value);if(!f||!Number.isFinite(v)){showToast('Informe valor e comprovante.');return;}const p=projectData(DB.getById('projetos',projectId));p.pagamentos.push({id:uid('pag'),fornecedor:document.getElementById('pg_fornecedor').value.trim(),data:document.getElementById('pg_data').value,valor:v,forma:document.getElementById('pg_forma').value.trim(),anexo:await salvarAnexo(f,'pagamento')});projectSave(p);closeModal();renderWorkspaceProjeto(p,'pagamentos');};}
-function excluirItemProjeto(projectId,tipo,itemId){const p=projectData(DB.getById('projetos',projectId));const mapa={cotacao:'cotacoes',ordem:'ordensCompra',documento:'documentosProjeto'};const chave=mapa[tipo];if(!chave)return;const item=p[chave].find(x=>x.id===itemId);if(!item)return;confirmAction('Excluir este item do projeto?',async()=>{if(item.anexo)await ProjectFiles.remove(item.anexo.id);p[chave]=p[chave].filter(x=>x.id!==itemId);projectSave(p);renderWorkspaceProjeto(p,tipo==='cotacao'?'cotacoes':tipo==='ordem'?'ordens':'documentos');});}
+function openFormDocChecklist(projectId){const p=projectData(DB.getById('projetos',projectId));const arr=p.docsApae;const obrig=DOCS_APAE_OBRIGATORIOS;openModal('Adicionar documento da APAE',`<form id="formCheckDoc"><div class="field"><label>Documento *</label><select class="input" id="cd_nome">${obrig.map(x=>`<option>${x}</option>`).join('')}<option>Outro</option></select></div><div class="field"><label>Arquivo *</label><input class="input" type="file" id="cd_arq" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div><div class="field"><label>Observação</label><textarea id="cd_obs"></textarea></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cd_cancel">Cancelar</button><button class="btn btn-primary">Salvar documento</button></div></form>`);document.getElementById('cd_cancel').onclick=closeModal;document.getElementById('formCheckDoc').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('cd_arq').files[0];if(!f)return;const d={id:uid('chk'),nome:document.getElementById('cd_nome').value,observacao:document.getElementById('cd_obs').value.trim(),entregue:true,anexo:await salvarAnexo(f,'doc-apae')};arr.push(d);projectSave(p);closeModal();abrirDetalheProjeto(p.id,'docs-apae');};}
+function toggleDocProjeto(projectId,itemId){const p=projectData(DB.getById('projetos',projectId));const d=p.docsApae.find(x=>x.id===itemId);if(!d)return;d.entregue=!d.entregue;projectSave(p);abrirDetalheProjeto(p.id,'docs-apae');}
+function openFormDocumentoProjeto(projectId){openModal('Anexar documento de execução',`<form id="formDocProjeto"><div class="form-grid"><div class="field full"><label>Nome do documento *</label><input class="input" id="dp_nome" required></div><div class="field"><label>Categoria</label><select class="input" id="dp_cat"><option>Nota fiscal</option><option>Comprovante</option><option>Relatório</option><option>Declaração</option><option>Outro</option></select></div><div class="field"><label>Data</label><input class="input" type="date" id="dp_data" value="${todayISO()}"></div><div class="field full"><label>Arquivo *</label><input class="input" type="file" id="dp_arquivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cancelDp">Cancelar</button><button class="btn btn-primary">Anexar</button></div></form>`);document.getElementById('cancelDp').onclick=closeModal;document.getElementById('formDocProjeto').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('dp_arquivo').files[0];const d={id:uid('docp'),nome:document.getElementById('dp_nome').value.trim(),categoria:document.getElementById('dp_cat').value,data:document.getElementById('dp_data').value,anexo:await salvarAnexo(f,'documento')};if(!d.nome||!f)return;const projetoAtual=projectData(DB.getById('projetos',projectId));projetoAtual.documentosProjeto.push(d);projectSave(projetoAtual);closeModal();abrirDetalheProjeto(projetoAtual.id,'documentos');};}
+function openFormPagamento(projectId){openModal('Registrar pagamento',`<form id="formPag"><div class="form-grid"><div class="field"><label>Fornecedor</label><input class="input" id="pg_fornecedor"></div><div class="field"><label>Data</label><input class="input" type="date" id="pg_data" value="${todayISO()}"></div><div class="field"><label>Valor pago (R$) *</label><input class="input" type="number" min="0" step="0.01" id="pg_valor" required></div><div class="field"><label>Forma de pagamento</label><input class="input" id="pg_forma" placeholder="Transferência, Pix, boleto..."></div><div class="field full"><label>Comprovante *</label><input class="input" type="file" id="pg_arq" required accept=".pdf,.jpg,.jpeg,.png,.webp"></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="pg_cancel">Cancelar</button><button class="btn btn-primary">Salvar pagamento</button></div></form>`);document.getElementById('pg_cancel').onclick=closeModal;document.getElementById('formPag').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('pg_arq').files[0],v=Number(document.getElementById('pg_valor').value);if(!f||!Number.isFinite(v)){showToast('Informe valor e comprovante.');return;}const p=projectData(DB.getById('projetos',projectId));p.pagamentos.push({id:uid('pag'),fornecedor:document.getElementById('pg_fornecedor').value.trim(),data:document.getElementById('pg_data').value,valor:v,forma:document.getElementById('pg_forma').value.trim(),anexo:await salvarAnexo(f,'pagamento')});projectSave(p);closeModal();abrirDetalheProjeto(p.id,'pagamentos');};}
+function excluirItemProjeto(projectId,tipo,itemId){const p=projectData(DB.getById('projetos',projectId));const mapa={cotacao:'cotacoes',ordem:'ordensCompra',documento:'documentosProjeto'};const chave=mapa[tipo];if(!chave)return;const item=p[chave].find(x=>x.id===itemId);if(!item)return;confirmAction('Excluir este item do projeto?',async()=>{if(item.anexo)await ProjectFiles.remove(item.anexo.id);p[chave]=p[chave].filter(x=>x.id!==itemId);projectSave(p);abrirDetalheProjeto(p.id,tipo==='cotacao'?'cotacoes':tipo==='ordem'?'ordens':'documentos');});}
 
 function openFormPendencia(projectId){
   openModal('Nova pendência',`<form id="formPendencia"><div class="form-grid">
@@ -1468,7 +1092,7 @@ function openFormPendencia(projectId){
     registrarHistorico({modulo:'projeto',acao:'pendência',descricao:`Pendência "${titulo}" adicionada ao projeto "${p.nome}".`,refId:p.id});
     showToast('✓ Pendência registrada.');
     closeModal();
-    renderWorkspaceProjeto(p,'pendencias');
+    abrirDetalheProjeto(p.id,'pendencias');
   };
 }
 function togglePendenciaProjeto(projectId,itemId){
@@ -1478,7 +1102,7 @@ function togglePendenciaProjeto(projectId,itemId){
   item.status = item.status==='Concluída' ? 'Pendente' : 'Concluída';
   projectSave(p);
   registrarHistorico({modulo:'projeto',acao:'pendência',descricao:`Pendência "${item.titulo}" marcada como ${item.status.toLowerCase()}.`,refId:p.id});
-  renderWorkspaceProjeto(p,'pendencias');
+  abrirDetalheProjeto(p.id,'pendencias');
 }
 function excluirPendenciaProjeto(projectId,itemId){
   const p=projectData(DB.getById('projetos',projectId));
@@ -1489,7 +1113,7 @@ function excluirPendenciaProjeto(projectId,itemId){
     projectSave(p);
     registrarHistorico({modulo:'projeto',acao:'pendência',descricao:`Pendência "${item.titulo}" excluída.`,refId:p.id});
     showToast('Pendência excluída.');
-    renderWorkspaceProjeto(p,'pendencias');
+    abrirDetalheProjeto(p.id,'pendencias');
   });
 }
 
