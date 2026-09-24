@@ -23,7 +23,7 @@ const HELP_TEXT = {
   solicitacoes: 'As tarefas aparecem separadas por quando precisam ser feitas: atrasadas, hoje, próximos 7 dias e mais adiante. Escreva no campo do topo e aperte Enter para adicionar rápido; use Mais opções para rotinas que se repetem (toda semana, todo mês). Clique numa tarefa para ver detalhes, checklist e histórico.',
   agenda: 'Um calendário só para tudo que tem data: eventos (reuniões, visitas, compromissos), tarefas da Secretaria e prazos de documentos e projetos. Clique num dia para ver o que tem nele, clique num evento para ver detalhes, e arraste eventos e tarefas para outra data. Use as etiquetas coloridas para esconder o que não quer ver.',
   documentos: 'Guarde aqui os documentos da APAE (certidões, atas, contratos…). A lista separa o que está vencido, o que vence em 30 dias e o que está em dia. Use Renovar para registrar a nova validade e o novo arquivo: a versão anterior continua guardada no próprio documento.',
-  pesquisa: 'Pesquisa rapidamente em todo o sistema: projetos, empresas, cotações, ordens de compra, documentos, tarefas da secretaria, agenda e atendimentos. Clique em qualquer resultado para abrir o registro original.',
+  pesquisa: 'Todos os resultados da busca do topo: tarefas, agenda, atendimentos, documentos, documentos gerados, recursos, execuções, empresas, cotações e ordens de compra. Não diferencia acento nem maiúscula. Use os botões para ver um tipo só e clique num resultado para abri-lo.',
   kanban: 'As tarefas da Secretaria (ou as execuções de projeto) em colunas por situação. Arraste o cartão para outra coluna — ou use o botão ⋮ no cartão, que também funciona no celular. Concluir aqui é o mesmo que concluir na Secretaria: rotinas voltam na próxima data e tudo vai para o Histórico. Clique no cartão para abrir a tarefa ou o projeto. Na coluna Concluída aparecem os últimos 14 dias.',
   historico: 'Tudo o que foi criado, alterado, concluído ou excluído, agrupado por dia. Busque por um nome (aluno, documento, tarefa), escolha o período e filtre pelo módulo ou pelo tipo de ação. Clique numa linha para abrir o registro, se ele ainda existir.',
   relatorios: 'Monta o relatório de atividades do período escolhido, com o cabeçalho da instituição: tarefas concluídas, compromissos, atendimentos, documentos renovados e pagamentos dos projetos. Marque as áreas que quer incluir e salve em PDF ou imprima. Aqui também fica o backup de todos os dados.',
@@ -212,7 +212,6 @@ document.getElementById('btnNewGeneric').addEventListener('click', () => {
    8. DISPATCH DE RENDERIZAÇÃO
    --------------------------------------------------------- */
 function renderCurrentView(opts){
-  renderNotifications();
   atualizarMenu();
   switch(currentView){
     case 'dashboard': renderDashboard(); break;

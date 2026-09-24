@@ -1,19 +1,16 @@
 /* ---------------------------------------------------------
    17. BUSCA GERAL COM FULLTEXT E SCORING
    --------------------------------------------------------- */
+/* Sem diferenciar acento/maiúscula ("oficio" acha "Ofício") e sem usar o
+   termo como expressão regular — antes "(69)" ou "R$" quebravam a busca e
+   "1.500" achava qualquer coisa. */
 function calcularScoreBusca(texto, termo, pesos = 1){
   if (!texto) return 0;
-  const t = texto.toLowerCase();
-  const q = termo.toLowerCase();
-  let score = 0;
-
-  if (t === q) score += 50 * pesos; // match exato
-  else if (t.startsWith(q)) score += 25 * pesos; // começa com termo
-  else {
-    const matches = (t.match(new RegExp(q, 'g')) || []).length;
-    score += matches * 5 * pesos; // ocorrências do termo
-  }
-  return score;
+  const t = normalizarFiltro(String(texto)), q = normalizarFiltro(termo);
+  if (!q) return 0;
+  if (t === q) return 50 * pesos;          // igual
+  if (t.startsWith(q)) return 25 * pesos;  // começa com o termo
+  return (t.split(q).length - 1) * 5 * pesos; // quantas vezes aparece
 }
 
 function buscarComScoring(items, termo, campos){
@@ -33,7 +30,7 @@ function buscarComScoring(items, termo, campos){
 
 function buscarEmTudo(termo){
   const q = termo.trim().toLowerCase();
-  const vazio = { solicitacoes:[], documentos:[], projetos:[], empresas:[], eventos:[], atendimentos:[], cotacoes:[], ordens:[] };
+  const vazio = { solicitacoes:[], documentos:[], projetos:[], empresas:[], eventos:[], atendimentos:[], cotacoes:[], ordens:[], gerados:[] };
   if (!q) return vazio;
 
   const solicitacoes = buscarComScoring(
@@ -127,67 +124,58 @@ function buscarEmTudo(termo){
     { field: o => o._projetoNome, weight: 1.5 }
   ]);
 
-  return { solicitacoes, documentos, projetos, empresas, eventos, atendimentos, cotacoes, ordens };
+  const nq = normalizarFiltro(q);
+  const gerados = typeof getDocumentosGerados === 'function'
+    ? getDocumentosGerados().filter(d => normalizarFiltro(textoPesquisaDocumento(d)).includes(nq)).sort((a,b) => b.criadoEm - a.criadoEm)
+    : [];
+  return { solicitacoes, documentos, projetos, empresas, eventos, atendimentos, cotacoes, ordens, gerados };
 }
 
+const PS_PRESENCA = { veio:'Veio', faltou:'Faltou', nao_informado:'Sem registro' };
+let psFiltro = '';
+function psBlocos(r){
+  return [
+    { k:'tarefas', titulo:'Tarefas', itens:r.solicitacoes, render:s => ({ titulo:s.titulo, sub:[prazoAtividade(s).texto, s.status, s.responsavel], abrir:() => abrirDetalheSolicitacao(s.id) }) },
+    { k:'agenda', titulo:'Agenda', itens:r.eventos, render:e => ({ titulo:e.titulo, sub:[formatDateBR(e.data), e.horarioInicio, e.tipo, e.local], abrir:() => abrirDetalheEvento(e.id) }) },
+    { k:'atendimentos', titulo:'Atendimentos', itens:r.atendimentos, render:a => ({ titulo:`${a.alunoNome} — ${a.profissionalNome}`, sub:[formatDateBR(a.data), a.horario, a.remarcadoPara ? 'Remarcado' : PS_PRESENCA[a.presenca]], abrir:() => abrirAtendimento(a.id) }) },
+    { k:'documentos', titulo:'Documentos', itens:r.documentos, render:d => ({ titulo:d.nome, sub:[situacaoDocumento(d).label, d.dataValidade && `validade ${formatDateBR(d.dataValidade)}`, d.categoria], abrir:() => abrirDetalheDocumento(d.id) }) },
+    { k:'gerados', titulo:'Documentos gerados', itens:r.gerados, render:d => ({ titulo:nomeDocumentoGerado(d), sub:[`gerado em ${formatDateBR(d.dataGeracao)}`, d.vinculo && d.vinculo.rotulo], abrir:() => abrirDetalheDocumentoGerado(d.id) }) },
+    { k:'recursos', titulo:'Recursos', itens:r.projetos.filter(p => p.tipo === 'recurso'), render:p => ({ titulo:p.nome, sub:[p.status, p.fonteRecurso], abrir:() => abrirDetalheProjeto(p.id) }) },
+    { k:'execucoes', titulo:'Execuções', itens:r.projetos.filter(p => p.tipo !== 'recurso'), render:p => ({ titulo:p.nome, sub:[p.status, p.paiId ? DB.getById('projetos', p.paiId)?.nome : 'projeto antigo'], abrir:() => abrirDetalheProjeto(p.id) }) },
+    { k:'empresas', titulo:'Empresas', itens:r.empresas, render:e => ({ titulo:e.razaoSocial || e.nomeFantasia, sub:[e.cnpj, e.municipio], abrir:() => abrirFichaEmpresaGlobal(e.id) }) },
+    { k:'cotacoes', titulo:'Cotações', itens:r.cotacoes, render:c => ({ titulo:`Cotação — ${c.fornecedor}`, sub:[formatDateBR(c.data), c.selecionada ? 'Vencedora' : 'Em análise', c._projetoNome], abrir:() => abrirDetalheProjeto(c._projetoId, 'empresas') }) },
+    { k:'ordens', titulo:'Ordens de compra', itens:r.ordens, render:o => ({ titulo:`Ordem ${o.numero || ''}`, sub:[formatDateBR(o.data), o.status, o._projetoNome], abrir:() => abrirDetalheProjeto(o._projetoId, 'empresas') }) }
+  ].filter(b => b.itens.length);
+}
+let psAcoes = [];
 function renderPesquisa(){
   const input = document.getElementById('buscaGeralInput');
-  function render(){
-    const termo = input.value;
-    const resultados = buscarEmTudo(termo);
-    const container = document.getElementById('resultadosBuscaGeral');
-    if (!termo.trim()){
-      container.innerHTML = `<p class="muted">Digite um termo para pesquisar em solicitações e documentos.</p>`;
-      return;
-    }
-    const total = Object.values(resultados).reduce((s,arr) => s + arr.length, 0);
-    if (!total){
-      container.innerHTML = `<p class="muted">Não encontramos resultados para "${escapeHTML(termo)}".</p>`;
-      return;
-    }
-
-    // Recursos (Pai) e Execuções (Filho) são a mesma busca por trás
-    // (resultados.projetos), só exibidas em grupos separados para deixar
-    // claro qual é qual — abrirDetalheProjeto já sabe abrir a tela certa.
-    const blocos = [
-      { titulo:'Recursos', itens: resultados.projetos.filter(p=>p.tipo==='recurso'), render: p => ({ titulo:`💰 ${p.nome}`, data:p.dataRecebimento||p.dataInicio, status:p.status||'Sem status', resumo:p.fonteRecurso, action:()=>abrirDetalheProjeto(p.id) }) },
-      { titulo:'Execuções', itens: resultados.projetos.filter(p=>p.tipo==='execucao'), render: p => ({ titulo:`📂 ${p.nome}`, data:p.dataInicio, status:p.status||'Sem status', resumo:p.paiId?DB.getById('projetos',p.paiId)?.nome:'', action:()=>abrirDetalheProjeto(p.id) }) },
-      { titulo:'Projetos', itens: resultados.projetos.filter(p=>!p.tipo), render: p => ({ titulo:p.nome, data:p.dataInicio, status:p.status||'Sem status', resumo:p.objetivo||p.descricao, action:()=>abrirDetalheProjeto(p.id) }) },
-      { titulo:'Empresas', itens: resultados.empresas, render: e => ({ titulo:e.razaoSocial||e.nomeFantasia, data:null, status:e.cnpj||'CNPJ não informado', resumo:e.municipio, action:()=>abrirFichaEmpresaGlobal(e.id) }) },
-      { titulo:'Cotações', itens: resultados.cotacoes, render: c => ({ titulo:`Cotação — ${c.fornecedor}`, data:c.data, status:c.selecionada?'Vencedora':'Em análise', resumo:c._projetoNome, action:()=>abrirDetalheProjeto(c._projetoId,'empresas') }) },
-      { titulo:'Ordens de compra', itens: resultados.ordens, render: o => ({ titulo:`Ordem ${o.numero||''}`, data:o.data, status:o.status||'—', resumo:o._projetoNome, action:()=>abrirDetalheProjeto(o._projetoId,'empresas') }) },
-      { titulo:'Solicitações', itens: resultados.solicitacoes, render: s => ({ titulo:s.titulo, data:prazoAtividade(s).data, status:s.status, resumo:s.descricao, action:()=>abrirDetalheSolicitacao(s.id) }) },
-      { titulo:'Agenda', itens: resultados.eventos, render: e => ({ titulo:e.titulo, data:e.data, status:e.tipo, resumo:e.local, action:()=>abrirDetalheEvento(e.id) }) },
-      { titulo:'Documentos', itens: resultados.documentos, render: d => ({ titulo:d.nome, data:d.dataEmissao, status:situacaoDocumento(d).label, resumo:d.descricao, action:()=>abrirDetalheDocumento(d.id) }) },
-      { titulo:'Atendimentos', itens: resultados.atendimentos, render: a => ({ titulo:`${a.alunoNome} — ${a.profissionalNome}`, data:a.data, status:a.presenca||'—', resumo:a.horario, action:()=>abrirAtendimento(a.id) }) }
-    ];
-
-    container.innerHTML = blocos.filter(b=>b.itens.length).map(b => `
-      <div class="panel">
-        <div class="panel-head"><h2>${b.titulo}</h2><span class="muted">${b.itens.length} resultado${b.itens.length===1?'':'s'}</span></div>
-        <div class="attention-list">
-          ${b.itens.map((it,i) => {
-            const r = b.render(it);
-            return `<div class="attn-item" data-bloco="${b.titulo}" data-idx="${i}">
-              <div class="attn-main">
-                <div class="attn-title">${escapeHTML(r.titulo)}</div>
-                <div class="attn-sub">${typeof r.data === 'number' ? new Date(r.data).toLocaleDateString('pt-BR') : formatDateBR(r.data)} · ${escapeHTML(r.status)} ${r.resumo ? '· '+escapeHTML(r.resumo.slice(0,60)) : ''}</div>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`).join('');
-
-    blocos.forEach(b => {
-      container.querySelectorAll(`.attn-item[data-bloco="${b.titulo}"]`).forEach(el => {
-        el.addEventListener('click', () => b.render(b.itens[Number(el.dataset.idx)]).action());
-      });
+  const alvo = document.getElementById('resultadosBuscaGeral');
+  if (!input || !alvo) return;
+  if (!input._ligado) {
+    input._ligado = true;
+    input.addEventListener('input', () => { psFiltro = ''; renderPesquisa(); });
+    alvo.addEventListener('click', e => {
+      const f = e.target.closest('[data-ps-filtro]');
+      if (f) { psFiltro = f.dataset.psFiltro; renderPesquisa(); return; }
+      const b = e.target.closest('[data-ps]'); if (b) psAcoes[Number(b.dataset.ps)]?.();
     });
   }
-  input.removeEventListener('input', input._handler || (()=>{}));
-  input._handler = render;
-  input.addEventListener('input', render);
-  render();
+  psAcoes = [];
+  const termo = input.value;
+  if (!termo.trim()) { alvo.innerHTML = '<div class="ps-vazio">Digite um nome, número, CNPJ, assunto… A busca procura em tarefas, agenda, atendimentos, documentos, documentos gerados, projetos e empresas.</div>'; return; }
+  const blocos = psBlocos(buscarEmTudo(termo));
+  const total = blocos.reduce((s, b) => s + b.itens.length, 0);
+  if (!total) { alvo.innerHTML = `<div class="ps-vazio">Nada encontrado para “${escapeHTML(termo)}”.</div>`; return; }
+  if (psFiltro && !blocos.some(b => b.k === psFiltro)) psFiltro = '';
+  const chip = (v, t, n) => `<button type="button" class="hi-chip ${psFiltro===v?'is-ativo':''}" data-ps-filtro="${v}" aria-pressed="${psFiltro===v}">${t}<span>${n}</span></button>`;
+  const mostrar = psFiltro ? blocos.filter(b => b.k === psFiltro) : blocos;
+  alvo.innerHTML = `
+    <p class="ps-total">${total} resultado${total===1?'':'s'} para “${escapeHTML(termo)}”</p>
+    ${blocos.length > 1 ? `<div class="hi-chips">${chip('', 'Tudo', total)}${blocos.map(b => chip(b.k, b.titulo, b.itens.length)).join('')}</div>` : ''}
+    ${mostrar.map(b => `<section class="ps-grupo"><h3>${b.titulo}<span>${b.itens.length}</span></h3>
+      ${b.itens.map(it => { const r = b.render(it); psAcoes.push(r.abrir); return `<button type="button" class="ps-linha" data-ps="${psAcoes.length - 1}"><strong>${escapeHTML(r.titulo || '—')}</strong><small>${r.sub.filter(Boolean).map(escapeHTML).join(' · ')}</small><i aria-hidden="true">→</i></button>`; }).join('')}
+    </section>`).join('')}`;
 }
 
 /* pesquisa rápida no topo */
@@ -202,10 +190,11 @@ quickSearchInput.addEventListener('input', () => {
     { titulo:'Execuções', itens:r.projetos.filter(p=>p.tipo==='execucao'), go: p=>abrirDetalheProjeto(p.id), label:p=>`📂 ${p.nome}` },
     { titulo:'Projetos', itens:r.projetos.filter(p=>!p.tipo), go: p=>abrirDetalheProjeto(p.id), label:p=>p.nome },
     { titulo:'Empresas', itens:r.empresas, go: e=>abrirFichaEmpresaGlobal(e.id), label:e=>e.razaoSocial||e.nomeFantasia },
-    { titulo:'Solicitações', itens:r.solicitacoes, go: s=>abrirDetalheSolicitacao(s.id), label:s=>s.titulo },
+    { titulo:'Tarefas', itens:r.solicitacoes, go: s=>abrirDetalheSolicitacao(s.id), label:s=>s.titulo },
     { titulo:'Documentos', itens:r.documentos, go: d=>abrirDetalheDocumento(d.id), label:d=>d.nome },
     { titulo:'Agenda', itens:r.eventos, go: e=>abrirDetalheEvento(e.id), label:e=>e.titulo },
-    { titulo:'Atendimentos', itens:r.atendimentos, go: a=>abrirAtendimento(a.id), label:a=>`${a.alunoNome} — ${a.profissionalNome}` }
+    { titulo:'Atendimentos', itens:r.atendimentos, go: a=>abrirAtendimento(a.id), label:a=>`${a.alunoNome} — ${a.profissionalNome}` },
+    { titulo:'Documentos gerados', itens:r.gerados, go: d=>abrirDetalheDocumentoGerado(d.id), label:d=>nomeDocumentoGerado(d) }
   ].filter(g => g.itens.length);
 
   if (!grupos.length){
@@ -244,5 +233,4 @@ document.addEventListener('click', (e) => {
     return;
   }
   if (!e.target.closest('.quick-search') && !e.target.closest('.qs-results')) quickSearchResults.hidden = true;
-  if (!e.target.closest('#btnNotif') && !e.target.closest('#notifPanel')) document.getElementById('notifPanel').hidden = true;
 });

@@ -94,6 +94,20 @@ async function projectFilesRestore(snapshot){
   }
 }
 
+/* Quando foi o último backup baixado neste navegador. dias = null se nunca. */
+function situacaoBackup(){
+  const ts = DB.getConfig().ultimoBackup || null;
+  const dias = ts ? Math.floor((Date.now() - ts) / 86400000) : null;
+  const temDados = ['solicitacoes','documentos','projetos','eventos','atendimentos','gerador-documentos'].some(c => (DB.getAll(c) || []).length);
+  return { ts, dias, temDados, atrasado: temDados && (dias === null || dias >= 7) };
+}
+function textoUltimoBackup(sb){
+  if (!sb.ts) return 'Nenhum backup baixado neste navegador ainda.';
+  const d = new Date(sb.ts);
+  const quando = sb.dias === 0 ? 'hoje' : sb.dias === 1 ? 'ontem' : `há ${sb.dias} dias`;
+  return `Último backup: ${quando} (${d.toLocaleDateString('pt-BR')} às ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}).`;
+}
+
 async function exportarBackupCompleto(){
   try{
     showToast('⏳ Preparando backup completo...');
@@ -115,16 +129,20 @@ async function exportarBackupCompleto(){
     const url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url; a.download=`backup-completo-central-secretaria-${todayISO()}.json`;
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    const cfg=DB.getConfig(); cfg.ultimoBackup=Date.now(); DB.saveConfig(cfg);
     showToast('✓ Backup completo exportado com dados e anexos.');
+    if(typeof renderCurrentView==='function') renderCurrentView();
   }catch(e){
     console.error('Erro ao exportar backup completo',e);
     showToast('⚠ Não foi possível criar o backup completo.');
   }
 }
 
-async function importarBackupCompleto(file){
+function importarBackupCompleto(file){
   if(!file) return;
-  if(!confirm('Restaurar o backup substituirá os dados atuais da Central da Secretaria. Deseja continuar?')) return;
+  confirmAction(`Restaurar "${file.name}"? Os dados atuais deste navegador serão substituídos pelos do arquivo.`, () => restaurarBackupArquivo(file));
+}
+async function restaurarBackupArquivo(file){
   try{
     showToast('⏳ Restaurando backup...');
     const texto=await file.text(); const dados=JSON.parse(texto);
@@ -136,6 +154,7 @@ async function importarBackupCompleto(file){
     for(const [key,value] of Object.entries(local)){
       if(key.startsWith('cs_')) localStorage.setItem(key,value);
     }
+    const cfg=DB.getConfig(); const feitoEm=Date.parse(dados.exportadoEm); if(feitoEm){ cfg.ultimoBackup=feitoEm; DB.saveConfig(cfg); }
     await projectFilesRestore(dados.indexedDB||{});
     showToast('✓ Backup restaurado. A página será recarregada.');
     setTimeout(()=>location.reload(),700);

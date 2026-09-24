@@ -145,6 +145,7 @@ function renderDashboard(){
     <header class="db-topo">
       <h2>${dbSaudacao()}! <span>${dbEsc(dbDataLonga(hoje))}</span></h2>
       <p>${resumo}</p>
+      ${(() => { const sb = situacaoBackup(); return sb.atrasado ? `<div class="db-backup"><span>💾 ${sb.ts ? `Último backup há ${sb.dias} dias.` : 'Nenhum backup feito ainda.'} Os dados ficam só neste navegador — baixe uma cópia e guarde fora do computador.</span><button type="button" class="btn btn-sm" data-db="${dbAcao(() => exportarBackupCompleto())}">Baixar backup agora</button></div>` : ''; })()}
     </header>
     <div class="db-grade">
       <section class="db-card db-resolver">
@@ -173,45 +174,6 @@ function renderDashboard(){
     if (b && root.contains(b)) dbAcoes[Number(b.dataset.db)]?.();
   });
 })();
-
-/* ---------------------------------------------------------
-   10. NOTIFICAÇÕES
-   --------------------------------------------------------- */
-function renderNotifications(){
-  const solicitacoes = DB.getAll('solicitacoes');
-  const documentos = DB.getAll('documentos');
-
-  const atrasadas = solicitacoes.filter(solicitacaoAtrasada).length;
-  const vencendo7 = documentos.filter(d => {
-    const s = situacaoDocumento(d);
-    return s.chave === 'vencendo' && daysDiffFromToday(d.dataValidade) <= 7;
-  }).length;
-  const aguardando = solicitacoes.filter(s => s.status === 'Aguardando').length;
-
-  const notifs = [];
-  if (atrasadas) notifs.push({ icon:'<span class="dot dot-danger"></span>', text:`${atrasadas} solicitaç${atrasadas===1?'ão':'ões'} atrasada${atrasadas===1?'':'s'}`, view:'solicitacoes' });
-  if (vencendo7) notifs.push({ icon:'<span class="dot dot-warn"></span>', text:`${vencendo7} documento${vencendo7===1?'':'s'} vencendo nos próximos 7 dias`, view:'documentos' });
-  if (aguardando) notifs.push({ icon:'<span class="dot dot-primary"></span>', text:`${aguardando} solicitaç${aguardando===1?'ão':'ões'} aguardando ação`, view:'solicitacoes' });
-
-  const badge = document.getElementById('notifBadge');
-  if (notifs.length){ badge.hidden = false; badge.textContent = notifs.length; }
-  else { badge.hidden = true; }
-
-  const list = document.getElementById('notifList');
-  list.innerHTML = notifs.length
-    ? notifs.map((n,i) => `<div class="notif-item" data-idx="${i}">${n.icon} ${escapeHTML(n.text)}</div>`).join('')
-    : `<div class="notif-item" style="cursor:default">Nenhuma notificação no momento.</div>`;
-  list.querySelectorAll('.notif-item[data-idx]').forEach((el,i) => {
-    el.addEventListener('click', () => { goToView(notifs[i].view); document.getElementById('notifPanel').hidden = true; });
-  });
-}
-document.getElementById('btnNotif').addEventListener('click', () => {
-  const panel = document.getElementById('notifPanel');
-  panel.hidden = !panel.hidden;
-});
-document.getElementById('btnCloseNotif').addEventListener('click', () => {
-  document.getElementById('notifPanel').hidden = true;
-});
 
 /* ---------------------------------------------------------
    11. HELPERS GERAIS

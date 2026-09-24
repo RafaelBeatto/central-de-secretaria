@@ -392,10 +392,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   const modal = document.getElementById('modalBackdrop');
   const confirm = document.getElementById('confirmBackdrop');
-  const notif = document.getElementById('notifPanel');
   if (confirm && !confirm.hidden) confirm.hidden = true;
   else if (modal && !modal.hidden) closeModal();
-  else if (notif && !notif.hidden) notif.hidden = true;
   else closeSidebarMobile();
 });
 document.getElementById('modalBackdrop').addEventListener('click', (e) => {

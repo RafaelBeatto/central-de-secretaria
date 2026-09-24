@@ -206,6 +206,7 @@ function renderRelatorios(){
           <button type="button" class="btn" data-rl="restaurar">📥 Restaurar backup…</button>
           <input type="file" id="inputRestaurarBackup" accept=".json,application/json" hidden>
         </div>
+        <p class="rl-texto rl-ultimo ${situacaoBackup().atrasado ? 't-warn' : ''}">${textoUltimoBackup(situacaoBackup())}</p>
         <p class="rl-texto rl-aviso">Restaurar substitui os dados atuais pelos do arquivo.</p>
       </section>
     </aside>
