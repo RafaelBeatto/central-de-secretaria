@@ -114,6 +114,7 @@ async function salvarAnexo(file, categoria='documento'){
   const registro = { id, nome:file.name, tipo:file.type||'', tamanho:file.size||0, categoria, criadoEm:Date.now(), blob:file };
   try{
     await ProjectFiles.save(registro);
+    if (typeof protegerArmazenamento === 'function' && armazenamentoProtegido !== true) protegerArmazenamento();
   }catch(e){
     console.error('Erro ao salvar anexo', e);
     showToast('⚠ Não foi possível salvar o arquivo.');

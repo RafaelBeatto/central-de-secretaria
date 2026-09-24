@@ -11,14 +11,37 @@ const AVISO_CRITICO = 0.90;
 
 const ROTULO_ENTIDADE = {
   projetos: 'Projetos',
-  solicitacoes: 'Atividades',
+  solicitacoes: 'Tarefas da Secretaria',
   documentos: 'Documentos',
   eventos: 'Agenda',
   historico: 'Histórico',
-  'kanban-quadros': 'Quadros Kanban',
-  'modelos-documentos': 'Modelos',
+  atendimentos: 'Atendimentos',
+  'atendimento-alunos': 'Alunos',
+  'atendimento-profissionais': 'Profissionais',
+  'gerador-documentos': 'Documentos gerados',
+  'gerador-modelos': 'Modelos do Gerador',
+  'gerador-empresas': 'Empresas',
+  'kanban-quadros': 'Quadros antigos do Kanban',
+  'modelos-documentos': 'Modelos antigos',
   config: 'Configurações'
 };
+
+/* ---------------------------------------------------------
+   PROTEÇÃO CONTRA LIMPEZA AUTOMÁTICA
+   Sem isto, o navegador pode apagar os anexos (IndexedDB) sozinho
+   quando o disco fica cheio. navigator.storage.persist() pede para
+   ele nunca apagar. O Chrome/Edge decidem sem perguntar (aceitam para
+   sites usados com frequência, nos favoritos ou instalados); o Firefox
+   pergunta. Pedir de novo é inofensivo.
+   --------------------------------------------------------- */
+let armazenamentoProtegido = null; // null = ainda não sabemos / navegador sem suporte
+async function protegerArmazenamento(){
+  try{
+    if (!navigator.storage?.persist) return null;
+    armazenamentoProtegido = await navigator.storage.persisted() || await navigator.storage.persist();
+  }catch(e){ armazenamentoProtegido = null; }
+  return armazenamentoProtegido;
+}
 
 function formatarBytes(bytes){
   if (!bytes) return '0 KB';
@@ -142,12 +165,12 @@ async function abrirDetalhesArmazenamento(){
 
       ${nivel === 'critico' ? `<div class="notice-box danger">
         <b>! Espaço quase esgotado</b><br>
-        Novos registros podem deixar de ser salvos. Libere espaço reduzindo o histórico
-        antes de continuar cadastrando.
+        Novos registros podem deixar de ser salvos. Libere espaço limpando o histórico
+        antigo antes de continuar cadastrando.
       </div>` : ''}
       ${nivel === 'atencao' ? `<div class="notice-box">
         <b>! Atenção</b><br>
-        O armazenamento já passou de 75%. Vale reduzir o histórico antigo.
+        O armazenamento já passou de 75%. Vale limpar o histórico antigo.
       </div>` : ''}
 
       <h4 class="storage-h4">Onde o espaço está sendo usado</h4>
@@ -166,6 +189,7 @@ async function abrirDetalhesArmazenamento(){
 
       <h4 class="storage-h4">Arquivos anexados</h4>
       <p class="muted" id="storageAnexos">Calculando...</p>
+      <p class="storage-protecao" id="storageProtecao"></p>
 
       <div class="notice-box">
         <b>Como funciona</b><br>
@@ -176,13 +200,24 @@ async function abrirDetalhesArmazenamento(){
 
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="btnFecharArmazenamento">Fechar</button>
-        <button type="button" class="btn btn-danger" id="btnReduzirHistorico">Reduzir histórico</button>
+        <button type="button" class="btn" id="btnLimparHistoricoArm">Limpar histórico…</button>
       </div>
     </div>
   `);
 
   document.getElementById('btnFecharArmazenamento').addEventListener('click', closeModal);
-  document.getElementById('btnReduzirHistorico').addEventListener('click', reduzirHistorico);
+  document.getElementById('btnLimparHistoricoArm').addEventListener('click', () => abrirLimparHistorico());
+
+  const protegido = await protegerArmazenamento();
+  const prot = document.getElementById('storageProtecao');
+  if (prot) {
+    prot.className = 'storage-protecao ' + (protegido ? 'is-ok' : protegido === false ? 'is-aviso' : '');
+    prot.textContent = protegido
+      ? '✓ Protegidos: o navegador não apaga estes arquivos sozinho.'
+      : protegido === false
+        ? '⚠ O navegador ainda não protegeu os arquivos contra limpeza automática. Adicionar o site aos favoritos (Ctrl+D) costuma resolver no Chrome e no Edge. Mantenha o backup em dia.'
+        : 'Este navegador não informa se protege os arquivos. Mantenha o backup em dia.';
+  }
 
   const anexos = await medirAnexos();
   const alvo = document.getElementById('storageAnexos');
@@ -191,25 +226,6 @@ async function abrirDetalhesArmazenamento(){
       ? `${anexos.quantidade} arquivo${anexos.quantidade === 1 ? '' : 's'} · ${formatarBytes(anexos.bytes)}`
       : 'Nenhum arquivo anexado.';
   }
-}
-
-/* O histórico costuma ser o maior consumidor: mantém os 200 mais recentes. */
-function reduzirHistorico(){
-  const lista = DB.getAll('historico');
-  if (lista.length <= 200) {
-    return showToast('O histórico já está enxuto (menos de 200 registros).');
-  }
-  const removidos = lista.length - 200;
-  confirmAction(
-    `Manter apenas os 200 lançamentos mais recentes do histórico? ${removidos} registros antigos serão apagados.`,
-    () => {
-      DB.saveAll('historico', lista.slice(0, 200));
-      closeModal();
-      renderIndicadorArmazenamento();
-      if (currentView === 'historico') renderHistorico();
-      showToast(`✓ ${removidos} registros antigos removidos do histórico.`);
-    }
-  );
 }
 
 /* Aviso único por sessão quando o espaço está apertado. */
@@ -235,3 +251,4 @@ function verificarArmazenamentoNoInicio(){
 })();
 
 verificarArmazenamentoNoInicio();
+protegerArmazenamento();

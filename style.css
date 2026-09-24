@@ -1876,3 +1876,6 @@ mark.ge-falta{ background:#fff1a8; color:#5c4a00; padding:0 2px; border-radius:2
 .emp-cnpj input{ flex:1; min-width:0; }
 @media (max-width:700px){ .emp-fatos{ grid-template-columns:1fr; } .emp-cnpj{ flex-direction:column; } }
 .notice-box.emp-aviso-docs{ background:var(--danger-soft); color:var(--danger); border:1px solid color-mix(in srgb,var(--danger) 30%,var(--border)); font-weight:500; }
+.storage-protecao{ font-size:12.5px; margin:6px 0 0; }
+.storage-protecao.is-ok{ color:var(--ok); }
+.storage-protecao.is-aviso{ color:var(--warn); }
