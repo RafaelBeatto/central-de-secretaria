@@ -153,7 +153,7 @@ function abrirLimparHistorico(){
   };
   sel.onchange = atualizar; atualizar();
   document.getElementById('hiApagarCancelar').onclick = closeModal;
-  document.getElementById('hiApagarBackup').onclick = () => exportarBackupCompleto();
+  document.getElementById('hiApagarBackup').onclick = () => fazerBackupAgora();
   document.getElementById('formLimparHist').onsubmit = e => {
     e.preventDefault();
     const remover = new Set(alvo(sel.value).map(h => h.id));

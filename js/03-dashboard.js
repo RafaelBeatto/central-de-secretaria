@@ -145,7 +145,12 @@ function renderDashboard(){
     <header class="db-topo">
       <h2>${dbSaudacao()}! <span>${dbEsc(dbDataLonga(hoje))}</span></h2>
       <p>${resumo}</p>
-      ${(() => { const sb = situacaoBackup(); return sb.atrasado ? `<div class="db-backup"><span>💾 ${sb.ts ? `Último backup há ${sb.dias} dias.` : 'Nenhum backup feito ainda.'} Os dados ficam só neste navegador — baixe uma cópia e guarde fora do computador.</span><button type="button" class="btn btn-sm" data-db="${dbAcao(() => exportarBackupCompleto())}">Baixar backup agora</button></div>` : ''; })()}
+      ${(() => { const sb = situacaoBackup(); if (!sb.atrasado) return '';
+        const pasta = backupPastaSuportado() && backupPastaConfig();
+        const quando = sb.ts ? `Último backup há ${sb.dias} dias.` : 'Nenhum backup feito ainda.';
+        return pasta
+          ? `<div class="db-backup"><span>💾 ${quando} Clique para salvar na pasta "${escapeHTML(pasta.nome)}" — o navegador pede sua confirmação.</span><button type="button" class="btn btn-sm" data-db="${dbAcao(() => fazerBackupAgora())}">Salvar backup na pasta</button></div>`
+          : `<div class="db-backup"><span>💾 ${quando} Os dados ficam só neste navegador — baixe uma cópia e guarde fora do computador${backupPastaSuportado() ? ', ou ligue o backup automático em Relatórios' : ''}.</span><button type="button" class="btn btn-sm" data-db="${dbAcao(() => exportarBackupCompleto())}">Baixar backup agora</button></div>`; })()}
     </header>
     <div class="db-grade">
       <section class="db-card db-resolver">

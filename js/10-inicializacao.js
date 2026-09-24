@@ -7,5 +7,6 @@ function init(){
   applyTheme(cfg.theme || 'light');
   updateClock();
   goToView('dashboard');
+  setTimeout(() => backupAutomaticoAoAbrir(), 1500);
 }
 init();

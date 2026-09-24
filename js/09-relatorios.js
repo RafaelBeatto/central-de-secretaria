@@ -208,10 +208,22 @@ function renderRelatorios(){
         </div>
         <p class="rl-texto rl-ultimo ${situacaoBackup().atrasado ? 't-warn' : ''}">${textoUltimoBackup(situacaoBackup())}</p>
         <p class="rl-texto rl-aviso">Restaurar substitui os dados atuais pelos do arquivo.</p>
+        ${rlBackupAutomaticoHTML()}
       </section>
     </aside>
   </div>`;
   rlAtualizarPrevia();
+}
+
+function rlBackupAutomaticoHTML(){
+  if (!backupPastaSuportado()) return `<div class="rl-auto"><h3>Backup automático</h3><p class="rl-texto">Só funciona no Chrome e no Edge. Neste navegador, use o botão "Baixar backup".</p></div>`;
+  const pasta = backupPastaConfig();
+  if (!pasta) return `<div class="rl-auto"><h3>Backup automático</h3>
+    <p class="rl-texto">Escolha uma pasta uma vez e o sistema salva uma cópia sozinho, uma vez por dia, guardando as ${BACKUP_PASTA_MANTER} mais recentes. Dica: use uma pasta do Google Drive ou do OneDrive — assim a cópia também fica fora do computador.</p>
+    <button type="button" class="btn" data-rl="pasta-escolher">📁 Escolher pasta…</button></div>`;
+  return `<div class="rl-auto is-ligado"><h3>Backup automático <span class="rl-ligado">ligado</span></h3>
+    <p class="rl-texto">Salvando na pasta <strong>${escapeHTML(pasta.nome)}</strong>, uma vez por dia ao abrir o sistema. Se o navegador pedir, clique em "Permitir sempre" para não perguntar de novo.</p>
+    <div class="rl-botoes-linha"><button type="button" class="btn btn-sm" data-rl="pasta-agora">Salvar agora</button><button type="button" class="btn btn-sm btn-ghost" data-rl="pasta-escolher">Trocar pasta</button><button type="button" class="btn btn-sm btn-ghost" data-rl="pasta-desligar">Desligar</button></div></div>`;
 }
 
 let rlGeracao = 0;
@@ -241,6 +253,9 @@ function rlNomeArquivo(){ const [de, ate] = rlIntervalo(); return `Relatorio_Ati
       a === 'pdf' ? salvarPdfGerador(rlHTMLAtual, rlNomeArquivo()) : imprimirDocumentoGerador(rlHTMLAtual, rlNomeArquivo());
     }
     else if (a === 'backup') exportarBackupCompleto();
+    else if (a === 'pasta-escolher') escolherPastaBackup();
+    else if (a === 'pasta-agora') salvarBackupNaPasta({ pedirPermissao:true });
+    else if (a === 'pasta-desligar') desligarBackupPasta();
     else if (a === 'restaurar') document.getElementById('inputRestaurarBackup')?.click();
   });
   root.addEventListener('change', e => {

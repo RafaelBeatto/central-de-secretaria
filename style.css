@@ -1823,6 +1823,11 @@ mark.ge-falta{ background:#fff1a8; color:#5c4a00; padding:0 2px; border-radius:2
 @media (max-width:700px){ .pd-filtros #pdBusca{ max-width:none; } }
 .db-backup{ display:flex; align-items:center; justify-content:space-between; gap:8px 14px; flex-wrap:wrap; margin-top:10px; padding:9px 12px; border-radius:var(--radius); background:var(--warn-soft); color:var(--warn); font-size:12.5px; font-weight:500; }
 .rl-ultimo{ margin:12px 0 0; font-weight:500; }
+.rl-auto{ margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
+.rl-auto h3{ margin:0 0 4px; font-size:13px; display:flex; align-items:center; gap:8px; }
+.rl-ligado{ font-size:11px; font-weight:600; padding:1px 8px; border-radius:99px; background:var(--ok-soft); color:var(--ok); }
+.rl-auto .btn{ margin-top:8px; }
+.rl-botoes-linha{ display:flex; flex-wrap:wrap; gap:6px; }
 
 /* =========================================================
    PESQUISA — todos os resultados (08-pesquisa-historico.js)
