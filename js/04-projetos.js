@@ -938,6 +938,7 @@ async function consultarCNPJa(cnpj){
   try {
     const res = await fetch(`https://open.cnpja.com/office/${clean}`);
     if (res.status === 404) return { ok: false, error: 'CNPJ não encontrado na base de dados' };
+    if (res.status === 429) return { ok: false, error: 'Muitas consultas seguidas. Espere 1 minuto e tente de novo.' };
     if (!res.ok) return { ok: false, error: `Erro ao consultar API (status ${res.status})` };
     const data = await res.json();
     return { ok: true, data };
