@@ -92,29 +92,48 @@ function medirLocalStorage(){
 /* Lista os anexos guardados no IndexedDB (ProjectFiles usa a store 'arquivos'). */
 async function medirAnexos(){
   try {
-    if (typeof ProjectFiles === 'undefined') return { quantidade: 0, bytes: 0 };
+    if (typeof ProjectFiles === 'undefined') return { quantidade: 0, bytes: 0, orfaos: [] };
     const db = await ProjectFiles.open();
+    // Um arquivo é "órfão" quando o id dele não aparece em nenhum registro
+    // salvo (tarefa, documento, projeto, empresa, gerador, configuração…).
+    let usados = '';
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('cs_')) usados += localStorage.getItem(k); }
     return await new Promise((resolve) => {
       const tx = db.transaction('arquivos', 'readonly');
       const req = tx.objectStore('arquivos').openCursor();
-      let quantidade = 0, bytes = 0;
+      let quantidade = 0, bytes = 0; const orfaos = [];
       req.onsuccess = () => {
         const cursor = req.result;
         if (cursor) {
           const r = cursor.value || {};
-          quantidade++;
-          bytes += Number(r.tamanho) || (r.blob && r.blob.size) || 0;
+          const tam = Number(r.tamanho) || (r.blob && r.blob.size) || 0;
+          quantidade++; bytes += tam;
+          if (r.id && !usados.includes(String(r.id))) orfaos.push({ id: r.id, bytes: tam, criadoEm: r.criadoEm || 0 });
           cursor.continue();
         } else {
-          resolve({ quantidade, bytes });
+          resolve({ quantidade, bytes, orfaos });
         }
       };
-      req.onerror = () => resolve({ quantidade: 0, bytes: 0 });
+      req.onerror = () => resolve({ quantidade: 0, bytes: 0, orfaos: [] });
     });
   } catch (e) {
     console.warn('Não foi possível medir os anexos:', e);
-    return { quantidade: 0, bytes: 0 };
+    return { quantidade: 0, bytes: 0, orfaos: [] };
   }
+}
+
+/* Apaga só arquivos de itens já excluídos. Ignora os da última hora
+   (um formulário pode estar salvando o arquivo antes do registro). */
+function liberarAnexosOrfaos(orfaos){
+  const lista = orfaos.filter(o => Date.now() - o.criadoEm > 3600000);
+  if (!lista.length) return showToast('Nada para liberar agora.');
+  const total = lista.reduce((s, o) => s + o.bytes, 0);
+  confirmAction(`Apagar ${lista.length} arquivo(s) de itens que já foram excluídos (${formatarBytes(total)})? Nenhum registro atual usa esses arquivos. Os backups antigos continuam com eles.`, async () => {
+    for (const o of lista) await ProjectFiles.remove(o.id).catch(() => {});
+    registrarHistorico({ modulo:'sistema', acao:'limpeza', descricao:`${lista.length} arquivo(s) de itens excluídos apagados (${formatarBytes(total)}).` });
+    showToast(`✓ ${formatarBytes(total)} liberados.`);
+    abrirDetalhesArmazenamento();
+  });
 }
 
 function nivelDeUso(pct){
@@ -225,6 +244,14 @@ async function abrirDetalhesArmazenamento(){
     alvo.textContent = anexos.quantidade
       ? `${anexos.quantidade} arquivo${anexos.quantidade === 1 ? '' : 's'} · ${formatarBytes(anexos.bytes)}`
       : 'Nenhum arquivo anexado.';
+    const orfaos = anexos.orfaos.filter(o => Date.now() - o.criadoEm > 3600000);
+    if (orfaos.length) {
+      const p = document.createElement('p');
+      p.className = 'storage-orfaos';
+      p.innerHTML = `${orfaos.length} deles são de itens já excluídos (${formatarBytes(orfaos.reduce((s, o) => s + o.bytes, 0))}) e deixam o backup maior. <button type="button" class="btn btn-sm" id="btnLiberarOrfaos">Liberar espaço</button>`;
+      alvo.after(p);
+      p.querySelector('button').onclick = () => liberarAnexosOrfaos(orfaos);
+    }
   }
 }
 

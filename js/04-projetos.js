@@ -1215,7 +1215,28 @@ function removerEmpresaProjeto(projectId,empresaId){
   });
 }
 function openFormDocumentoProjeto(projectId){openModal('Anexar documento de execução',`<form id="formDocProjeto"><div class="form-grid"><div class="field full"><label>Nome do documento *</label><input class="input" id="dp_nome" required></div><div class="field"><label>Categoria</label><select class="input" id="dp_cat"><option>Nota fiscal</option><option>Comprovante</option><option>Relatório</option><option>Declaração</option><option>Outro</option></select></div><div class="field"><label>Data</label><input class="input" type="date" id="dp_data" value="${todayISO()}"></div><div class="field full"><label>Arquivo *</label><input class="input" type="file" id="dp_arquivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cancelDp">Cancelar</button><button class="btn btn-primary">Anexar</button></div></form>`);document.getElementById('cancelDp').onclick=closeModal;document.getElementById('formDocProjeto').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('dp_arquivo').files[0];const d={id:uid('docp'),nome:document.getElementById('dp_nome').value.trim(),categoria:document.getElementById('dp_cat').value,data:document.getElementById('dp_data').value,anexo:await salvarAnexo(f,'documento')};if(!d.nome||!f)return;const projetoAtual=projectData(DB.getById('projetos',projectId));projetoAtual.documentosProjeto.push(d);projectSave(projetoAtual);closeModal();abrirDetalheProjeto(projetoAtual.id,'documentos');};}
-function excluirItemProjeto(projectId,tipo,itemId){const p=projectData(DB.getById('projetos',projectId));const mapa={cotacao:'cotacoes',ordem:'ordensCompra',documento:'documentosProjeto'};const chave=mapa[tipo];if(!chave)return;const item=p[chave].find(x=>x.id===itemId);if(!item)return;confirmAction('Excluir este item do projeto?',async()=>{if(item.anexo)await ProjectFiles.remove(item.anexo.id);p[chave]=p[chave].filter(x=>x.id!==itemId);projectSave(p);abrirDetalheProjeto(p.id,tipo==='cotacao'?'cotacoes':tipo==='ordem'?'ordens':'documentos');});}
+function excluirItemProjeto(projectId,tipo,itemId){
+  const p=projectData(DB.getById('projetos',projectId));
+  const mapa={cotacao:'cotacoes',ordem:'ordensCompra',documento:'documentosProjeto',pagamento:'pagamentos'};
+  const chave=mapa[tipo]; if(!chave) return;
+  const item=p[chave].find(x=>x.id===itemId); if(!item) return;
+  const descr={
+    cotacao:()=>`a cotação de ${item.fornecedor||'fornecedor'} (${formatMoney(item.valor||0)})`,
+    ordem:()=>`a ordem ${item.numero||''} de ${item.fornecedor||'fornecedor'}`.replace('  ',' '),
+    documento:()=>`o documento "${item.nome}"`,
+    pagamento:()=>`o pagamento de ${formatMoney(item.valor||0)}${item.fornecedor?` a ${item.fornecedor}`:''} (${formatDateBR(item.data)})`
+  }[tipo]();
+  const extra=tipo==='pagamento'?' O valor volta para o saldo da execução.':'';
+  confirmAction(`Excluir ${descr}?${extra}`,async()=>{
+    if(item.anexo) await ProjectFiles.remove(item.anexo.id).catch(()=>{});
+    const atual=projectData(DB.getById('projetos',projectId));
+    atual[chave]=atual[chave].filter(x=>x.id!==itemId);
+    projectSave(atual);
+    registrarHistorico({modulo:'projeto',acao:'exclusão',descricao:`${descr.charAt(0).toUpperCase()+descr.slice(1)} foi excluíd${tipo==='documento'||tipo==='pagamento'?'o':'a'} de "${atual.nome}".`,refId:atual.id});
+    showToast('✓ Excluído.');
+    abrirDetalheProjeto(atual.id,{cotacao:'empresas',ordem:'empresas',documento:'documentos',pagamento:'pagamentos'}[tipo]);
+  });
+}
 
 function openFormPendencia(projectId){
   openModal('Nova pendência',`<form id="formPendencia"><div class="form-grid">

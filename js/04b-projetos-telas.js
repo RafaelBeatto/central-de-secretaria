@@ -488,7 +488,7 @@ function pjExecPagamentosHTML(p, sit){
   return `${pjSecHead('Pagamentos', `Pago ${formatMoney(sit.fin.executado)} de ${formatMoney(sit.fin.planejado)} planejados. Cada pagamento alimenta o saldo da execução e do recurso.`, `<button type="button" class="btn btn-primary btn-sm" data-pj="pagamento-novo" data-id="${pjEsc(p.id)}">＋ Registrar pagamento</button>`)}
     ${p.pagamentos.length ? `<ul class="pj-itens">${[...p.pagamentos].sort((a,b) => String(b.data||'').localeCompare(String(a.data||''))).map(x => `<li class="pj-item">
       <div><strong>${formatMoney(x.valor)} <span class="pj-item-de">— ${pjEsc(x.fornecedor || 'Pagamento')}</span></strong><small>${x.data ? formatDateBR(x.data) : 'Sem data'} · ${pjEsc(x.forma || 'Forma não informada')}</small></div>
-      <div class="pj-item-acoes">${pjAnexoBtn(x.anexo, 'Comprovante')}</div>
+      <div class="pj-item-acoes">${pjAnexoBtn(x.anexo, 'Comprovante')}<button type="button" class="btn btn-sm pj-btn-perigo" data-pj="excluir-item" data-id="${pjEsc(p.id)}" data-tipo="pagamento" data-item="${pjEsc(x.id)}" aria-label="Excluir pagamento">✕</button></div>
     </li>`).join('')}</ul>` : pjVazio('Nenhum pagamento registrado.')}`;
 }
 
