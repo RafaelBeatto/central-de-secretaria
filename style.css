@@ -1829,3 +1829,26 @@ mark.ge-falta{ background:#fff1a8; color:#5c4a00; padding:0 2px; border-radius:2
   .kb-barra .ge-abas{ width:100%; }
   .kb-barra .ge-aba{ flex:1; justify-content:center; }
 }
+
+/* ---- menu recolhido (só ícones) ---- */
+.menu-recolher{ display:flex; align-items:center; gap:10px; margin:0; padding:10px 22px; border:0; border-top:1px solid var(--border); background:none; color:var(--muted); font:inherit; font-size:12.5px; cursor:pointer; text-align:left; flex-shrink:0; }
+.menu-recolher svg{ width:18px; height:18px; flex-shrink:0; transition:transform .2s; }
+.menu-recolher:hover{ color:var(--ink); background:var(--surface-2); }
+@media (min-width:821px){
+  .sidebar{ transition:width .2s ease; }
+  [data-menu-recolhido]{ --sidebar-w: 68px; }
+  [data-menu-recolhido] .sidebar{ overflow:visible; }
+  [data-menu-recolhido] .brand{ justify-content:center; padding:16px 0 14px; }
+  [data-menu-recolhido] .brand-name,
+  [data-menu-recolhido] .nav-rotulo,
+  [data-menu-recolhido] .nav-grupo-titulo,
+  [data-menu-recolhido] .storage-indicator,
+  [data-menu-recolhido] .menu-recolher span{ display:none !important; }
+  [data-menu-recolhido] .nav{ padding:8px 8px 12px; }
+  [data-menu-recolhido] .nav-grupo + .nav-grupo{ margin-top:8px; padding-top:8px; border-top:1px solid var(--border-soft); }
+  [data-menu-recolhido] .nav-item{ position:relative; justify-content:center; padding:10px 0; }
+  [data-menu-recolhido] .nav-conta{ position:absolute; top:3px; right:5px; min-width:16px; height:15px; padding:0 4px; font-size:9.5px; }
+  [data-menu-recolhido] .menu-recolher{ justify-content:center; padding:12px 0; }
+  [data-menu-recolhido] .menu-recolher svg{ transform:scaleX(-1); }
+}
+@media (max-width:820px){ .menu-recolher{ display:none; } }

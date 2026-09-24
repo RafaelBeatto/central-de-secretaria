@@ -158,6 +158,27 @@ function updateClock(){
 }
 setInterval(updateClock, 1000 * 20);
 
+/* Menu recolhido (só ícones) no computador. A escolha fica salva. */
+function aplicarMenuRecolhido(recolhido){
+  document.documentElement.toggleAttribute('data-menu-recolhido', recolhido);
+  const btn = document.getElementById('btnRecolherMenu');
+  if (btn) {
+    btn.setAttribute('aria-expanded', String(!recolhido));
+    btn.setAttribute('aria-label', recolhido ? 'Mostrar menu' : 'Recolher menu');
+    btn.title = recolhido ? 'Mostrar menu' : '';
+    btn.querySelector('span').textContent = recolhido ? 'Mostrar menu' : 'Recolher menu';
+  }
+  // Recolhido, o nome da aba aparece ao passar o mouse.
+  document.querySelectorAll('.nav-item').forEach(b => { b.title = recolhido ? (b.querySelector('.nav-rotulo')?.textContent || '') : ''; });
+}
+document.getElementById('btnRecolherMenu')?.addEventListener('click', () => {
+  const cfg = DB.getConfig();
+  cfg.menuRecolhido = !cfg.menuRecolhido;
+  DB.saveConfig(cfg);
+  aplicarMenuRecolhido(cfg.menuRecolhido);
+});
+aplicarMenuRecolhido(!!DB.getConfig().menuRecolhido);
+
 /* mobile sidebar */
 const sidebarEl = document.getElementById('sidebar');
 const scrimEl = document.getElementById('scrim');
