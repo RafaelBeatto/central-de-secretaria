@@ -1034,42 +1034,49 @@ function imprimirDocumentoGerador(html, nome){
   setTimeout(imprimir, 500);
 }
 
+/* Monta o PDF (html2pdf) com "Página X de Y" quando configurado.
+   Usado para baixar (salvarPdfGerador) e para pôr o PDF dentro de um
+   .zip (pdfBlobGerador). */
+function pdfWorkerGerador(html, nome){
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = `<style>${DOC_A4_PRINT_CSS}</style>${html}`;
+  const worker = html2pdf().set({
+    margin: 0,
+    filename: `${nome.replace(/[^\w\-]+/g, '_')}_${Date.now()}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
+    pagebreak: { mode: ['css', 'legacy'], before: '.doc-quebra-pagina' }
+  }).from(wrapper);
+  // "Página X de Y" só é possível depois que o PDF existe e o total de
+  // páginas é conhecido — por isso é carimbado aqui, e não no HTML.
+  if (!getInstituicaoConfig().rodapeMostrarPagina) return worker;
+  return worker.toPdf().get('pdf').then(pdf => {
+    const total = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= total; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(9);
+      pdf.setTextColor(90);
+      pdf.text(`Página ${i} de ${total}`,
+        pdf.internal.pageSize.getWidth() / 2,
+        pdf.internal.pageSize.getHeight() - 8,
+        { align: 'center' });
+    }
+  });
+}
 function salvarPdfGerador(html, nome){
   if (typeof html2pdf !== 'undefined') {
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = `<style>${DOC_A4_PRINT_CSS}</style>${html}`;
-    const worker = html2pdf().set({
-      margin: 0,
-      filename: `${nome.replace(/[^\w\-]+/g, '_')}_${Date.now()}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
-      pagebreak: { mode: ['css', 'legacy'], before: '.doc-quebra-pagina' }
-    }).from(wrapper);
-
-    // "Página X de Y" só é possível depois que o PDF existe e o total de
-    // páginas é conhecido — por isso é carimbado aqui, e não no HTML.
-    if (getInstituicaoConfig().rodapeMostrarPagina) {
-      worker.toPdf().get('pdf').then(pdf => {
-        const total = pdf.internal.getNumberOfPages();
-        for (let i = 1; i <= total; i++) {
-          pdf.setPage(i);
-          pdf.setFontSize(9);
-          pdf.setTextColor(90);
-          pdf.text(`Página ${i} de ${total}`,
-            pdf.internal.pageSize.getWidth() / 2,
-            pdf.internal.pageSize.getHeight() - 8,
-            { align: 'center' });
-        }
-      }).save();
-    } else {
-      worker.save();
-    }
+    pdfWorkerGerador(html, nome).save();
     showToast('Gerando PDF...');
   } else {
     imprimirDocumentoGerador(html, nome);
     showToast('Use "Salvar como PDF" na janela de impressão');
   }
+}
+/* O PDF como arquivo (Blob), ou null se o gerador não estiver disponível. */
+async function pdfBlobGerador(html, nome){
+  if (typeof html2pdf === 'undefined') return null;
+  return pdfWorkerGerador(html, nome).outputPdf('blob');
 }
 
 const DOC_A4_PRINT_CSS = `

@@ -763,11 +763,10 @@ function abrirTransferenciaSaldo(recursoId){
 /* Relatório do recurso em PDF — reaproveita o cabeçalho/rodapé
    institucional e o gerador de PDF já existentes (17-gerador-documentos.js),
    em vez de criar um sistema de documentos separado. */
-async function gerarRelatorioRecurso(recursoId){
+async function montarRelatorioRecursoHTML(recursoId){
   const r=projectData(DB.getById('projetos',recursoId));
   const f=recursoResumoFinanceiro(r);
   const filhos=recursoExecucoes(r.id);
-  showToast('⏳ Gerando relatório...');
   const cabecalho = typeof montarCabecalhoInstitucionalHTML==='function' ? await montarCabecalhoInstitucionalHTML() : '';
   const rodape = typeof montarRodapeInstitucionalHTML==='function' ? montarRodapeInstitucionalHTML() : '';
   const linhasExecucoes=filhos.map((fl,i)=>{
@@ -790,8 +789,140 @@ async function gerarRelatorioRecurso(recursoId){
     </table>
     ${rodape}
   </div>`;
+  return html;
+}
+async function gerarRelatorioRecurso(recursoId){
+  const r=DB.getById('projetos',recursoId);
+  showToast('⏳ Gerando relatório...');
+  const html=await montarRelatorioRecursoHTML(recursoId);
   if (typeof salvarPdfGerador==='function') salvarPdfGerador(html, `Relatorio_${r.nome}`);
   else showToast('⚠ Gerador de PDF não está disponível.');
+}
+
+/* ---------------------------------------------------------
+   PASTA DA PRESTAÇÃO DE CONTAS (.zip)
+   Junta num arquivo só, em pastas, os anexos que já estão no sistema:
+   relatório do recurso, documentos do recurso, documentação da APAE e,
+   por execução, plano, cotações, ordens, notas, comprovantes e os
+   documentos da empresa vencedora. Um "LEIA-ME.txt" lista o que falta.
+   Nada é copiado nem guardado de novo — só lido na hora.
+   --------------------------------------------------------- */
+function carregarScriptLocal(src){
+  return new Promise((resolve,reject)=>{
+    const el=document.createElement('script'); el.src=src;
+    el.onload=resolve; el.onerror=()=>reject(new Error('Falha ao carregar '+src));
+    document.head.appendChild(el);
+  });
+}
+function nomeSeguroZip(t, max=80){
+  return String(t||'').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,max).replace(/[. ]+$/,'') || 'sem nome';
+}
+function extensaoAnexo(anexo){
+  const m=String(anexo?.nome||'').match(/\.[A-Za-z0-9]{1,5}$/); return m?m[0].toLowerCase():'';
+}
+function valorArquivoZip(v){ return 'R$ '+Number(v||0).toFixed(2).replace('.',','); }
+function dataArquivoZip(iso){ return iso ? iso : 'sem data'; }
+
+/* Monta a lista do que vai no .zip (sem ler arquivos ainda). */
+function montarItensPrestacao(projetoId){
+  const raiz=projectData(DB.getById('projetos',projetoId));
+  const itens=[], faltando=[];
+  const add=(pasta, nome, anexo, oQueE)=>{
+    if(anexo?.id) itens.push({ pasta, nome:nomeSeguroZip(nome)+extensaoAnexo(anexo), anexoId:anexo.id, oQueE });
+    else if(oQueE) faltando.push(`${pasta}: ${oQueE} sem arquivo anexado`);
+  };
+  const execucao=(p, pasta)=>{
+    add(`${pasta}/01 Plano de aplicação`, 'Plano de aplicação', p.plano?.anexo, p.plano?.descricao ? 'plano de aplicação' : '');
+    if(!p.plano?.descricao && !p.plano?.anexo) faltando.push(`${pasta}: plano de aplicação não cadastrado`);
+    p.cotacoes.forEach(c=>add(`${pasta}/02 Cotações`, `${c.fornecedor||'Fornecedor'}${c.selecionada?' - VENCEDORA':''} - ${valorArquivoZip(c.valor)}`, c.anexo, `cotação de ${c.fornecedor||'fornecedor'}`));
+    if(p.cotacoes.length<3) faltando.push(`${pasta}: ${p.cotacoes.length?`só ${p.cotacoes.length} cotação(ões)`:'nenhuma cotação'} — o normal são 3`);
+    p.ordensCompra.forEach(o=>add(`${pasta}/03 Ordens de compra`, `${o.numero||'Ordem'} - ${o.fornecedor||''}`, o.anexo, `ordem ${o.numero||''}`));
+    p.documentosProjeto.forEach(d=>add(`${pasta}/04 Notas e documentos`, `${dataArquivoZip(d.data)} - ${d.categoria?d.categoria+' - ':''}${d.nome}`, d.anexo, d.nome));
+    p.pagamentos.forEach(pg=>add(`${pasta}/05 Comprovantes de pagamento`, `${dataArquivoZip(pg.data)} - ${pg.fornecedor||'Pagamento'} - ${valorArquivoZip(pg.valor)}`, pg.anexo, `comprovante do pagamento de ${valorArquivoZip(pg.valor)} (${formatDateBR(pg.data)})`));
+    const venc=projectFornecedorSelecionado(p);
+    const gid=venc && empresaGlobalDoFornecedor(p,{empresaId:venc.empresaId,nome:venc.fornecedor});
+    const g=gid && getEmpresaGlobal(gid);
+    if(g){
+      const pastaEmp=`${pasta}/06 Documentos da empresa vencedora - ${nomeSeguroZip(g.razaoSocial,50)}`;
+      (g.documentos||[]).forEach(d=>add(pastaEmp, `${d.nome}${d.dataValidade?` - validade ${d.dataValidade}`:''}`, d.anexo, `${d.nome} da empresa`));
+      const aviso=typeof avisoDocumentosEmpresa==='function' ? avisoDocumentosEmpresa(gid, todayISO()) : '';
+      if(aviso) faltando.push(`${pasta}: ${aviso}`);
+    }
+    p.docsApae.filter(d=>d.anexo).forEach(d=>add(`${pasta}/07 Documentos da APAE anexados antes`, d.nome, d.anexo, ''));
+  };
+  const docsApae=(pasta)=>{
+    const semCadastro=[], vencidos=[], semArquivo=[];
+    situacaoDocsApae().forEach(({exig,doc,ok})=>{
+      if(doc?.anexo) add(pasta, `${exig}${doc.dataValidade?` - validade ${doc.dataValidade}`:''}`, doc.anexo, exig);
+      if(!doc) semCadastro.push(exig);
+      else if(!ok) vencidos.push(`${exig} (venceu em ${formatDateBR(doc.dataValidade)})`);
+      else if(!doc.anexo) semArquivo.push(exig);
+    });
+    if(vencidos.length) faltando.push(`${pasta}: vencidos — ${vencidos.join(', ')}`);
+    if(semCadastro.length) faltando.push(`${pasta}: falta cadastrar em Documentos — ${semCadastro.join(', ')}`);
+    if(semArquivo.length) faltando.push(`${pasta}: cadastrados sem arquivo — ${semArquivo.join(', ')}`);
+  };
+  if(raiz.tipo==='recurso'){
+    raiz.documentosRecurso.forEach(d=>add('01 Documentos do recurso', `${d.nome}${d.data?' - '+d.data:''}`, d.anexo, d.nome));
+    docsApae('02 Documentação da APAE');
+    recursoExecucoes(raiz.id).forEach((ex,i)=>execucao(projectData(ex), `${String(i+3).padStart(2,'0')} Execução - ${nomeSeguroZip(ex.nome,60)}`));
+  } else {
+    execucao(raiz, nomeSeguroZip(raiz.nome,60));
+    docsApae('Documentação da APAE');
+  }
+  return { raiz, itens, faltando };
+}
+
+let prestacaoZipOcupado=false;
+async function baixarPastaPrestacao(projetoId){
+  if(prestacaoZipOcupado) return;
+  prestacaoZipOcupado=true;
+  try{
+    showToast('⏳ Montando a pasta da prestação de contas...');
+    if(typeof JSZip==='undefined') await carregarScriptLocal('js/vendor/jszip.min.js?v=3.10.1');
+    const { raiz, itens, faltando }=montarItensPrestacao(projetoId);
+    const zip=new JSZip();
+    const usados=new Set();
+    const caminhoUnico=(pasta,nome)=>{
+      let c=`${pasta}/${nome}`, n=2; const m=nome.match(/^(.*?)(\.[^.]*)?$/);
+      while(usados.has(c.toLowerCase())) c=`${pasta}/${m[1]} (${n++})${m[2]||''}`;
+      usados.add(c.toLowerCase()); return c;
+    };
+    let incluidos=0;
+    for(const it of itens){
+      const reg=await ProjectFiles.get(it.anexoId).catch(()=>null);
+      if(!reg?.blob){ if(it.oQueE) faltando.push(`${it.pasta}: arquivo de "${it.oQueE}" não encontrado neste computador`); continue; }
+      zip.file(caminhoUnico(it.pasta,it.nome), reg.blob, { date:new Date(reg.criadoEm||Date.now()) });
+      incluidos++;
+    }
+    if(raiz.tipo==='recurso'){
+      const pdf=await pdfBlobGerador(await montarRelatorioRecursoHTML(raiz.id), `Relatorio_${raiz.nome}`).catch(e=>{ console.error(e); return null; });
+      if(pdf){ zip.file('00 Relatório do recurso.pdf', pdf); incluidos++; }
+      else faltando.push('Relatório do recurso: não foi possível gerar o PDF — gere pelo botão "Relatório em PDF"');
+    }
+    const agora=new Date();
+    const leiame=[
+      `Prestação de contas — ${raiz.nome}`,
+      `Gerado pela Central da Secretaria em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}.`,
+      `${incluidos} arquivo(s) nesta pasta.`,
+      '',
+      faltando.length ? 'CONFERIR ANTES DE ENTREGAR:' : 'Nada faltando pelo que está cadastrado no sistema.',
+      ...faltando.sort((x,y)=>x.localeCompare(y,'pt-BR')).map(f=>'- '+f)
+    ].join('\r\n');
+    zip.file('LEIA-ME.txt', '\ufeff'+leiame);
+    const blob=await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:6 } });
+    const nome=`Prestacao de contas - ${nomeSeguroZip(raiz.nome,60)} - ${todayISO()}.zip`;
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=nome; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    registrarHistorico({modulo:'projeto',acao:'exportação',descricao:`Pasta da prestação de contas de "${raiz.nome}" baixada (${incluidos} arquivos).`,refId:raiz.id});
+    showToast(faltando.length ? `✓ Pasta baixada. Veja o LEIA-ME: ${faltando.length} item(ns) para conferir.` : '✓ Pasta da prestação de contas baixada.');
+  }catch(e){
+    console.error('Erro ao montar a pasta da prestação de contas',e);
+    showToast('⚠ Não foi possível montar a pasta. Tente de novo.');
+  }finally{
+    prestacaoZipOcupado=false;
+  }
 }
 
 const STATUS_RECURSO = ['Aguardando execução','Em execução','Parcialmente distribuído','Com pendências','Encerrado'];

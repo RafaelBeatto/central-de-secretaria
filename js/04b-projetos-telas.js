@@ -230,6 +230,7 @@ function pjRecursoHTML(r){
       <button type="button" class="btn btn-sm" data-pj="editar" data-id="${pjEsc(r.id)}">Editar</button>
       <button type="button" class="btn btn-sm" data-pj="transferir" data-id="${pjEsc(r.id)}">Transferir saldo</button>
       <button type="button" class="btn btn-sm" data-pj="relatorio" data-id="${pjEsc(r.id)}">Relatório em PDF</button>
+      <button type="button" class="btn btn-sm" data-pj="pasta-prestacao" data-id="${pjEsc(r.id)}" title="Todos os anexos organizados em pastas, num arquivo .zip">📦 Baixar pasta da prestação</button>
       <button type="button" class="btn btn-sm" data-pj="${r.arquivado?'desarquivar':'arquivar'}" data-id="${pjEsc(r.id)}">${r.arquivado ? 'Reabrir' : 'Arquivar'}</button>
       <button type="button" class="btn btn-sm pj-btn-perigo" data-pj="excluir-recurso" data-id="${pjEsc(r.id)}">Excluir</button>
     </div>
@@ -336,6 +337,7 @@ function pjExecucaoHTML(p){
     </header>
     <div class="pj-acoes">
       <button type="button" class="btn btn-sm" data-pj="editar" data-id="${pjEsc(p.id)}">Editar</button>
+      <button type="button" class="btn btn-sm" data-pj="pasta-prestacao" data-id="${pjEsc(p.id)}" title="Os anexos desta execução organizados em pastas, num arquivo .zip">📦 Baixar pasta</button>
       <button type="button" class="btn btn-sm pj-btn-perigo" data-pj="excluir-execucao" data-id="${pjEsc(p.id)}">Excluir</button>
     </div>
     ${legado ? `<div class="pj-aviso"><span>Este registro não pertence a nenhum recurso. Classifique-o para ele entrar na estrutura de recursos e execuções.</span><span class="pj-aviso-acoes"><button type="button" class="btn btn-sm" data-pj="classificar-recurso" data-id="${pjEsc(p.id)}">É um recurso</button><button type="button" class="btn btn-sm" data-pj="classificar-execucao" data-id="${pjEsc(p.id)}">É execução de…</button></span></div>` : ''}
@@ -535,6 +537,7 @@ const PJ_ACOES = {
   'excluir-execucao': b => pjExcluirExecucao(b.dataset.id),
   'transferir': b => abrirTransferenciaSaldo(b.dataset.id),
   'relatorio': b => gerarRelatorioRecurso(b.dataset.id),
+  'pasta-prestacao': b => baixarPastaPrestacao(b.dataset.id),
   'arquivar': b => arquivarRecurso(b.dataset.id, true),
   'desarquivar': b => arquivarRecurso(b.dataset.id, false),
   'doc-recurso-novo': b => abrirFormDocumentoRecurso(b.dataset.id),
