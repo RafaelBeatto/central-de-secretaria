@@ -390,6 +390,30 @@ function statusDocumentacaoEmpresa(empresaGlobalId){
   if(docs.some(d=>!d.anexo)) return {emoji:'🟠',label:'Documentação incompleta'};
   return {emoji:'🟢',label:'Documentação OK'};
 }
+/* Documentos da empresa vencidos numa data (a da ordem ou do pagamento).
+   Lê a ficha global; não guarda nada novo. */
+function documentosVencidosEmpresa(empresaGlobalId, dataISO){
+  const g=getEmpresaGlobal(empresaGlobalId); if(!g) return null;
+  const data=dataISO||todayISO();
+  const vencidos=(g.documentos||[]).filter(d=>d.dataValidade && d.dataValidade<data).map(d=>`${d.nome} (venceu em ${formatDateBR(d.dataValidade)})`);
+  return { nome:g.razaoSocial, vencidos, semDocumentos:!(g.documentos||[]).length };
+}
+/* Acha a empresa global de um fornecedor do projeto, pelo vínculo ou pelo nome. */
+function empresaGlobalDoFornecedor(p, { empresaId, nome }={}){
+  const link=(empresaId && p.empresas.find(e=>e.id===empresaId)) || (nome && p.empresas.find(e=>normalizarFiltro(e.nome)===normalizarFiltro(nome)));
+  if(link?.empresaGlobalId) return link.empresaGlobalId;
+  const g=nome && DB.getAll('gerador-empresas').find(x=>normalizarFiltro(x.razaoSocial)===normalizarFiltro(nome));
+  return g?.id||null;
+}
+/* Texto do aviso (ou '' se está tudo em dia). */
+function avisoDocumentosEmpresa(empresaGlobalId, dataISO){
+  const r=empresaGlobalId && documentosVencidosEmpresa(empresaGlobalId, dataISO);
+  if(!r) return '';
+  if(r.vencidos.length) return `Documento vencido — ${r.nome}: ${r.vencidos.join(', ')}.`;
+  if(r.semDocumentos) return `${r.nome} não tem nenhuma certidão cadastrada na ficha.`;
+  return '';
+}
+
 /* -----------------------------------------------------------
    FICHA GLOBAL DA EMPRESA
    Ponto único de acesso aos dados de uma empresa, reunindo o que já
@@ -901,7 +925,7 @@ function openFormCotacao(projectId,empresaId=''){
   document.getElementById('formCotacao').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('co_arquivo').files[0];const itens=[...document.querySelectorAll('.quote-item-row')].map(r=>({nome:r.querySelector('.qi_nome').value.trim(),quantidade:Number(r.querySelector('.qi_qtd').value)||1,valor:Number(r.querySelector('.qi_val').value)||0})).filter(x=>x.nome);const empresa=p.empresas.find(e=>e.id===document.getElementById('co_empresa').value);const c={id:uid('cot'),itens,empresaId:empresa?.id||'',fornecedor:empresa?.nome||'',data:document.getElementById('co_data').value,valor:Number(document.getElementById('co_valor').value),observacao:document.getElementById('co_obs').value.trim(),selecionada:false};if(!c.fornecedor||!itens.length||!Number.isFinite(c.valor)||!f){showToast('Informe fornecedor, pelo menos um item, valor total e anexe o orçamento.');return;}c.anexo=await salvarAnexo(f,'cotacao');p.cotacoes.push(c);projectSave(p);registrarHistorico({modulo:'projeto',acao:'cotação',descricao:`Cotação de ${c.fornecedor} adicionada ao projeto "${p.nome}".`,refId:p.id});closeModal();abrirDetalheProjeto(p.id,'cotacoes');};
 }
 function selecionarCotacaoProjeto(projectId,cotId){const p=projectData(DB.getById('projetos',projectId));const qtdEmpresas=new Set(p.cotacoes.map(x=>x.empresaId||String(x.fornecedor||'').trim().toLowerCase()).filter(Boolean)).size;if(qtdEmpresas<3){showToast('⚠ É preciso ter cotações de pelo menos 3 empresas antes de escolher a vencedora.');return;}const c=p.cotacoes.find(x=>x.id===cotId);if(!c)return;p.cotacoes.forEach(x=>x.selecionada=x.id===cotId);projectSave(p);showToast('✓ Cotação vencedora selecionada.');abrirDetalheProjeto(p.id,'cotacoes');}
-function openFormOrdem(projectId,empresaId=''){const p=projectData(DB.getById('projetos',projectId));if(!podeCriarOrdem(p)){showToast('⚠ '+motivoBloqueioOrdem(p));abrirDetalheProjeto(p.id,'cotacoes');return;}const forn=projectFornecedorSelecionado(p);if(empresaId && forn?.empresaId!==empresaId){showToast('⚠ A ordem de compra só pode ser criada para a empresa cuja cotação foi escolhida como vencedora.');return;}openModal('Nova ordem de compra',`<form id="formOrdem"><div class="form-grid"><div class="field"><label>Número da ordem *</label><input class="input" id="oc_numero" required></div><div class="field"><label>Fornecedor *</label><input class="input" id="oc_fornecedor" required value="${escapeHTML(forn?.fornecedor||'')}"></div><div class="field full"><label>Itens da compra</label><div class="notice-box">${(forn?.itens||[]).map(i=>`${escapeHTML(i.nome)} — ${i.quantidade} × ${formatMoney(i.valor)}`).join('<br>')||'Itens conforme cotação vencedora'}</div></div><div class="field"><label>Data</label><input class="input" type="date" id="oc_data" value="${todayISO()}"></div><div class="field"><label>Valor total (R$) *</label><input class="input" type="number" min="0" step="0.01" id="oc_valor" required value="${forn?.valor||''}"></div><div class="field"><label>Status</label><select class="input" id="oc_status"><option>Rascunho</option><option>Emitida</option><option>Recebida</option><option>Cancelada</option></select></div><div class="field full"><label>Ordem de compra *</label><input class="input" type="file" id="oc_arquivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div></div><div class="notice-box">! Recomenda-se emitir a ordem somente após conferir as cotações e a documentação do fornecedor.</div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cancelOc">Cancelar</button><button class="btn btn-primary">Salvar ordem</button></div></form>`);document.getElementById('cancelOc').onclick=closeModal;document.getElementById('formOrdem').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('oc_arquivo').files[0];const o={id:uid('oc'),numero:document.getElementById('oc_numero').value.trim(),fornecedor:document.getElementById('oc_fornecedor').value.trim(),itens:forn?.itens||[],data:document.getElementById('oc_data').value,valor:Number(document.getElementById('oc_valor').value),status:document.getElementById('oc_status').value};if(!o.numero||!o.fornecedor||!Number.isFinite(o.valor)||!f){showToast('Preencha os campos e anexe a ordem.');return;}o.anexo=await salvarAnexo(f,'ordem');p.ordensCompra.push(o);projectSave(p);registrarHistorico({modulo:'projeto',acao:'ordem de compra',descricao:`Ordem ${o.numero} adicionada ao projeto "${p.nome}".`,refId:p.id});closeModal();abrirDetalheProjeto(p.id,'ordens');};}
+function openFormOrdem(projectId,empresaId=''){const p=projectData(DB.getById('projetos',projectId));if(!podeCriarOrdem(p)){showToast('⚠ '+motivoBloqueioOrdem(p));abrirDetalheProjeto(p.id,'cotacoes');return;}const forn=projectFornecedorSelecionado(p);if(empresaId && forn?.empresaId!==empresaId){showToast('⚠ A ordem de compra só pode ser criada para a empresa cuja cotação foi escolhida como vencedora.');return;}const gidOrdem=empresaGlobalDoFornecedor(p,{empresaId:forn?.empresaId,nome:forn?.fornecedor});openModal('Nova ordem de compra',`<form id="formOrdem"><div class="form-grid"><div class="field"><label>Número da ordem *</label><input class="input" id="oc_numero" required></div><div class="field"><label>Fornecedor *</label><input class="input" id="oc_fornecedor" required value="${escapeHTML(forn?.fornecedor||'')}"></div><div class="field full"><label>Itens da compra</label><div class="notice-box">${(forn?.itens||[]).map(i=>`${escapeHTML(i.nome)} — ${i.quantidade} × ${formatMoney(i.valor)}`).join('<br>')||'Itens conforme cotação vencedora'}</div></div><div class="field"><label>Data</label><input class="input" type="date" id="oc_data" value="${todayISO()}"></div><div class="field"><label>Valor total (R$) *</label><input class="input" type="number" min="0" step="0.01" id="oc_valor" required value="${forn?.valor||''}"></div><div class="field"><label>Status</label><select class="input" id="oc_status"><option>Rascunho</option><option>Emitida</option><option>Recebida</option><option>Cancelada</option></select></div><div class="field full"><label>Ordem de compra *</label><input class="input" type="file" id="oc_arquivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div></div><div class="notice-box emp-aviso-docs" id="ocAvisoDocs" hidden></div><div class="notice-box">! Recomenda-se emitir a ordem somente após conferir as cotações e a documentação do fornecedor.</div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cancelOc">Cancelar</button><button class="btn btn-primary">Salvar ordem</button></div></form>`);document.getElementById('cancelOc').onclick=closeModal;const ocAviso=()=>{const t=avisoDocumentosEmpresa(gidOrdem,document.getElementById('oc_data').value);const el=document.getElementById('ocAvisoDocs');el.hidden=!t;el.textContent=t?'⚠ '+t:'';return t;};ocAviso();document.getElementById('oc_data').addEventListener('change',ocAviso);document.getElementById('formOrdem').onsubmit=async e=>{e.preventDefault();if(!e.confirmado){const t=ocAviso();if(t){const form=e.target;return confirmAction(`${t} Emitir a ordem de compra mesmo assim?`,()=>form.onsubmit({preventDefault(){},confirmado:true,target:form}));}}const f=document.getElementById('oc_arquivo').files[0];const o={id:uid('oc'),numero:document.getElementById('oc_numero').value.trim(),fornecedor:document.getElementById('oc_fornecedor').value.trim(),itens:forn?.itens||[],data:document.getElementById('oc_data').value,valor:Number(document.getElementById('oc_valor').value),status:document.getElementById('oc_status').value};if(!o.numero||!o.fornecedor||!Number.isFinite(o.valor)||!f){showToast('Preencha os campos e anexe a ordem.');return;}o.anexo=await salvarAnexo(f,'ordem');p.ordensCompra.push(o);projectSave(p);registrarHistorico({modulo:'projeto',acao:'ordem de compra',descricao:`Ordem ${o.numero} adicionada ao projeto "${p.nome}".`,refId:p.id});closeModal();abrirDetalheProjeto(p.id,'ordens');};}
 /* ===== CNPJá API Integration ===== */
 function validateCNPJ(cnpj){
   const clean = (cnpj||'').replace(/\D/g,'');
@@ -1128,9 +1152,17 @@ function openFormPagamento(projectId){
     <div class="field"><label for="pg_forma">Forma de pagamento</label><input class="input" id="pg_forma" list="pgFormas" placeholder="Pix, transferência, boleto…"><datalist id="pgFormas"><option value="Pix"><option value="Transferência"><option value="Boleto"><option value="Cheque"><option value="Dinheiro"></datalist></div>
     <div class="field full"><label for="pg_arq">Comprovante *</label><input class="input" type="file" id="pg_arq" required accept=".pdf,.jpg,.jpeg,.png,.webp"></div>
   </div>${fin?`<p class="muted">Planejado ${formatMoney(fin.planejado)} · já pago ${formatMoney(fin.executado)} · saldo ${formatMoney(fin.saldo)}</p>`:''}
+  <div class="notice-box emp-aviso-docs" id="pgAvisoDocs" hidden></div>
   <p class="field-error" id="pgErro" hidden></p>
   <div class="modal-actions"><button type="button" class="btn btn-ghost" id="pg_cancel">Cancelar</button><button class="btn btn-primary">Salvar pagamento</button></div></form>`);
   document.getElementById('pg_cancel').onclick=closeModal;
+  const pgAviso=()=>{
+    const nome=document.getElementById('pg_fornecedor').value.trim();
+    const t=nome?avisoDocumentosEmpresa(empresaGlobalDoFornecedor(p,{nome}),document.getElementById('pg_data').value):'';
+    const el=document.getElementById('pgAvisoDocs'); el.hidden=!t; el.textContent=t?'⚠ '+t:''; return t;
+  };
+  pgAviso();
+  ['pg_fornecedor','pg_data'].forEach(id=>document.getElementById(id).addEventListener('change',pgAviso));
   document.getElementById('formPag').onsubmit=async e=>{
     e.preventDefault();
     const erro=t=>{const el=document.getElementById('pgErro');el.hidden=false;el.textContent=t;};
@@ -1146,7 +1178,10 @@ function openFormPagamento(projectId){
       showToast('✓ Pagamento registrado.');
       closeModal();abrirDetalheProjeto(atual.id,'pagamentos');
     };
-    if(fin && v>fin.saldo+0.005) confirmAction(`Este pagamento (${formatMoney(v)}) passa do saldo da execução (${formatMoney(fin.saldo)}). Registrar mesmo assim?`,salvar);
+    const avisos=[];
+    if(fin && v>fin.saldo+0.005) avisos.push(`Este pagamento (${formatMoney(v)}) passa do saldo da execução (${formatMoney(fin.saldo)}).`);
+    const docs=pgAviso(); if(docs) avisos.push(docs);
+    if(avisos.length) confirmAction(`${avisos.join(' ')} Registrar mesmo assim?`,salvar);
     else salvar();
   };
 }
