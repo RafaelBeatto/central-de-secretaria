@@ -426,87 +426,150 @@ function abrirFichaEmpresaGlobal(empresaGlobalId,aba='dados'){
   });
   const docs=g.documentos||[];
   const situacao=statusDocumentacaoEmpresa(empresaGlobalId);
-  const tabs=[['dados','Dados'],['documentos','Documentos'],['cotacoes','Cotações'],['ordens','Ordens de compra'],['projetos','Projetos relacionados'],['historico','Histórico']];
-  const contadores={documentos:docs.length,cotacoes:cotacoes.length,ordens:ordens.length,projetos:relacoes.length};
-  let content='';
-  if(aba==='documentos') content=empresaFichaDocumentosHTML(g,docs);
-  else if(aba==='cotacoes') content=empresaFichaCotacoesHTML(cotacoes,empresaGlobalId);
-  else if(aba==='ordens') content=empresaFichaOrdensHTML(ordens,empresaGlobalId);
-  else if(aba==='projetos') content=empresaFichaProjetosHTML(relacoes);
-  else if(aba==='historico') content=empresaFichaHistoricoHTML(empresaGlobalId);
-  else content=empresaFichaDadosHTML(g,situacao,contadores);
+  const tomSit=situacao.emoji==='🟢'?'ok':situacao.emoji==='🔴'?'danger':'warn';
+  const abas=[['dados','Dados'],['documentos','Documentos',docs.length],['cotacoes','Cotações',cotacoes.length],['ordens','Ordens de compra',ordens.length],['projetos','Projetos',relacoes.length],['historico','Histórico']];
+  let conteudo='';
+  if(aba==='documentos') conteudo=empresaFichaDocumentosHTML(g,docs);
+  else if(aba==='cotacoes') conteudo=empresaFichaCotacoesHTML(cotacoes,empresaGlobalId);
+  else if(aba==='ordens') conteudo=empresaFichaOrdensHTML(ordens,empresaGlobalId);
+  else if(aba==='projetos') conteudo=empresaFichaProjetosHTML(relacoes);
+  else if(aba==='historico') conteudo=empresaFichaHistoricoHTML(empresaGlobalId);
+  else conteudo=empresaFichaDadosHTML(g);
 
-  openModal(`🏢 ${esc(g.razaoSocial||'Empresa')}`,`<div class="project-workspace">
-    <div class="project-workspace-head"><div><span class="project-code">EMPRESA</span><h2>${esc(g.razaoSocial||'Sem nome')}</h2><p>${g.cnpj?esc(g.cnpj):'CNPJ não informado'}${g.nomeFantasia?' · '+esc(g.nomeFantasia):''}</p></div>${badgeHTML(situacao.emoji==='🟢'?'ok':situacao.emoji==='🔴'?'danger':'warn',situacao.label)}</div>
-    <div class="project-kpi-grid"><div><span>📄 Documentos</span><strong>${contadores.documentos}</strong></div><div><span>💰 Cotações</span><strong>${contadores.cotacoes}</strong></div><div><span>🛒 Ordens</span><strong>${contadores.ordens}</strong></div><div><span>🎯 Projetos</span><strong>${contadores.projetos}</strong></div></div>
-    <div class="project-tabs">${tabs.map(([k,l])=>`<button class="project-tab ${aba===k?'active':''}" data-empresa-ficha-tab="${k}">${l}${contadores[k]!==undefined?` <span>${contadores[k]}</span>`:''}</button>`).join('')}</div>
-    <div class="project-workspace-body">${content}</div>
+  openModal(g.razaoSocial||'Empresa',`<div class="emp-ficha">
+    <div class="emp-topo">
+      <div><span class="ge-codigo">Empresa</span><p class="emp-sub">${[g.cnpj?`CNPJ ${esc(g.cnpj)}`:'CNPJ não informado', g.nomeFantasia&&esc(g.nomeFantasia), [g.municipio,g.uf].filter(Boolean).map(esc).join('/')].filter(Boolean).join(' · ')}</p></div>
+      <span class="emp-situacao tom-${tomSit}">${esc(situacao.label)}</span>
+    </div>
+    <div class="ge-acoes">
+      <button type="button" class="btn btn-sm" data-empresa-action="editar">✎ Editar dados</button>
+      <button type="button" class="btn btn-sm" data-empresa-action="gerar-doc">📄 Gerar documento</button>
+      <button type="button" class="btn btn-sm" data-empresa-action="vincular-projeto">＋ Ligar a um projeto</button>
+    </div>
+    <div class="ge-abas emp-abas" role="tablist">${abas.map(([k,l,n])=>`<button type="button" class="ge-aba ${aba===k?'is-ativa':''}" data-empresa-ficha-tab="${k}" aria-pressed="${aba===k}">${l}${n!==undefined?`<span>${n}</span>`:''}</button>`).join('')}</div>
+    <div class="emp-conteudo">${conteudo}</div>
   </div>`);
 
-  document.getElementById('modalBody').querySelectorAll('[data-empresa-ficha-tab]').forEach(b=>b.onclick=(ev)=>{ev.preventDefault();abrirFichaEmpresaGlobal(empresaGlobalId,b.dataset.empresaFichaTab);});
-  document.querySelectorAll('[data-file-download]').forEach(b=>b.onclick=()=>baixarAnexo(b.dataset.fileDownload));
-  document.querySelectorAll('[data-empresa-action="editar"]').forEach(b=>b.onclick=()=>{
-    // Reaproveita o formulário já existente; precisa de um projeto/link para reabrir a tela depois.
-    const rel=relacoes[0];
-    if(rel) openFormEmpresaEditar(rel.projeto.id,rel.link.id);
-    else abrirFormEmpresaGerador(empresaGlobalId);
-  });
-  document.querySelectorAll('[data-empresa-action="novo-doc"]').forEach(b=>b.onclick=()=>abrirFormDocumentoEmpresaGlobal(empresaGlobalId));
-  document.querySelectorAll('[data-empresa-doc-excluir]').forEach(b=>b.onclick=()=>excluirDocumentoEmpresaGlobal(empresaGlobalId,b.dataset.empresaDocExcluir));
-  document.querySelectorAll('[data-empresa-action="nova-cotacao"]').forEach(b=>b.onclick=()=>abrirEscolherProjetoParaEmpresa(empresaGlobalId,'cotacao'));
-  document.querySelectorAll('[data-empresa-action="nova-ordem"]').forEach(b=>b.onclick=()=>abrirEscolherProjetoParaEmpresa(empresaGlobalId,'ordem'));
-  document.querySelectorAll('[data-empresa-action="vincular-projeto"]').forEach(b=>b.onclick=()=>abrirVincularEmpresaAOutroProjeto(empresaGlobalId));
-  document.querySelectorAll('[data-empresa-abrir-projeto]').forEach(b=>b.onclick=()=>{closeModal();abrirDetalheProjeto(b.dataset.empresaAbrirProjeto);});
+  const corpo=document.getElementById('modalBody');
+  corpo.querySelectorAll('[data-empresa-ficha-tab]').forEach(b=>b.onclick=(ev)=>{ev.preventDefault();abrirFichaEmpresaGlobal(empresaGlobalId,b.dataset.empresaFichaTab);});
+  corpo.querySelectorAll('[data-file-download]').forEach(b=>b.onclick=()=>baixarAnexo(b.dataset.fileDownload));
+  corpo.querySelectorAll('[data-empresa-action="editar"]').forEach(b=>b.onclick=()=>abrirFormEmpresaGlobal(empresaGlobalId,{voltarFicha:true}));
+  corpo.querySelectorAll('[data-empresa-action="gerar-doc"]').forEach(b=>b.onclick=()=>abrirSeletorModeloGerador({tipo:'empresa',id:empresaGlobalId}));
+  corpo.querySelectorAll('[data-empresa-action="novo-doc"]').forEach(b=>b.onclick=()=>abrirFormDocumentoEmpresaGlobal(empresaGlobalId));
+  corpo.querySelectorAll('[data-empresa-doc-excluir]').forEach(b=>b.onclick=()=>excluirDocumentoEmpresaGlobal(empresaGlobalId,b.dataset.empresaDocExcluir));
+  corpo.querySelectorAll('[data-empresa-action="nova-cotacao"]').forEach(b=>b.onclick=()=>abrirEscolherProjetoParaEmpresa(empresaGlobalId,'cotacao'));
+  corpo.querySelectorAll('[data-empresa-action="nova-ordem"]').forEach(b=>b.onclick=()=>abrirEscolherProjetoParaEmpresa(empresaGlobalId,'ordem'));
+  corpo.querySelectorAll('[data-empresa-action="vincular-projeto"]').forEach(b=>b.onclick=()=>abrirVincularEmpresaAOutroProjeto(empresaGlobalId));
+  corpo.querySelectorAll('[data-empresa-abrir-projeto]').forEach(b=>b.onclick=()=>{closeModal();abrirDetalheProjeto(b.dataset.empresaAbrirProjeto);});
 }
 
-function empresaFichaDadosHTML(g,situacao,contadores){
+function empresaFichaDadosHTML(g){
   const esc=escapeHTML;
-  return `<div class="workspace-grid"><div class="detail-block"><div class="detail-label">Dados da empresa</div><div class="detail-value">
-    <b>Razão Social:</b> ${esc(g.razaoSocial||'—')}<br>
-    <b>Nome Fantasia:</b> ${esc(g.nomeFantasia||'—')}<br>
-    <b>CNPJ:</b> ${esc(g.cnpj||'—')}<br>
-    <b>Telefone/Contato:</b> ${esc(g.contato||g.telefone||'—')}<br>
-    <b>E-mail:</b> ${esc(g.email||'—')}<br>
-    <b>Endereço:</b> ${esc(g.endereco||'—')}<br>
-    <b>Município:</b> ${esc(g.municipio||'—')} ${g.uf?'/ '+esc(g.uf):''}<br>
-    ${g.representante?`<b>Representante:</b> ${esc(g.representante)}<br>`:''}
-    ${g.observacao?`<b>Observação:</b> ${esc(g.observacao)}<br>`:''}
-  </div></div></div>
-  <div class="notice-box"><b>${situacao.emoji} ${situacao.label}</b><br>Baseado nos documentos cadastrados na aba "Documentos" desta empresa.</div>
-  <div class="modal-actions"><button class="btn btn-primary" data-empresa-action="editar">Editar dados da empresa</button></div>`;
+  const fato=(t,v)=>`<div><dt>${t}</dt><dd>${v?esc(v):'<span class="muted">—</span>'}</dd></div>`;
+  return `<dl class="emp-fatos">
+    ${fato('Razão social',g.razaoSocial)}${fato('Nome fantasia',g.nomeFantasia)}
+    ${fato('CNPJ',g.cnpj)}${fato('Telefone / contato',g.contato||g.telefone)}
+    ${fato('E-mail',g.email)}${fato('Município / UF',[g.municipio,g.uf].filter(Boolean).join(' / '))}
+    <div class="emp-largo"><dt>Endereço</dt><dd>${g.endereco?esc(g.endereco):'<span class="muted">—</span>'}</dd></div>
+    ${fato('Representante',g.representante)}${fato('CPF do representante',g.cpfRepresentante)}
+    ${g.observacao?`<div class="emp-largo"><dt>Observação</dt><dd>${esc(g.observacao)}</dd></div>`:''}
+  </dl>`;
 }
-
 function empresaFichaDocumentosHTML(g,docs){
   const esc=escapeHTML;
-  return `<div class="workspace-toolbar"><div><h3>📄 Documentos</h3><p>Documentos da própria empresa (CNPJ, contrato social, certidões...), válidos para todos os projetos.</p></div><button class="btn btn-primary" data-empresa-action="novo-doc">＋ Adicionar documento</button></div>
-  ${docs.length?docs.map(d=>{
-    const sit=situacaoDocumento(d);
-    return `<div class="workspace-item"><div><strong>${esc(d.nome)}</strong><small>${sit.emoji} ${esc(sit.label)}${d.dataValidade?' · válido até '+formatDateBR(d.dataValidade):''}${d.observacao?' · '+esc(d.observacao):''}</small></div><div class="item-actions">${d.anexo?`<button class="btn btn-sm" data-file-download="${d.anexo.id}">📎 Abrir</button>`:''}<button class="btn btn-sm btn-danger" data-empresa-doc-excluir="${d.id}">Excluir</button></div></div>`;
-  }).join(''):'<div class="empty-inline">Nenhum documento cadastrado para esta empresa.</div>'}`;
+  const tom={vencido:'danger',vencendo:'warn',valido:'ok'};
+  return `<div class="ge-topo-aba"><p>Documentos da própria empresa (CNPJ, contrato social, certidões…), valem para todos os projetos.</p><button type="button" class="btn btn-sm" data-empresa-action="novo-doc">＋ Adicionar documento</button></div>
+  ${docs.length?`<div class="ge-lista">${docs.map(d=>{const sit=situacaoDocumento(d);return `<div class="ge-item"><span class="ge-item-corpo"><strong>${esc(d.nome)}</strong><small><span class="emp-tom tom-${tom[sit.chave]||'neutral'}">${esc(sit.label)}</span>${d.dataValidade?` · válido até ${formatDateBR(d.dataValidade)}`:''}${d.observacao?` · ${esc(d.observacao)}`:''}</small></span><span class="ge-item-acoes">${d.anexo?`<button type="button" class="btn btn-sm" data-file-download="${esc(d.anexo.id)}">📎 Abrir</button>`:''}<button type="button" class="btn btn-sm at-perigo" data-empresa-doc-excluir="${esc(d.id)}">Excluir</button></span></div>`;}).join('')}</div>`:'<div class="ge-vazio">Nenhum documento cadastrado para esta empresa.</div>'}`;
 }
-
-function empresaFichaCotacoesHTML(cotacoes,empresaGlobalId){
+function empresaFichaCotacoesHTML(cotacoes){
   const esc=escapeHTML;
-  return `<div class="workspace-toolbar"><div><h3>💰 Cotações</h3><p>Cotações desta empresa em todos os projetos em que participa.</p></div><button class="btn btn-primary" data-empresa-action="nova-cotacao">＋ Nova cotação</button></div>
-  ${cotacoes.length?cotacoes.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(c=>`<div class="workspace-item"><div><strong>${c.data?formatDateBR(c.data):'Sem data'} · ${formatMoney(c.valor||0)} ${c.selecionada?'· ✓ Vencedora':''}</strong><small>Projeto: ${esc(c._projeto.nome)}</small></div><div class="item-actions">${c.anexo?`<button class="btn btn-sm" data-file-download="${c.anexo.id}">📎 Abrir</button>`:''}<button class="btn btn-sm" data-empresa-abrir-projeto="${esc(c._projeto.id)}">Ver projeto</button></div></div>`).join(''):'<div class="empty-inline">Nenhuma cotação desta empresa ainda.</div>'}`;
+  return `<div class="ge-topo-aba"><p>Cotações desta empresa em todos os projetos.</p><button type="button" class="btn btn-sm" data-empresa-action="nova-cotacao">＋ Nova cotação</button></div>
+  ${cotacoes.length?`<div class="ge-lista">${cotacoes.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(c=>`<div class="ge-item"><span class="ge-item-corpo"><strong>${formatMoney(c.valor||0)}${c.selecionada?' <span class="emp-tom tom-ok">✓ vencedora</span>':''}</strong><small>${c.data?formatDateBR(c.data):'sem data'} · ${esc(c._projeto.nome)}</small></span><span class="ge-item-acoes">${c.anexo?`<button type="button" class="btn btn-sm" data-file-download="${esc(c.anexo.id)}">📎 Abrir</button>`:''}<button type="button" class="btn btn-sm" data-empresa-abrir-projeto="${esc(c._projeto.id)}">Ver projeto →</button></span></div>`).join('')}</div>`:'<div class="ge-vazio">Nenhuma cotação desta empresa ainda.</div>'}`;
 }
-
-function empresaFichaOrdensHTML(ordens,empresaGlobalId){
+function empresaFichaOrdensHTML(ordens){
   const esc=escapeHTML;
-  return `<div class="workspace-toolbar"><div><h3>🛒 Ordens de compra</h3><p>Ordens de compra emitidas para esta empresa, em todos os projetos.</p></div><button class="btn btn-primary" data-empresa-action="nova-ordem">＋ Nova ordem de compra</button></div>
-  ${ordens.length?ordens.map(o=>`<div class="workspace-item"><div><strong>${esc(o.numero||'Ordem sem número')}</strong><small>${formatMoney(o.valor||0)} · ${esc(o.status||'')} · Projeto: ${esc(o._projeto.nome)}</small></div><div class="item-actions">${o.anexo?`<button class="btn btn-sm" data-file-download="${o.anexo.id}">📎 Abrir</button>`:''}<button class="btn btn-sm" data-empresa-abrir-projeto="${esc(o._projeto.id)}">Ver projeto</button></div></div>`).join(''):'<div class="empty-inline">Nenhuma ordem de compra para esta empresa ainda.</div>'}`;
+  return `<div class="ge-topo-aba"><p>Ordens de compra emitidas para esta empresa, em todos os projetos. Só a empresa com a cotação vencedora pode receber a ordem.</p><button type="button" class="btn btn-sm" data-empresa-action="nova-ordem">＋ Nova ordem</button></div>
+  ${ordens.length?`<div class="ge-lista">${ordens.map(o=>`<div class="ge-item"><span class="ge-item-corpo"><strong>${esc(o.numero||'Ordem sem número')} · ${formatMoney(o.valor||0)}</strong><small>${[o.data&&formatDateBR(o.data),o.status,o._projeto.nome].filter(Boolean).map(esc).join(' · ')}</small></span><span class="ge-item-acoes">${o.anexo?`<button type="button" class="btn btn-sm" data-file-download="${esc(o.anexo.id)}">📎 Abrir</button>`:''}<button type="button" class="btn btn-sm" data-empresa-abrir-projeto="${esc(o._projeto.id)}">Ver projeto →</button></span></div>`).join('')}</div>`:'<div class="ge-vazio">Nenhuma ordem de compra para esta empresa ainda.</div>'}`;
 }
-
 function empresaFichaProjetosHTML(relacoes){
   const esc=escapeHTML;
-  return `<div class="workspace-toolbar"><div><h3>🎯 Projetos relacionados</h3><p>Projetos em que esta empresa participa.</p></div><button class="btn btn-primary" data-empresa-action="vincular-projeto">＋ Vincular a outro projeto</button></div>
-  ${relacoes.length?relacoes.map(({projeto})=>`<div class="workspace-item"><div><strong>${esc(projeto.nome)}</strong><small>${esc(projeto.codigo||'')}</small></div><div class="item-actions">${badgeHTML(projetoStatusTom(projeto.status),projeto.status||'Sem status')}<button class="btn btn-sm" data-empresa-abrir-projeto="${esc(projeto.id)}">Acessar projeto →</button></div></div>`).join(''):'<div class="empty-inline">Esta empresa ainda não está vinculada a nenhum projeto.</div>'}`;
+  return `${relacoes.length?`<div class="ge-lista">${relacoes.map(({projeto})=>{const pai=projeto.paiId?DB.getById('projetos',projeto.paiId):null;return `<div class="ge-item"><span class="ge-item-corpo"><strong>${esc(projeto.nome)}</strong><small>${[pai&&pai.nome,projeto.status||'Sem status',projeto.arquivado&&'arquivado'].filter(Boolean).map(esc).join(' · ')}</small></span><span class="ge-item-acoes"><button type="button" class="btn btn-sm" data-empresa-abrir-projeto="${esc(projeto.id)}">Abrir projeto →</button></span></div>`;}).join('')}</div>`:'<div class="ge-vazio">Esta empresa ainda não está ligada a nenhum projeto. Use "Ligar a um projeto" acima.</div>'}`;
 }
-
 function empresaFichaHistoricoHTML(empresaGlobalId){
   const esc=escapeHTML;
   const itens=DB.getAll('historico').filter(h=>h.refId===empresaGlobalId).sort((a,b)=>b.timestamp-a.timestamp);
-  return `<h3 style="margin-top:0">📜 Histórico</h3>${itens.length?itens.map(h=>`<div class="history-row"><div class="h-meta">${timestampToBR(h.timestamp)} · ${esc(h.acao||h.modulo)}</div><div>${esc(h.descricao)}</div></div>`).join(''):'<div class="empty-inline">Nenhum evento registrado ainda para esta empresa.</div>'}`;
+  return itens.length?`<ul class="emp-hist">${itens.map(h=>`<li><time>${timestampToBR(h.timestamp)}</time><span>${esc(h.descricao)}</span></li>`).join('')}</ul>`:'<div class="ge-vazio">Nada registrado ainda para esta empresa.</div>';
+}
+
+/* Formulário único da empresa (cadastro global). Usado pelos Projetos,
+   pela ficha e pelo Gerador. Ao editar, os dados são levados para as
+   cópias de exibição de cada projeto e para as cotações/ordens.
+   opts.projetoId: ao criar, liga a empresa a esse projeto. */
+function abrirFormEmpresaGlobal(empresaGlobalId, opts={}){
+  const g=empresaGlobalId?getEmpresaGlobal(empresaGlobalId):null;
+  const p=opts.projetoId?projectData(DB.getById('projetos',opts.projetoId)):null;
+  const v=k=>escapeHTML((g&&g[k])||'');
+  const campo=(id,rotulo,valor,extra='')=>`<div class="field${extra.includes('full')?' full':''}"><label for="${id}">${rotulo}</label><input class="input" id="${id}" value="${valor}" ${extra.replace('full','')}></div>`;
+  openModal(g?`Editar ${g.razaoSocial}`:(p?`Nova empresa em ${p.nome}`:'Nova empresa'),`<form id="formEmpresaGlobal"><div class="form-grid">
+    ${campo('emp_nome','Razão social *',v('razaoSocial'),'full required')}
+    ${campo('emp_fantasia','Nome fantasia',v('nomeFantasia'))}
+    <div class="field"><label for="emp_cnpj">CNPJ</label><div class="emp-cnpj"><input class="input" id="emp_cnpj" value="${v('cnpj')}" placeholder="00.000.000/0000-00"><button type="button" class="btn btn-sm" id="btnConsultarCNPJ">🔍 Buscar dados</button></div></div>
+    ${campo('emp_contato','Telefone / contato',escapeHTML((g&&(g.contato||g.telefone))||''))}
+    ${campo('emp_email','E-mail',v('email'),'type="email"')}
+    ${campo('emp_endereco','Endereço',v('endereco'),'full')}
+    ${campo('emp_municipio','Município',v('municipio'))}
+    ${campo('emp_uf','UF',v('uf'),'maxlength="2" style="text-transform:uppercase"')}
+    ${campo('emp_representante','Representante',v('representante'))}
+    ${campo('emp_cpfrep','CPF do representante',v('cpfRepresentante'))}
+    <div class="field full"><label for="emp_obs">Observação</label><textarea id="emp_obs">${v('observacao')}</textarea></div>
+  </div><p class="muted">${g?'As mudanças valem em todos os projetos e documentos ligados a esta empresa.':'A empresa fica cadastrada uma vez só e pode ser ligada a outros projetos depois.'}</p>
+  <p class="field-error" id="empErro" hidden></p>
+  <div class="modal-actions"><button type="button" class="btn btn-ghost" id="emp_cancel">Cancelar</button><button class="btn btn-primary">${g?'Salvar':'Cadastrar empresa'}</button></div></form>`);
+  const $=id=>document.getElementById(id);
+  const voltar=()=>{ if(opts.projetoId) abrirDetalheProjeto(opts.projetoId,'empresas'); else if(opts.voltarFicha&&empresaGlobalId) abrirFichaEmpresaGlobal(empresaGlobalId,'dados'); else { closeModal(); renderCurrentView(); } };
+  $('emp_cancel').onclick=()=>{ if(opts.voltarFicha&&empresaGlobalId) abrirFichaEmpresaGlobal(empresaGlobalId,'dados'); else closeModal(); };
+  $('emp_cnpj').addEventListener('input',e=>{const d=e.target.value.replace(/\D/g,''); if(d.length===14) e.target.value=formatCNPJ(d);});
+  $('btnConsultarCNPJ').onclick=()=>{const c=$('emp_cnpj').value.trim(); if(c) preencherFormularioDeCNPJ(c,'formEmpresaGlobal','btnConsultarCNPJ'); else showToast('Digite o CNPJ primeiro.');};
+  $('formEmpresaGlobal').onsubmit=e=>{
+    e.preventDefault();
+    const erro=t=>{$('empErro').hidden=false;$('empErro').textContent=t;};
+    const nome=$('emp_nome').value.trim();
+    if(!nome) return erro('Informe a razão social.');
+    const cnpj=$('emp_cnpj').value.trim();
+    if(cnpj && !validateCNPJ(cnpj).valid) return erro(validateCNPJ(cnpj).msg+'. Confira os números ou deixe em branco.');
+    const contato=$('emp_contato').value.trim();
+    const dados={razaoSocial:nome,nomeFantasia:$('emp_fantasia').value.trim(),cnpj,contato,telefone:contato,email:$('emp_email').value.trim(),
+      endereco:$('emp_endereco').value.trim(),municipio:$('emp_municipio').value.trim(),uf:$('emp_uf').value.trim().toUpperCase(),
+      representante:$('emp_representante').value.trim(),cpfRepresentante:$('emp_cpfrep').value.trim(),observacao:$('emp_obs').value.trim()};
+    // Mesmo CNPJ ou mesmo nome = mesma empresa: não cria outra.
+    const limpo=cnpj.replace(/\D/g,'');
+    const igual=DB.getAll('gerador-empresas').find(x=>x.id!==empresaGlobalId&&((limpo&&String(x.cnpj||'').replace(/\D/g,'')===limpo)||String(x.razaoSocial||'').trim().toLowerCase()===nome.toLowerCase()));
+    if(igual && g) return erro(`Já existe outra empresa cadastrada com esse ${limpo&&String(igual.cnpj||'').replace(/\D/g,'')===limpo?'CNPJ':'nome'}: "${igual.razaoSocial}".`);
+    let id=empresaGlobalId;
+    if(g){
+      DB.update('gerador-empresas',id,dados);
+      propagarEdicaoEmpresaGlobal(id,{nome,...dados});
+      registrarHistorico({modulo:'empresa',acao:'edição',descricao:`Dados da empresa "${nome}" atualizados.`,refId:id});
+      showToast('✓ Empresa atualizada.');
+    } else if(igual){
+      id=igual.id;
+      if(!p){ showToast(`"${igual.razaoSocial}" já está cadastrada.`); return abrirFichaEmpresaGlobal(id); }
+    } else {
+      id=uid('emp');
+      DB.insert('gerador-empresas',{id,...dados,documentos:[],criadoEm:Date.now()});
+      registrarHistorico({modulo:'empresa',acao:'criação',descricao:`Empresa "${nome}" cadastrada.`,refId:id});
+      showToast('✓ Empresa cadastrada.');
+    }
+    if(p && !g){
+      if(p.empresas.some(x=>x.empresaGlobalId===id)){ showToast('Essa empresa já está neste projeto.'); return abrirDetalheProjeto(p.id,'empresas'); }
+      const cad=getEmpresaGlobal(id);
+      p.empresas.push({id:uid('emp'),empresaGlobalId:id,nome:cad.razaoSocial,cnpj:cad.cnpj||'',contato:cad.contato||cad.telefone||'',email:cad.email||'',endereco:cad.endereco||'',nomeFantasia:cad.nomeFantasia||'',municipio:cad.municipio||'',uf:cad.uf||'',observacao:'',documentos:[],criadoEm:Date.now()});
+      projectSave(p);
+      registrarHistorico({modulo:'empresa',acao:'vínculo',descricao:`Empresa "${cad.razaoSocial}" ligada ao projeto "${p.nome}".`,refId:id});
+      if(igual) showToast(`✓ "${cad.razaoSocial}" já estava cadastrada — ligada ao projeto.`);
+    }
+    empresaGlobalId=id; voltar();
+  };
 }
 
 function abrirFormDocumentoEmpresaGlobal(empresaGlobalId){
@@ -532,6 +595,7 @@ function excluirDocumentoEmpresaGlobal(empresaGlobalId,docId){
   confirmAction('Excluir este documento da empresa?',async()=>{
     if(doc.anexo)await ProjectFiles.remove(doc.anexo.id);
     DB.update('gerador-empresas',empresaGlobalId,{documentos:(g.documentos||[]).filter(d=>d.id!==docId)});
+    registrarHistorico({modulo:'empresa',acao:'exclusão',descricao:`Documento "${doc.nome}" excluído da empresa "${g.razaoSocial}".`,refId:empresaGlobalId});
     abrirFichaEmpresaGlobal(empresaGlobalId,'documentos');
   });
 }
@@ -540,10 +604,12 @@ function excluirDocumentoEmpresaGlobal(empresaGlobalId,docId){
    não estiver vinculada ao projeto escolhido, o vínculo é criado na hora. */
 function abrirEscolherProjetoParaEmpresa(empresaGlobalId,tipo){
   const g=getEmpresaGlobal(empresaGlobalId); if(!g)return;
-  const projetos=DB.getAll('projetos');
-  if(!projetos.length){showToast('Cadastre um projeto primeiro.');return;}
+  const todos=DB.getAll('projetos');
+  // Cotação e ordem pertencem a uma execução (não ao recurso) que esteja em andamento.
+  const projetos=todos.filter(pr=>pr.tipo!=='recurso'&&!pr.arquivado&&!(pr.paiId&&todos.find(x=>x.id===pr.paiId)?.arquivado)&&!['Concluído','Cancelado'].includes(pr.status));
+  if(!projetos.length){showToast('Não há execução em andamento para receber esta cotação.');return;}
   openModal(`Para qual projeto é ${tipo==='cotacao'?'esta cotação':'esta ordem de compra'}?`,`
-    <div class="activity-list" style="max-height:45vh;overflow-y:auto">${projetos.map(pr=>`<div class="activity-item" data-escolher-projeto="${escapeHTML(pr.id)}" style="cursor:pointer"><strong>${escapeHTML(pr.nome)}</strong><small>${escapeHTML(pr.codigo||'')}</small></div>`).join('')}</div>
+    <div class="ge-sel-lista">${projetos.map(pr=>`<button type="button" class="ge-sel" data-escolher-projeto="${escapeHTML(pr.id)}"><strong>${escapeHTML(pr.nome)}</strong><small>${escapeHTML(pr.paiId?(todos.find(x=>x.id===pr.paiId)?.nome||''):'projeto antigo')}</small></button>`).join('')}</div>
     <div class="modal-actions" style="margin-top:16px"><button type="button" class="btn btn-ghost" id="escProjCancel">Cancelar</button></div>`);
   document.getElementById('escProjCancel').onclick=closeModal;
   document.querySelectorAll('[data-escolher-projeto]').forEach(el=>{
@@ -565,10 +631,11 @@ function abrirEscolherProjetoParaEmpresa(empresaGlobalId,tipo){
 function abrirVincularEmpresaAOutroProjeto(empresaGlobalId){
   const g=getEmpresaGlobal(empresaGlobalId); if(!g)return;
   const jaVinculados=new Set(empresaGlobalRelacoes(empresaGlobalId).map(r=>r.projeto.id));
-  const disponiveis=DB.getAll('projetos').filter(pr=>!jaVinculados.has(pr.id));
-  if(!disponiveis.length){showToast('Esta empresa já está vinculada a todos os projetos existentes.');return;}
+  const todos=DB.getAll('projetos');
+  const disponiveis=todos.filter(pr=>!jaVinculados.has(pr.id)&&pr.tipo!=='recurso'&&!pr.arquivado&&!(pr.paiId&&todos.find(x=>x.id===pr.paiId)?.arquivado));
+  if(!disponiveis.length){showToast('Não há outra execução para ligar esta empresa.');return;}
   openModal('Vincular a outro projeto',`
-    <div class="activity-list" style="max-height:45vh;overflow-y:auto">${disponiveis.map(pr=>`<div class="activity-item" data-vinc-proj="${escapeHTML(pr.id)}" style="cursor:pointer"><strong>${escapeHTML(pr.nome)}</strong><small>${escapeHTML(pr.codigo||'')}</small></div>`).join('')}</div>
+    <div class="ge-sel-lista">${disponiveis.map(pr=>`<button type="button" class="ge-sel" data-vinc-proj="${escapeHTML(pr.id)}"><strong>${escapeHTML(pr.nome)}</strong><small>${escapeHTML(pr.paiId?(todos.find(x=>x.id===pr.paiId)?.nome||''):'projeto antigo')}</small></button>`).join('')}</div>
     <div class="modal-actions" style="margin-top:16px"><button type="button" class="btn btn-ghost" id="vincProjCancel">Cancelar</button></div>`);
   document.getElementById('vincProjCancel').onclick=closeModal;
   document.querySelectorAll('[data-vinc-proj]').forEach(el=>{
@@ -827,6 +894,10 @@ function openFormCotacao(projectId,empresaId=''){
   const addRow=()=>{const box=document.getElementById('co_itens');const row=box.querySelector('.quote-item-row').cloneNode(true);row.querySelectorAll('input').forEach(x=>x.value=x.classList.contains('qi_qtd')?'1':'');box.appendChild(row);wireRows();};
   const wireRows=()=>document.querySelectorAll('.qi-remover').forEach(btn=>btn.onclick=()=>{const rows=document.querySelectorAll('.quote-item-row');if(rows.length>1)btn.closest('.quote-item-row').remove();});
   document.getElementById('qi_add').onclick=addRow;wireRows();document.getElementById('cancelCo').onclick=closeModal;
+  // Valor total = soma dos itens, enquanto a pessoa não digitar outro valor.
+  const totalEl=document.getElementById('co_valor');
+  totalEl.addEventListener('input',()=>{totalEl.dataset.manual='1';});
+  document.getElementById('co_itens').addEventListener('input',()=>{ if(totalEl.dataset.manual) return; const soma=[...document.querySelectorAll('.quote-item-row')].reduce((t,r)=>t+(Number(r.querySelector('.qi_qtd').value)||0)*(Number(r.querySelector('.qi_val').value)||0),0); totalEl.value=soma?soma.toFixed(2):''; });
   document.getElementById('formCotacao').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('co_arquivo').files[0];const itens=[...document.querySelectorAll('.quote-item-row')].map(r=>({nome:r.querySelector('.qi_nome').value.trim(),quantidade:Number(r.querySelector('.qi_qtd').value)||1,valor:Number(r.querySelector('.qi_val').value)||0})).filter(x=>x.nome);const empresa=p.empresas.find(e=>e.id===document.getElementById('co_empresa').value);const c={id:uid('cot'),itens,empresaId:empresa?.id||'',fornecedor:empresa?.nome||'',data:document.getElementById('co_data').value,valor:Number(document.getElementById('co_valor').value),observacao:document.getElementById('co_obs').value.trim(),selecionada:false};if(!c.fornecedor||!itens.length||!Number.isFinite(c.valor)||!f){showToast('Informe fornecedor, pelo menos um item, valor total e anexe o orçamento.');return;}c.anexo=await salvarAnexo(f,'cotacao');p.cotacoes.push(c);projectSave(p);registrarHistorico({modulo:'projeto',acao:'cotação',descricao:`Cotação de ${c.fornecedor} adicionada ao projeto "${p.nome}".`,refId:p.id});closeModal();abrirDetalheProjeto(p.id,'cotacoes');};
 }
 function selecionarCotacaoProjeto(projectId,cotId){const p=projectData(DB.getById('projetos',projectId));const qtdEmpresas=new Set(p.cotacoes.map(x=>x.empresaId||String(x.fornecedor||'').trim().toLowerCase()).filter(Boolean)).size;if(qtdEmpresas<3){showToast('⚠ É preciso ter cotações de pelo menos 3 empresas antes de escolher a vencedora.');return;}const c=p.cotacoes.find(x=>x.id===cotId);if(!c)return;p.cotacoes.forEach(x=>x.selecionada=x.id===cotId);projectSave(p);showToast('✓ Cotação vencedora selecionada.');abrirDetalheProjeto(p.id,'cotacoes');}
@@ -835,11 +906,12 @@ function openFormOrdem(projectId,empresaId=''){const p=projectData(DB.getById('p
 function validateCNPJ(cnpj){
   const clean = (cnpj||'').replace(/\D/g,'');
   if (clean.length !== 14) return { valid: false, msg: 'CNPJ deve ter 14 dígitos' };
+  if (/^(\d)\1{13}$/.test(clean)) return { valid: false, msg: 'CNPJ inválido' };
   const nums = clean.split('').map(Number);
   let sum = 0, mul = 5;
   for (let i = 0; i < 12; i++) {
     sum += nums[i] * mul;
-    mul = (mul === 9) ? 2 : mul + 1;
+    mul = (mul === 2) ? 9 : mul - 1;
   }
   let rem = sum % 11;
   let digit1 = (rem < 2) ? 0 : 11 - rem;
@@ -847,7 +919,7 @@ function validateCNPJ(cnpj){
   sum = 0; mul = 6;
   for (let i = 0; i < 13; i++) {
     sum += nums[i] * mul;
-    mul = (mul === 9) ? 2 : mul + 1;
+    mul = (mul === 2) ? 9 : mul - 1;
   }
   rem = sum % 11;
   let digit2 = (rem < 2) ? 0 : 11 - rem;
@@ -875,16 +947,18 @@ async function consultarCNPJa(cnpj){
 }
 function mapCNPJaDataToForm(data){
   const mapped = {};
-  if (data.name) mapped.nome = data.name;
+  const nome = data.company?.name || data.name;
+  if (nome) mapped.nome = nome;
   if (data.alias) mapped.nome_fantasia = data.alias;
-  if (data.address) {
-    const addr = data.address;
-    const endereco = [addr.street, addr.number, addr.city, addr.state, addr.zip]
-      .filter(Boolean).join(', ');
-    if (endereco) mapped.endereco = endereco;
-  }
-  if (data.phone) mapped.contato = data.phone;
-  if (data.email) mapped.email = data.email;
+  const addr = data.address || {};
+  const endereco = [addr.street && [addr.street, addr.number].filter(Boolean).join(', '), addr.details, addr.district, addr.zip && `CEP ${addr.zip}`].filter(Boolean).join(' · ');
+  if (endereco) mapped.endereco = endereco;
+  if (addr.city) mapped.municipio = addr.city;
+  if (addr.state) mapped.uf = addr.state;
+  const tel = Array.isArray(data.phones) && data.phones[0] ? `(${data.phones[0].area}) ${data.phones[0].number}` : data.phone;
+  if (tel) mapped.contato = tel;
+  const email = Array.isArray(data.emails) && data.emails[0] ? data.emails[0].address : data.email;
+  if (email) mapped.email = email;
   return mapped;
 }
 
@@ -907,87 +981,11 @@ async function preencherFormularioDeCNPJ(cnpj, formId, btnId){
     showToast('⚠ Nenhum dado encontrado para este CNPJ');
     return;
   }
-  let msgPreencher = 'Dados encontrados:\n';
-  if (mapped.nome) msgPreencher += `• Razão Social: ${mapped.nome}\n`;
-  if (mapped.nome_fantasia) msgPreencher += `• Nome Fantasia: ${mapped.nome_fantasia}\n`;
-  if (mapped.endereco) msgPreencher += `• Endereço: ${mapped.endereco}\n`;
-  if (mapped.contato) msgPreencher += `• Contato: ${mapped.contato}\n`;
-  msgPreencher += `\nDeseja preencher estes dados no formulário?`;
-  if (confirm(msgPreencher)) {
-    if (mapped.nome) {
-      const nomeEl = document.getElementById('emp_nome');
-      if (nomeEl && !nomeEl.value.trim()) nomeEl.value = mapped.nome;
-    }
-    if (mapped.endereco) {
-      const endEl = document.getElementById('emp_endereco');
-      if (endEl && !endEl.value.trim()) endEl.value = mapped.endereco;
-    }
-    if (mapped.contato) {
-      const contEl = document.getElementById('emp_contato');
-      if (contEl && !contEl.value.trim()) contEl.value = mapped.contato;
-    }
-    if (mapped.nome_fantasia) {
-      const fantEl = document.getElementById('emp_fantasia');
-      if (fantEl && !fantEl.value.trim()) fantEl.value = mapped.nome_fantasia;
-    }
-    if (mapped.email) {
-      const emailEl = document.getElementById('emp_email');
-      if (emailEl && !emailEl.value.trim()) emailEl.value = mapped.email;
-    }
-    showToast('✓ Dados preenchidos com sucesso');
-  }
-}
-
-function openFormEmpresa(projectId){
-  const p=projectData(DB.getById('projetos',projectId));
-  openModal('Nova empresa',`<form id="formEmpresa"><div class="form-grid"><div class="field full"><label>Nome da empresa (Razão Social) *</label><input class="input" id="emp_nome" required placeholder="Ex.: Empresa XYZ Ltda."></div><div class="field"><label>Nome Fantasia</label><input class="input" id="emp_fantasia"></div><div class="field"><label>CNPJ</label><input class="input" id="emp_cnpj" placeholder="00.000.000/0001-00"></div><div class="field"><label>Contato</label><input class="input" id="emp_contato" placeholder="Telefone ou e-mail"></div><div class="field"><label>E-mail</label><input class="input" id="emp_email" type="email"></div><div class="field full"><label>Endereço</label><input class="input" id="emp_endereco"></div><div class="field"><label>Município</label><input class="input" id="emp_municipio"></div><div class="field"><label>UF</label><input class="input" id="emp_uf" maxlength="2" style="text-transform:uppercase"></div><div class="field full"><label>Observação</label><textarea id="emp_obs"></textarea></div></div><p class="muted" style="margin-top:4px">Esta empresa fica disponível para vincular a outros projetos, sem precisar recadastrar.</p><div class="modal-actions"><button type="button" class="btn btn-ghost" id="emp_cancel">Cancelar</button><button class="btn btn-primary">Cadastrar empresa</button></div></form>`);
-  document.getElementById('emp_cancel').onclick=closeModal;
-
-  // Adiciona botão de consulta CNPJ após o campo
-  setTimeout(()=>{
-    const cnpjField = document.getElementById('emp_cnpj');
-    if(cnpjField && !document.getElementById('btnConsultarCNPJ')){
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'btnConsultarCNPJ';
-      btn.className = 'btn btn-sm';
-      btn.textContent = '🔍 Consultar CNPJ';
-      btn.style.marginTop = '6px';
-      cnpjField.parentNode.appendChild(btn);
-      btn.onclick = e => {
-        e.preventDefault();
-        const cnpj = document.getElementById('emp_cnpj').value.trim();
-        if(cnpj) preencherFormularioDeCNPJ(cnpj, 'formEmpresa', 'btnConsultarCNPJ');
-      };
-    }
-  }, 0);
-
-  const cnpjEl = document.getElementById('emp_cnpj');
-  cnpjEl.addEventListener('input', e => {
-    const val = e.target.value.replace(/\D/g, '');
-    if (val.length <= 14) {
-      e.target.value = formatCNPJ(val);
-    }
-  });
-  document.getElementById('formEmpresa').onsubmit=e=>{
-    e.preventDefault();
-    const nome=document.getElementById('emp_nome').value.trim();
-    if(!nome){showToast('Informe o nome da empresa.');return;}
-    const exists=p.empresas.some(x=>String(x.nome).trim().toLowerCase()===nome.toLowerCase());
-    if(exists){showToast('Essa empresa já está cadastrada neste projeto.');return;}
-    const dados={
-      nome, nomeFantasia:document.getElementById('emp_fantasia').value.trim(),
-      cnpj:document.getElementById('emp_cnpj').value.trim(), contato:document.getElementById('emp_contato').value.trim(),
-      email:document.getElementById('emp_email').value.trim(), endereco:document.getElementById('emp_endereco').value.trim(),
-      municipio:document.getElementById('emp_municipio').value.trim(), uf:document.getElementById('emp_uf').value.trim().toUpperCase(),
-      observacao:document.getElementById('emp_obs').value.trim()
-    };
-    const empresaGlobalId=localizarOuCriarEmpresaGlobal(dados);
-    p.empresas.push({id:uid('emp'),empresaGlobalId,...dados,documentos:[],criadoEm:Date.now()});
-    projectSave(p);
-    registrarHistorico({modulo:'empresa',acao:'vínculo',descricao:`Empresa "${nome}" vinculada ao projeto "${p.nome}".`,refId:empresaGlobalId});
-    closeModal();abrirDetalheProjeto(p.id,'empresas');
-  };
+  // Só preenche o que está vazio — nunca apaga o que a pessoa digitou.
+  const campos = { emp_nome:mapped.nome, emp_fantasia:mapped.nome_fantasia, emp_endereco:mapped.endereco, emp_contato:mapped.contato, emp_email:mapped.email, emp_municipio:mapped.municipio, emp_uf:mapped.uf };
+  let n = 0;
+  Object.entries(campos).forEach(([id, valor]) => { const el = document.getElementById(id); if (el && valor && !el.value.trim()) { el.value = valor; n++; } });
+  showToast(n ? `✓ ${n} campo(s) preenchido(s) com os dados da Receita.` : 'Os campos já estavam preenchidos — nada foi alterado.');
 }
 
 /* Reaproveita uma empresa já cadastrada (neste ou em outro projeto) em
@@ -1043,62 +1041,6 @@ function propagarEdicaoEmpresaGlobal(globalId,dados){
     if(mudou) DB.update('projetos',proj.id,{empresas:proj.empresas,cotacoes:proj.cotacoes,ordensCompra:proj.ordensCompra});
   });
 }
-function openFormEmpresaEditar(projectId,empresaId){
-  const p=projectData(DB.getById('projetos',projectId)); const e=p.empresas.find(x=>x.id===empresaId); if(!e)return;
-  const g=getEmpresaGlobal(e.empresaGlobalId)||e;
-  openModal('Editar empresa',`<form id="formEmpresaEdit"><div class="form-grid"><div class="field full"><label>Nome da empresa (Razão Social) *</label><input class="input" id="emp_nome" required value="${escapeHTML(g.razaoSocial||e.nome||'')}"></div><div class="field"><label>Nome Fantasia</label><input class="input" id="emp_fantasia" value="${escapeHTML(g.nomeFantasia||'')}"></div><div class="field"><label>CNPJ</label><input class="input" id="emp_cnpj" value="${escapeHTML(g.cnpj||e.cnpj||'')}"></div><div class="field"><label>Contato</label><input class="input" id="emp_contato" value="${escapeHTML(g.contato||e.contato||'')}"></div><div class="field"><label>E-mail</label><input class="input" id="emp_email" type="email" value="${escapeHTML(g.email||'')}"></div><div class="field full"><label>Endereço</label><input class="input" id="emp_endereco" value="${escapeHTML(g.endereco||'')}"></div><div class="field"><label>Município</label><input class="input" id="emp_municipio" value="${escapeHTML(g.municipio||'')}"></div><div class="field"><label>UF</label><input class="input" id="emp_uf" maxlength="2" style="text-transform:uppercase" value="${escapeHTML(g.uf||'')}"></div><div class="field full"><label>Observação</label><textarea id="emp_obs">${escapeHTML(g.observacao||e.observacao||'')}</textarea></div></div><p class="muted" style="margin-top:4px">Esta empresa pode estar vinculada a outros projetos — a alteração vale para todos eles.</p><div class="modal-actions"><button type="button" class="btn btn-ghost" id="emp_edit_cancel">Cancelar</button><button class="btn btn-primary">Salvar alterações</button></div></form>`);
-  document.getElementById('emp_edit_cancel').onclick=closeModal;
-
-  // Adiciona botão de consulta CNPJ após o campo
-  setTimeout(()=>{
-    const cnpjField = document.getElementById('emp_cnpj');
-    if(cnpjField && !document.getElementById('btnConsultarCNPJEdit')){
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'btnConsultarCNPJEdit';
-      btn.className = 'btn btn-sm';
-      btn.textContent = '🔍 Consultar CNPJ';
-      btn.style.marginTop = '6px';
-      cnpjField.parentNode.appendChild(btn);
-      btn.onclick = evt => {
-        evt.preventDefault();
-        const cnpj = document.getElementById('emp_cnpj').value.trim();
-        if(cnpj) preencherFormularioDeCNPJ(cnpj, 'formEmpresaEdit', 'btnConsultarCNPJEdit');
-      };
-    }
-  }, 0);
-
-  const cnpjEl = document.getElementById('emp_cnpj');
-  cnpjEl.addEventListener('input', ev => {
-    const val = ev.target.value.replace(/\D/g, '');
-    if (val.length <= 14) {
-      ev.target.value = formatCNPJ(val);
-    }
-  });
-  document.getElementById('formEmpresaEdit').onsubmit=eve=>{
-    eve.preventDefault();
-    const nome=document.getElementById('emp_nome').value.trim();
-    if(!nome){showToast('Informe o nome da empresa.');return;}
-    const dados={
-      nome, nomeFantasia:document.getElementById('emp_fantasia').value.trim(),
-      cnpj:document.getElementById('emp_cnpj').value.trim(), contato:document.getElementById('emp_contato').value.trim(),
-      email:document.getElementById('emp_email').value.trim(), endereco:document.getElementById('emp_endereco').value.trim(),
-      municipio:document.getElementById('emp_municipio').value.trim(), uf:document.getElementById('emp_uf').value.trim().toUpperCase(),
-      observacao:document.getElementById('emp_obs').value.trim()
-    };
-    if(e.empresaGlobalId){
-      DB.update('gerador-empresas',e.empresaGlobalId,{razaoSocial:nome,nomeFantasia:dados.nomeFantasia,cnpj:dados.cnpj,contato:dados.contato,email:dados.email,endereco:dados.endereco,municipio:dados.municipio,uf:dados.uf,observacao:dados.observacao});
-      propagarEdicaoEmpresaGlobal(e.empresaGlobalId,dados);
-      registrarHistorico({modulo:'empresa',acao:'edição',descricao:`Dados da empresa "${nome}" atualizados.`,refId:e.empresaGlobalId});
-    } else {
-      Object.assign(e,dados);
-      p.cotacoes.filter(c=>c.empresaId===e.id).forEach(c=>c.fornecedor=e.nome);
-      p.ordensCompra.filter(o=>o.empresaId===e.id).forEach(o=>o.fornecedor=e.nome);
-      projectSave(p);
-    }
-    closeModal();abrirDetalheProjeto(projectId,'empresas');
-  };
-}
 /* Tira a empresa só desta execução; o cadastro global continua disponível
    para os outros projetos. Cotações e ordens precisam ser excluídas antes,
    para nada sumir sem o usuário ver. */
@@ -1116,7 +1058,6 @@ function removerEmpresaProjeto(projectId,empresaId){
   });
 }
 function openFormDocumentoProjeto(projectId){openModal('Anexar documento de execução',`<form id="formDocProjeto"><div class="form-grid"><div class="field full"><label>Nome do documento *</label><input class="input" id="dp_nome" required></div><div class="field"><label>Categoria</label><select class="input" id="dp_cat"><option>Nota fiscal</option><option>Comprovante</option><option>Relatório</option><option>Declaração</option><option>Outro</option></select></div><div class="field"><label>Data</label><input class="input" type="date" id="dp_data" value="${todayISO()}"></div><div class="field full"><label>Arquivo *</label><input class="input" type="file" id="dp_arquivo" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="cancelDp">Cancelar</button><button class="btn btn-primary">Anexar</button></div></form>`);document.getElementById('cancelDp').onclick=closeModal;document.getElementById('formDocProjeto').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('dp_arquivo').files[0];const d={id:uid('docp'),nome:document.getElementById('dp_nome').value.trim(),categoria:document.getElementById('dp_cat').value,data:document.getElementById('dp_data').value,anexo:await salvarAnexo(f,'documento')};if(!d.nome||!f)return;const projetoAtual=projectData(DB.getById('projetos',projectId));projetoAtual.documentosProjeto.push(d);projectSave(projetoAtual);closeModal();abrirDetalheProjeto(projetoAtual.id,'documentos');};}
-function openFormPagamento(projectId){openModal('Registrar pagamento',`<form id="formPag"><div class="form-grid"><div class="field"><label>Fornecedor</label><input class="input" id="pg_fornecedor"></div><div class="field"><label>Data</label><input class="input" type="date" id="pg_data" value="${todayISO()}"></div><div class="field"><label>Valor pago (R$) *</label><input class="input" type="number" min="0" step="0.01" id="pg_valor" required></div><div class="field"><label>Forma de pagamento</label><input class="input" id="pg_forma" placeholder="Transferência, Pix, boleto..."></div><div class="field full"><label>Comprovante *</label><input class="input" type="file" id="pg_arq" required accept=".pdf,.jpg,.jpeg,.png,.webp"></div></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="pg_cancel">Cancelar</button><button class="btn btn-primary">Salvar pagamento</button></div></form>`);document.getElementById('pg_cancel').onclick=closeModal;document.getElementById('formPag').onsubmit=async e=>{e.preventDefault();const f=document.getElementById('pg_arq').files[0],v=Number(document.getElementById('pg_valor').value);if(!f||!Number.isFinite(v)){showToast('Informe valor e comprovante.');return;}const p=projectData(DB.getById('projetos',projectId));p.pagamentos.push({id:uid('pag'),fornecedor:document.getElementById('pg_fornecedor').value.trim(),data:document.getElementById('pg_data').value,valor:v,forma:document.getElementById('pg_forma').value.trim(),anexo:await salvarAnexo(f,'pagamento')});projectSave(p);closeModal();abrirDetalheProjeto(p.id,'pagamentos');};}
 function excluirItemProjeto(projectId,tipo,itemId){const p=projectData(DB.getById('projetos',projectId));const mapa={cotacao:'cotacoes',ordem:'ordensCompra',documento:'documentosProjeto'};const chave=mapa[tipo];if(!chave)return;const item=p[chave].find(x=>x.id===itemId);if(!item)return;confirmAction('Excluir este item do projeto?',async()=>{if(item.anexo)await ProjectFiles.remove(item.anexo.id);p[chave]=p[chave].filter(x=>x.id!==itemId);projectSave(p);abrirDetalheProjeto(p.id,tipo==='cotacao'?'cotacoes':tipo==='ordem'?'ordens':'documentos');});}
 
 function openFormPendencia(projectId){
@@ -1162,3 +1103,49 @@ function excluirPendenciaProjeto(projectId,itemId){
   });
 }
 
+
+/* Atalhos antigos: tudo vai para o formulário único da empresa. */
+function openFormEmpresa(projectId){ abrirFormEmpresaGlobal(null,{projetoId:projectId}); }
+function openFormEmpresaEditar(projectId,empresaId){
+  const p=projectData(DB.getById('projetos',projectId)); const e=p.empresas.find(x=>x.id===empresaId); if(!e)return;
+  // Empresa antiga ainda sem cadastro global: cria agora e liga.
+  if(!e.empresaGlobalId){ e.empresaGlobalId=localizarOuCriarEmpresaGlobal(e); projectSave(p); }
+  abrirFormEmpresaGlobal(e.empresaGlobalId,{projetoId:projectId,editandoNoProjeto:true});
+}
+
+/* Pagamento: fornecedor sugerido (vencedora ou empresas do projeto),
+   aviso se passar do valor planejado da execução, e fica no Histórico. */
+function openFormPagamento(projectId){
+  const p=projectData(DB.getById('projetos',projectId));
+  const forn=projectFornecedorSelecionado(p);
+  const fin=p.tipo==='execucao'?execucaoFinanceiro(p):null;
+  const nomes=[...new Set([forn?.fornecedor,...p.empresas.map(e=>e.nome)].filter(Boolean))];
+  openModal('Registrar pagamento',`<form id="formPag"><div class="form-grid">
+    <div class="field"><label for="pg_fornecedor">Fornecedor</label><input class="input" id="pg_fornecedor" list="pgFornecedores" value="${escapeHTML(forn?.fornecedor||'')}"><datalist id="pgFornecedores">${nomes.map(n=>`<option value="${escapeHTML(n)}">`).join('')}</datalist></div>
+    <div class="field"><label for="pg_data">Data</label><input class="input" type="date" id="pg_data" value="${todayISO()}"></div>
+    <div class="field"><label for="pg_valor">Valor pago (R$) *</label><input class="input" type="number" min="0.01" step="0.01" id="pg_valor" required></div>
+    <div class="field"><label for="pg_forma">Forma de pagamento</label><input class="input" id="pg_forma" list="pgFormas" placeholder="Pix, transferência, boleto…"><datalist id="pgFormas"><option value="Pix"><option value="Transferência"><option value="Boleto"><option value="Cheque"><option value="Dinheiro"></datalist></div>
+    <div class="field full"><label for="pg_arq">Comprovante *</label><input class="input" type="file" id="pg_arq" required accept=".pdf,.jpg,.jpeg,.png,.webp"></div>
+  </div>${fin?`<p class="muted">Planejado ${formatMoney(fin.planejado)} · já pago ${formatMoney(fin.executado)} · saldo ${formatMoney(fin.saldo)}</p>`:''}
+  <p class="field-error" id="pgErro" hidden></p>
+  <div class="modal-actions"><button type="button" class="btn btn-ghost" id="pg_cancel">Cancelar</button><button class="btn btn-primary">Salvar pagamento</button></div></form>`);
+  document.getElementById('pg_cancel').onclick=closeModal;
+  document.getElementById('formPag').onsubmit=async e=>{
+    e.preventDefault();
+    const erro=t=>{const el=document.getElementById('pgErro');el.hidden=false;el.textContent=t;};
+    const f=document.getElementById('pg_arq').files[0], v=Number(document.getElementById('pg_valor').value);
+    if(!(v>0)) return erro('Informe o valor pago.');
+    if(!f) return erro('Anexe o comprovante.');
+    const salvar=async()=>{
+      const atual=projectData(DB.getById('projetos',projectId));
+      const pg={id:uid('pag'),fornecedor:document.getElementById('pg_fornecedor').value.trim(),data:document.getElementById('pg_data').value,valor:v,forma:document.getElementById('pg_forma').value.trim(),anexo:await salvarAnexo(f,'pagamento')};
+      atual.pagamentos.push(pg);
+      projectSave(atual);
+      registrarHistorico({modulo:'projeto',acao:'pagamento',descricao:`Pagamento de ${formatMoney(v)}${pg.fornecedor?` a ${pg.fornecedor}`:''} registrado em "${atual.nome}".`,refId:atual.id});
+      showToast('✓ Pagamento registrado.');
+      closeModal();abrirDetalheProjeto(atual.id,'pagamentos');
+    };
+    if(fin && v>fin.saldo+0.005) confirmAction(`Este pagamento (${formatMoney(v)}) passa do saldo da execução (${formatMoney(fin.saldo)}). Registrar mesmo assim?`,salvar);
+    else salvar();
+  };
+}

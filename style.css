@@ -1844,3 +1844,29 @@ mark.ge-falta{ background:#fff1a8; color:#5c4a00; padding:0 2px; border-radius:2
 .ps-linha i{ grid-row:1 / 3; grid-column:2; align-self:center; font-style:normal; color:var(--primary); opacity:0; transition:opacity .15s; }
 .ps-linha:hover i{ opacity:1; }
 .at-aviso-faltas{ margin:0 0 12px; }
+
+/* =========================================================
+   FICHA DA EMPRESA e formulário único (04-projetos.js)
+   ========================================================= */
+.modal:has(.emp-ficha){ width:min(880px, 96vw); max-width:96vw; }
+.emp-ficha{ display:flex; flex-direction:column; gap:12px; }
+.emp-ficha button:not(.btn){ font:inherit; color:inherit; }
+.emp-topo{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+.emp-sub{ margin:4px 0 0; font-size:13px; color:var(--ink-soft); }
+.emp-situacao{ font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:var(--surface-2); color:var(--ink-soft); }
+.emp-situacao.tom-ok, .emp-tom.tom-ok{ background:var(--ok-soft); color:var(--ok); }
+.emp-situacao.tom-warn, .emp-tom.tom-warn{ background:var(--warn-soft); color:var(--warn); }
+.emp-situacao.tom-danger, .emp-tom.tom-danger{ background:var(--danger-soft); color:var(--danger); }
+.emp-tom{ display:inline-block; padding:0 7px; border-radius:999px; font-size:11px; font-weight:600; }
+.emp-abas{ align-self:flex-start; max-width:100%; overflow-x:auto; }
+.emp-abas .ge-aba{ white-space:nowrap; }
+.emp-conteudo{ display:flex; flex-direction:column; gap:10px; min-height:120px; }
+.emp-fatos{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px 20px; margin:0; }
+.emp-fatos dt{ font-size:11px; color:var(--muted); margin-bottom:2px; }
+.emp-fatos dd{ margin:0; font-size:13.5px; overflow-wrap:anywhere; }
+.emp-largo{ grid-column:1 / -1; }
+.emp-hist{ list-style:none; margin:0; padding:0 0 0 12px; border-left:2px solid var(--border); display:flex; flex-direction:column; gap:8px; font-size:12.5px; }
+.emp-hist time{ display:block; font:11px var(--font-mono); color:var(--muted); }
+.emp-cnpj{ display:flex; gap:6px; }
+.emp-cnpj input{ flex:1; min-width:0; }
+@media (max-width:700px){ .emp-fatos{ grid-template-columns:1fr; } .emp-cnpj{ flex-direction:column; } }

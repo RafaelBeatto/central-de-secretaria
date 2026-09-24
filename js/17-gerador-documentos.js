@@ -721,45 +721,8 @@ function empresaPorId(id){
   return listarEmpresasParaVinculo().find(e => e.id === id) || null;
 }
 
-function abrirFormEmpresaGerador(idParaEditar){
-  const e = idParaEditar ? getEmpresasGerador().find(x => x.id === idParaEditar) : null;
-  openModal(e ? `Editar empresa: ${e.razaoSocial}` : 'Nova empresa', `
-    <div class="form-grid">
-      <div class="field full"><label>Razão social *</label><input class="input" id="emgRazao" value="${e ? escapeHTML(e.razaoSocial) : ''}" placeholder="Ex.: Comercial XYZ Ltda."></div>
-      <div class="field"><label>CNPJ</label><input class="input" id="emgCnpj" value="${e ? escapeHTML(e.cnpj || '') : ''}" placeholder="00.000.000/0001-00"></div>
-      <div class="field"><label>Telefone</label><input class="input" id="emgTelefone" value="${e ? escapeHTML(e.telefone || '') : ''}"></div>
-      <div class="field full"><label>Endereço</label><input class="input" id="emgEndereco" value="${e ? escapeHTML(e.endereco || '') : ''}"></div>
-      <div class="field"><label>E-mail</label><input class="input" id="emgEmail" value="${e ? escapeHTML(e.email || '') : ''}"></div>
-      <div class="field"><label>Representante</label><input class="input" id="emgRepresentante" value="${e ? escapeHTML(e.representante || '') : ''}"></div>
-      <div class="field"><label>CPF do representante</label><input class="input" id="emgCpfRep" value="${e ? escapeHTML(e.cpfRepresentante || '') : ''}"></div>
-      <div class="field full"><label>Observação</label><textarea id="emgObs">${e ? escapeHTML(e.observacao || '') : ''}</textarea></div>
-    </div>
-    <div class="modal-actions" style="margin-top:16px">
-      <button type="button" class="btn btn-ghost" id="btnCancelarEmpresaGer">Cancelar</button>
-      <button type="button" class="btn btn-primary" id="btnSalvarEmpresaGer">${e ? 'Salvar alterações' : 'Cadastrar empresa'}</button>
-    </div>
-  `);
-  document.getElementById('btnCancelarEmpresaGer').addEventListener('click', closeModal);
-  document.getElementById('btnSalvarEmpresaGer').addEventListener('click', () => {
-    const dados = {
-      razaoSocial: document.getElementById('emgRazao').value.trim(),
-      cnpj: document.getElementById('emgCnpj').value.trim(),
-      telefone: document.getElementById('emgTelefone').value.trim(),
-      endereco: document.getElementById('emgEndereco').value.trim(),
-      email: document.getElementById('emgEmail').value.trim(),
-      representante: document.getElementById('emgRepresentante').value.trim(),
-      cpfRepresentante: document.getElementById('emgCpfRep').value.trim(),
-      observacao: document.getElementById('emgObs').value.trim()
-    };
-    if (!dados.razaoSocial) return showToast('Informe a razão social');
-    if (e) DB.update('gerador-empresas', e.id, dados);
-    else DB.insert('gerador-empresas', { id: uid('emp'), ...dados, criadoEm: Date.now() });
-    registrarHistorico({ modulo: 'gerador-documentos', acao: e ? 'edição' : 'criação', descricao: `Empresa "${dados.razaoSocial}" ${e ? 'atualizada' : 'cadastrada'}.`, refId: e ? e.id : null });
-    closeModal();
-    renderGeradorDocumentos();
-    showToast(e ? '✓ Empresa atualizada.' : '✓ Empresa cadastrada.');
-  });
-}
+/* Cadastro e edição da empresa: formulário único em 04-projetos.js. */
+function abrirFormEmpresaGerador(idParaEditar){ abrirFormEmpresaGlobal(idParaEditar || null); }
 
 function excluirEmpresaGerador(id){
   const e = getEmpresasGerador().find(x => x.id === id);
