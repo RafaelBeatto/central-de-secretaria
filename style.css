@@ -1843,3 +1843,4 @@ mark.ge-falta{ background:#fff1a8; color:#5c4a00; padding:0 2px; border-radius:2
 .ps-linha small{ grid-row:2; font-size:11.5px; color:var(--ink-softer); }
 .ps-linha i{ grid-row:1 / 3; grid-column:2; align-self:center; font-style:normal; color:var(--primary); opacity:0; transition:opacity .15s; }
 .ps-linha:hover i{ opacity:1; }
+.at-aviso-faltas{ margin:0 0 12px; }

@@ -150,6 +150,20 @@ function coletarTodasPendencias(){
     });
   }
 
+  // Alunos com faltas seguidas (busca ativa)
+  if (typeof atAlunosComFaltasSeguidas === 'function') {
+    atAlunosComFaltasSeguidas().forEach(x => {
+      pendencias.push({
+        id: `faltas-${x.aluno.id}`, tipo: 'aluno_faltas', prioridade: 'atencao',
+        titulo: `Faltas seguidas: ${x.aluno.nome}`,
+        descricao: `${x.n} faltas seguidas desde ${formatDateBR(x.desde)}${x.motivos.length ? ` · ${x.motivos.join(', ')}` : ''}`,
+        data: x.ultima,
+        origem: { modulo: 'atendimentos', id: x.aluno.id, funcao: () => abrirHistoricoAluno(x.aluno.id) },
+        icon: '🟠'
+      });
+    });
+  }
+
   // Projetos aguardando alguma ação (🟣): reaproveita o checklist que já existe
   // dentro de cada projeto (projectChecklist), sem duplicar essa lógica.
   pendencias.push(...coletarPendenciasDeProjetos());
@@ -220,6 +234,7 @@ const CATEGORIA_ACAO_POR_TIPO = {
   documento_vencendo: 'atencao',
   projeto_pendencia: 'atencao',
   projeto_item: 'atencao',
+  aluno_faltas: 'atencao',
   tarefa_proxima: 'proximo'
 };
 function categoriaAcao(pendencia){
@@ -236,13 +251,13 @@ const PEND_ROTULO_TIPO = {
   tarefa_atrasada:'Tarefa', tarefa_hoje:'Tarefa', tarefa_proxima:'Tarefa',
   documento_vencido:'Documento', documento_vencendo:'Documento',
   atendimento_atrasado:'Atendimento', atendimento_sem_presenca:'Atendimento',
-  evento_hoje:'Agenda', projeto_pendencia:'Projeto', projeto_item:'Projeto'
+  evento_hoje:'Agenda', projeto_pendencia:'Projeto', projeto_item:'Projeto', aluno_faltas:'Faltas seguidas'
 };
 const PEND_ORIGEM = {
   tarefa_atrasada:'tarefas', tarefa_hoje:'tarefas', tarefa_proxima:'tarefas',
   documento_vencido:'documentos', documento_vencendo:'documentos',
   atendimento_atrasado:'atendimentos', atendimento_sem_presenca:'atendimentos',
-  evento_hoje:'agenda', projeto_pendencia:'projetos', projeto_item:'projetos'
+  evento_hoje:'agenda', projeto_pendencia:'projetos', projeto_item:'projetos', aluno_faltas:'atendimentos'
 };
 const PEND_TOM = { atrasado:'danger', hoje:'hoje', atencao:'warn', proximo:'neutral' };
 
@@ -256,6 +271,7 @@ function pendLinhaHTML(p, reg, attr){
       <button type="button" ${a(() => { atualizarPresenca(p.origem.id, 'veio'); renderCurrentView(); })}>✓ Veio</button>
       <button type="button" ${a(() => abrirJustificativaFalta(p.origem.id))}>✕ Faltou</button></div>`;
   else if (p.tipo === 'evento_hoje') acoes = `<button type="button" class="btn btn-sm" ${a(() => marcarEventoConcluido(p.origem.id))}>✓ Feito</button>`;
+  else if (p.tipo === 'aluno_faltas') acoes = `<button type="button" class="btn btn-sm" ${a(() => atMarcarContatoFamilia(p.origem.id))}>✓ Família contatada</button>`;
   else if (p.tipo === 'projeto_item') acoes = `<button type="button" class="btn btn-sm" ${a(() => togglePendenciaProjeto(p.origem.id, p.origem.itemId, true))}>✓ Resolvida</button>`;
   return `<div class="db-item t-${PEND_TOM[categoriaAcao(p)]}">
     <button type="button" class="db-item-corpo pd-abrir" ${a(() => p.origem.funcao())}><span class="db-tipo">${PEND_ROTULO_TIPO[p.tipo] || 'Item'}</span><strong>${escapeHTML(titulo)}</strong>${p.descricao ? `<small>${escapeHTML(p.descricao)}</small>` : ''}</button>

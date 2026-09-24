@@ -232,7 +232,9 @@ function atPainelHTML(){
     const extra = p.tipo === 'aluno'
       ? `Atende com: ${[...new Set(lista.map(a => a.profissionalNome))].map(atEsc).join(', ') || '—'}`
       : `${new Set(lista.map(a => a.alunoId)).size} aluno(s) atendido(s)`;
-    return `${topo}<span class="at-codigo">${p.tipo === 'aluno' ? 'Aluno' : 'Profissional'}</span><h2>${atEsc(reg.nome)}</h2><p class="at-sub">${extra}</p>
+    const fs = p.tipo === 'aluno' ? atFaltasSeguidas(p.id) : null;
+    const avisoFaltas = fs && fs.n >= AT_FALTAS_ALERTA ? `<div class="at-aviso at-aviso-faltas"><span>⚠ ${fs.n} faltas seguidas desde ${formatDateBR(fs.desde)}${fs.motivos.length ? ` (${fs.motivos.map(atEsc).join(', ')})` : ''}.${reg.faltasContatoAte && fs.ultima <= reg.faltasContatoAte ? ' Família já contatada.' : ''}</span>${reg.faltasContatoAte && fs.ultima <= reg.faltasContatoAte ? '' : `<button type="button" class="btn btn-sm" data-at="contato-familia" data-id="${atEsc(p.id)}">✓ Família contatada</button>`}</div>` : '';
+    return `${topo}<span class="at-codigo">${p.tipo === 'aluno' ? 'Aluno' : 'Profissional'}</span><h2>${atEsc(reg.nome)}</h2><p class="at-sub">${extra}</p>${avisoFaltas}
       <div class="at-acoes"><button type="button" class="btn btn-sm" data-at="relatorio" data-filtro-tipo="${p.tipo}" data-filtro-id="${atEsc(p.id)}">Relatório em PDF</button></div>
       ${atHistoricoHTML(lista, p.tipo === 'aluno' ? 'profissionalNome' : 'alunoNome')}`;
   }
@@ -283,6 +285,7 @@ function renderAtendimentos(){
         </div>
         <div class="at-ferramentas">
           <button type="button" class="btn btn-sm" data-at="copiar-semana">Copiar semana anterior</button>
+          <button type="button" class="btn btn-sm" data-at="lista-presenca">Lista de presença</button>
           <button type="button" class="btn btn-sm" data-at="relatorio">Relatório</button>
           <button type="button" class="btn btn-sm" data-at="cadastros">Alunos e profissionais</button>
         </div>
@@ -469,6 +472,76 @@ function duplicarSemanaAnterior(){
   });
 }
 
+/* ---------- faltas seguidas (busca ativa) ----------
+   Conta as faltas mais recentes de um aluno até a última presença.
+   Atendimentos ainda sem registro não quebram nem somam na sequência.
+   Depois de "Família contatada", o aviso só volta se houver falta nova. */
+const AT_FALTAS_ALERTA = 3;
+function atFaltasSeguidas(alunoId){
+  const hoje = todayISO();
+  const lista = getAtendimentos().filter(a => a.alunoId === alunoId && atEfetivo(a) && a.data <= hoje && a.presenca !== 'nao_informado')
+    .sort((x, y) => (y.data + y.horario).localeCompare(x.data + x.horario));
+  const faltas = [];
+  for (const a of lista) { if (a.presenca !== 'faltou') break; faltas.push(a); }
+  return { n: faltas.length, ultima: faltas[0]?.data || null, desde: faltas[faltas.length - 1]?.data || null,
+    motivos: [...new Set(faltas.map(a => a.faltaMotivo).filter(Boolean))] };
+}
+function atAlunosComFaltasSeguidas(){
+  return getAtendAlunos().map(al => ({ aluno: al, ...atFaltasSeguidas(al.id) }))
+    .filter(x => x.n >= AT_FALTAS_ALERTA && !(x.aluno.faltasContatoAte && x.ultima <= x.aluno.faltasContatoAte));
+}
+function atMarcarContatoFamilia(alunoId){
+  const al = DB.getById('atendimento-alunos', alunoId); if (!al) return;
+  const f = atFaltasSeguidas(alunoId);
+  DB.update('atendimento-alunos', alunoId, { faltasContatoAte: f.ultima || todayISO() });
+  registrarHistorico({ modulo:'atendimentos', acao:'edição', descricao:`Família de "${al.nome}" contatada após ${f.n} falta(s) seguida(s).`, refId:alunoId });
+  showToast('✓ Anotado. O aviso volta só se houver falta nova.');
+  renderCurrentView();
+}
+
+/* ---------- lista de presença para imprimir e assinar ---------- */
+function abrirListaPresenca(){
+  const dia = atEstado.dia && atEstado.dia !== 'semana' ? atEstado.dia : null;
+  const profs = getAtendProfissionais().sort((a,b) => a.nome.localeCompare(b.nome,'pt-BR'));
+  openModal('Lista de presença', `<form id="formListaPresenca"><div class="form-grid">
+      <div class="field full"><label for="lpPeriodo">Dias</label><select id="lpPeriodo" class="input">
+        ${dia ? `<option value="dia">${AT_DIAS[parseISODate(dia).getDay()]}, ${formatDateBR(dia)}</option>` : ''}
+        <option value="semana">Semana toda (${atTituloSemana()})</option></select></div>
+      <div class="field full"><label for="lpProf">Profissional</label><select id="lpProf" class="input"><option value="">Todos (uma folha por dia)</option>${profs.map(p => `<option value="${p.id}">${escapeHTML(p.nome)}</option>`).join('')}</select></div>
+    </div><p class="muted">Sai com o cabeçalho da instituição, uma linha por atendimento e espaço para a assinatura do responsável. Remarcados saem na data nova.</p>
+    <div class="modal-actions"><button type="button" class="btn btn-ghost" id="lpCancelar">Cancelar</button><button type="button" class="btn" id="lpImprimir">🖨 Imprimir</button><button class="btn btn-primary">⭳ Salvar PDF</button></div></form>`);
+  document.getElementById('lpCancelar').onclick = closeModal;
+  const gerar = async modo => {
+    const html = await montarListaPresencaHTML(document.getElementById('lpPeriodo').value === 'dia' ? [dia] : atendDatasDaSemana(atendSemanaAtual), document.getElementById('lpProf').value);
+    if (!html) return showToast('Não há atendimentos nesses dias.');
+    modo === 'pdf' ? salvarPdfGerador(html, 'Lista_de_presenca') : imprimirDocumentoGerador(html, 'Lista de presença');
+  };
+  document.getElementById('lpImprimir').onclick = () => gerar('imprimir');
+  document.getElementById('formListaPresenca').onsubmit = e => { e.preventDefault(); gerar('pdf'); };
+}
+async function montarListaPresencaHTML(datas, profId){
+  const lista = getAtendimentos().filter(a => datas.includes(a.data) && atEfetivo(a) && (!profId || a.profissionalId === profId))
+    .sort((a,b) => (a.data + a.horario).localeCompare(b.data + b.horario) || a.alunoNome.localeCompare(b.alunoNome,'pt-BR'));
+  if (!lista.length) return '';
+  const cabecalho = await montarCabecalhoInstitucionalHTML();
+  const prof = profId ? DB.getById('atendimento-profissionais', profId) : null;
+  const th = (t, w) => `<th style="text-align:left;padding:5px 6px;border:1px solid #000;background:#eee;${w ? `width:${w}` : ''}">${t}</th>`;
+  const td = t => `<td style="padding:7px 6px;border:1px solid #000;vertical-align:middle">${t}</td>`;
+  const paginas = datas.filter(d => lista.some(a => a.data === d)).map((d, i) => {
+    const doDia = lista.filter(a => a.data === d);
+    return `<div class="doc-a4-page">${cabecalho}
+      <div class="doc-a4-titulo">LISTA DE PRESENÇA</div>
+      <p style="text-align:center;margin:-10px 0 16px;font-size:11pt">${AT_DIAS[parseISODate(d).getDay()]}, ${formatDateBR(d)}${prof ? ` · ${escapeHTML(prof.nome)}` : ''}</p>
+      <table style="width:100%;border-collapse:collapse;font-size:10.5pt">
+        <thead><tr>${th('Horário','60px')}${th('Aluno')}${prof ? '' : th('Profissional')}${th('Veio','40px')}${th('Faltou','44px')}${th('Assinatura do responsável','34%')}</tr></thead>
+        <tbody>${doDia.map(a => `<tr>${td(escapeHTML(a.horario))}${td(escapeHTML(a.alunoNome))}${prof ? '' : td(escapeHTML(a.profissionalNome))}${td('☐')}${td('☐')}${td('&nbsp;')}</tr>`).join('')}</tbody>
+      </table>
+      <div class="doc-a4-assinatura"><div class="doc-a4-linha-assinatura">_______________________________</div><div>${prof ? escapeHTML(prof.nome) : 'Responsável pelo registro'}</div></div>
+    </div>${i < datas.length - 1 ? '<div class="doc-quebra-pagina"></div>' : ''}`;
+  });
+  return paginas.join('');
+}
+
 /* ---------- relatório (semana, mês ou período; geral, por aluno ou profissional) ---------- */
 function abrirRelatorioAtendimentos(filtro){
   const ini = atendSemanaAtual, fim = atendAddDias(atendSemanaAtual, 6);
@@ -585,6 +658,8 @@ const AT_ACOES = {
   'excluir': b => excluirAtendimento(b.dataset.id),
   'encerrar-serie': b => encerrarSerie(b.dataset.id),
   'copiar-semana': () => duplicarSemanaAnterior(),
+  'lista-presenca': () => abrirListaPresenca(),
+  'contato-familia': b => atMarcarContatoFamilia(b.dataset.id),
   'relatorio': b => abrirRelatorioAtendimentos(b.dataset.filtroTipo ? { tipo:b.dataset.filtroTipo, id:b.dataset.filtroId } : null),
   'cadastros': () => abrirGestaoAlunosProfissionais()
 };
