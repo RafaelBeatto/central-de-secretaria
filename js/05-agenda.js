@@ -83,8 +83,8 @@ function gerarOcorrenciasEvento(base,rec){
     out.push(atual);
     if(rec.frequencia==='Diária') atual=addDaysISO(atual,1);
     else if(rec.frequencia==='Semanal') atual=addDaysISO(atual,7);
-    else if(rec.frequencia==='Mensal'){ const d=parseISODate(base.data), dia=d.getDate(), p=parseISODate(atual); p.setDate(1); p.setMonth(p.getMonth()+1); p.setDate(Math.min(dia,new Date(p.getFullYear(),p.getMonth()+1,0).getDate())); atual=isoFromDate(p); }
-    else if(rec.frequencia==='Anual'){ const d=parseISODate(atual); d.setFullYear(d.getFullYear()+1); atual=isoFromDate(d); }
+    else if(rec.frequencia==='Mensal') atual=addMesesISO(atual,1,parseISODate(base.data).getDate());
+    else if(rec.frequencia==='Anual') atual=addMesesISO(atual,12,parseISODate(base.data).getDate());
     else break;
   }
   return out;

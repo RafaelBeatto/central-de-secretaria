@@ -1879,3 +1879,12 @@ mark.ge-falta{ background:#fff1a8; color:#5c4a00; padding:0 2px; border-radius:2
 .storage-protecao{ font-size:12.5px; margin:6px 0 0; }
 .storage-protecao.is-ok{ color:var(--ok); }
 .storage-protecao.is-aviso{ color:var(--warn); }
+/* Nomes longos sem espaço (e-mails, nomes de arquivo) quebram em vez de empurrar a tela no celular */
+.db-item-corpo, .db-item-corpo *, .pj-rec-titulo, .pj-rec-titulo > span, .pj-head-main, .pj-head-main > *{ min-width:0; overflow-wrap:anywhere; }
+.pj-crumbs{ min-width:0; }
+.pj-crumbs > *{ min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pj-emp-head > div:first-child{ min-width:0; overflow-wrap:anywhere; }
+@media (max-width: 820px){ #btnTheme{ display:none; } } /* no celular o tema fica só na barra de cima */
+.modal-head{ gap:12px; }
+.modal-head h2{ min-width:0; overflow-wrap:anywhere; }
+.modal-head .icon-btn{ flex-shrink:0; }

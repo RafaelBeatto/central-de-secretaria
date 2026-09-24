@@ -138,6 +138,15 @@ function todayISO(){
 function isoFromDate(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+/* Soma meses a uma data ISO sem "pular" mês: 31/01 + 1 mês = 28/02 (ou 29).
+   diaPreferido mantém o dia original numa série (ex.: dia 31 volta em março). */
+function addMesesISO(iso, meses, diaPreferido){
+  const d=parseISODate(iso); if(!d) return iso;
+  const dia=diaPreferido||d.getDate();
+  const alvo=new Date(d.getFullYear(), d.getMonth()+meses, 1);
+  alvo.setDate(Math.min(dia, new Date(alvo.getFullYear(), alvo.getMonth()+1, 0).getDate()));
+  return isoFromDate(alvo);
+}
 function parseISODate(iso){
   if (!iso) return null;
   const [y,m,d] = iso.split('-').map(Number);

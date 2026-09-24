@@ -20,9 +20,9 @@ function proximaRecorrencia(item){
   else if(rec.frequencia==='Semanal'){
     const alvo=Number(rec.diaSemana ?? d.getDay()); let diff=(alvo-d.getDay()+7)%7; if(diff===0) diff=7; d.setDate(d.getDate()+diff);
   } else if(rec.frequencia==='Mensal'){
-    const dia=Math.min(Number(rec.diaMes||d.getDate()),31); d.setMonth(d.getMonth()+1); d.setDate(Math.min(dia,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));
+    return addMesesISO(isoFromDate(d),1,Math.min(Number(rec.diaMes||d.getDate()),31));
   } else if(rec.frequencia==='Anual'){
-    d.setFullYear(d.getFullYear()+1);
+    return addMesesISO(isoFromDate(d),12);
   }
   return isoFromDate(d);
 }
@@ -31,8 +31,8 @@ function proximaRecorrenciaApos(data){
   const d=new Date(atual);
   if(rec.frequencia==='Diária') d.setDate(d.getDate()+1);
   else if(rec.frequencia==='Semanal') d.setDate(d.getDate()+7);
-  else if(rec.frequencia==='Mensal'){ const dia=Number(rec.diaMes||d.getDate()); d.setMonth(d.getMonth()+1); d.setDate(Math.min(dia,new Date(d.getFullYear(),d.getMonth()+1,0).getDate())); }
-  else if(rec.frequencia==='Anual') d.setFullYear(d.getFullYear()+1);
+  else if(rec.frequencia==='Mensal') return addMesesISO(isoFromDate(d),1,Number(rec.diaMes||d.getDate()));
+  else if(rec.frequencia==='Anual') return addMesesISO(isoFromDate(d),12);
   return isoFromDate(d);
 }
 function prazoAtividade(s){
