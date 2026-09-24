@@ -8,10 +8,6 @@
    e recursoResumoFinanceiro() (Projetos).
    ========================================================= */
 const dbEsc = s => escapeHTML(s ?? '');
-const DB_TIPO_ROTULO = {
-  tarefa_atrasada:'Tarefa', documento_vencido:'Documento', documento_vencendo:'Documento',
-  atendimento_atrasado:'Atendimento', projeto_pendencia:'Projeto'
-};
 let dbAcoes = [];
 function dbAcao(fn){ dbAcoes.push(fn); return dbAcoes.length - 1; }
 
@@ -28,64 +24,11 @@ function dbDiaCurto(iso){
   return parseISODate(iso).toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit' }).replace('.', '');
 }
 
-/* ---------- Para resolver: atrasados e o que pede atenção ---------- */
+/* ---------- Para resolver: atrasados e o que pede atenção ----------
+   Mesmas linhas (e ações rápidas) da tela de Pendências. */
 function dbParaResolver(pendencias){
-  const grupos = { atrasado:[], atencao:[] };
-  const atdAtrasados = [], porProjeto = new Map();
-  pendencias.forEach(p => {
-    const cat = categoriaAcao(p);
-    if (!grupos[cat]) return;
-    if (p.tipo === 'atendimento_atrasado') { atdAtrasados.push(p); return; }
-    if (p.tipo === 'projeto_pendencia') {
-      const id = p.origem.id;
-      if (!porProjeto.has(id)) porProjeto.set(id, []);
-      porProjeto.get(id).push(p);
-      return;
-    }
-    grupos[cat].push(p);
-  });
-  const ordemData = (a,b) => String(a.data||'9999').localeCompare(String(b.data||'9999'));
-  grupos.atrasado.sort(ordemData); grupos.atencao.sort(ordemData);
-
-  const linhas = { atrasado: grupos.atrasado.map(p => dbLinhaPendencia(p)), atencao: grupos.atencao.map(p => dbLinhaPendencia(p)) };
-
-  /* Atendimentos sem presença: poucos → um por linha com Veio/Faltou;
-     muitos → uma linha só que leva à tela de atendimentos filtrada. */
-  if (atdAtrasados.length <= 2) atdAtrasados.forEach(p => linhas.atrasado.push(dbLinhaPendencia(p)));
-  else {
-    const maisAntigo = atdAtrasados.map(p => DB.getById('atendimentos', p.origem.id)).filter(Boolean).sort((a,b) => a.data.localeCompare(b.data))[0];
-    const ir = dbAcao(() => { atEstado.soPendentes = true; atEstado.dia = 'semana'; atEstado.painel = null; atendSemanaAtual = atendSegundaDaSemana(maisAntigo.data); goToView('atendimentos'); });
-    linhas.atrasado.push(`<div class="db-item t-danger">
-      <button type="button" class="db-item-corpo" data-db="${ir}"><span class="db-tipo">Atendimentos</span><strong>${atdAtrasados.length} atendimentos sem presença marcada</strong><small>O mais antigo é de ${formatDateBR(maisAntigo.data)}</small></button>
-      <div class="db-item-acoes"><button type="button" class="btn btn-sm" data-db="${ir}">Registrar</button></div></div>`);
-  }
-  /* Projetos: uma linha por projeto, com as etapas que faltam. */
-  porProjeto.forEach(lista => {
-    const pr = DB.getById('projetos', lista[0].origem.id);
-    const etapas = lista.map(p => p.titulo.split(' — ').pop());
-    const abrir = dbAcao(() => lista[0].origem.funcao());
-    const pai = pr?.paiId ? DB.getById('projetos', pr.paiId) : null;
-    linhas.atencao.push(`<div class="db-item t-warn">
-      <button type="button" class="db-item-corpo" data-db="${abrir}"><span class="db-tipo">Projeto</span><strong>${dbEsc(pr?.nome)}${pai ? ` <em>· ${dbEsc(pai.nome)}</em>` : ''}</strong><small>Próxima etapa: ${dbEsc(etapas[0])}${etapas.length > 1 ? ` · mais ${etapas.length - 1}` : ''}</small></button>
-    </div>`);
-  });
-  return linhas;
-}
-
-function dbLinhaPendencia(p){
-  const tom = categoriaAcao(p) === 'atrasado' ? 'danger' : 'warn';
-  const abrir = dbAcao(() => p.origem.funcao());
-  const titulo = p.titulo.replace(/^[^:]+:\s*/, '');
-  let acoes = '';
-  if (p.tipo === 'tarefa_atrasada') acoes = `<button type="button" class="btn btn-sm" data-db="${dbAcao(() => concluirAtividade(p.origem.id))}">✓ Concluir</button>`;
-  else if (p.tipo === 'documento_vencido' || p.tipo === 'documento_vencendo') acoes = `<button type="button" class="btn btn-sm" data-db="${dbAcao(() => abrirFormRenovarDocumento(p.origem.id))}">Renovar</button>`;
-  else if (p.tipo === 'atendimento_atrasado') acoes = `<div class="at-presenca">
-      <button type="button" data-db="${dbAcao(() => { atualizarPresenca(p.origem.id, 'veio'); renderDashboard(); })}">✓ Veio</button>
-      <button type="button" data-db="${dbAcao(() => abrirJustificativaFalta(p.origem.id))}">✕ Faltou</button></div>`;
-  return `<div class="db-item t-${tom}">
-    <button type="button" class="db-item-corpo" data-db="${abrir}"><span class="db-tipo">${DB_TIPO_ROTULO[p.tipo] || 'Item'}</span><strong>${dbEsc(titulo)}</strong><small>${dbEsc(p.descricao)}</small></button>
-    ${acoes ? `<div class="db-item-acoes">${acoes}</div>` : ''}
-  </div>`;
+  const l = pendMontarLinhas(pendencias.filter(p => ['atrasado','atencao'].includes(categoriaAcao(p))), dbAcao, 'db', 2);
+  return { atrasado: l.atrasado, atencao: l.atencao };
 }
 
 /* ---------- Hoje e próximos dias (Agenda + Atendimentos) ---------- */

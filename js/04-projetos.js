@@ -1139,13 +1139,14 @@ function openFormPendencia(projectId){
     abrirDetalheProjeto(p.id,'pendencias');
   };
 }
-function togglePendenciaProjeto(projectId,itemId){
+function togglePendenciaProjeto(projectId,itemId,ficarNaTela){
   const p=projectData(DB.getById('projetos',projectId));
   const item=p.pendencias.find(x=>x.id===itemId);
   if(!item)return;
   item.status = item.status==='Concluída' ? 'Pendente' : 'Concluída';
   projectSave(p);
   registrarHistorico({modulo:'projeto',acao:'pendência',descricao:`Pendência "${item.titulo}" marcada como ${item.status.toLowerCase()}.`,refId:p.id});
+  if(ficarNaTela){ showToast('✓ Pendência resolvida.'); renderCurrentView(); return; }
   abrirDetalheProjeto(p.id,'pendencias');
 }
 function excluirPendenciaProjeto(projectId,itemId){

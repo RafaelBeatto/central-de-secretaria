@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Central da Secretaria</title>
-<link rel="stylesheet" href="style.css?v=20260924-2">
+<link rel="stylesheet" href="style.css?v=20260924-3">
 </head>
 <body>
 
@@ -106,34 +106,7 @@
 
       <!-- PENDÊNCIAS -->
       <section class="view" id="view-pendencias" data-view="pendencias" hidden>
-        <div class="section-intro">
-        </div>
-
-        <div class="toolbar">
-          <div class="filters" id="filtrosPendencias">
-            <select class="input" data-filter="prioridade">
-              <option value="">Todas as pendências</option>
-              <option value="urgente">🔴 Urgentes</option>
-              <option value="atencao">🟠 Atenção</option>
-              <option value="proximo">🟡 Próximas ações</option>
-            </select>
-            <select class="input" data-filter="tipo">
-              <option value="">Todos os tipos</option>
-              <option value="documento_vencido">Documentos vencidos</option>
-              <option value="documento_vencendo">Documentos vencendo</option>
-              <option value="tarefa_atrasada">Tarefas atrasadas</option>
-              <option value="tarefa_hoje">Tarefas de hoje</option>
-              <option value="tarefa_proxima">Tarefas próximas</option>
-              <option value="evento_hoje">Compromissos de hoje</option>
-              <option value="atendimento_sem_presenca">Atendimentos sem presença</option>
-              <option value="atendimento_atrasado">Atendimentos atrasados</option>
-              <option value="projeto_pendencia">🟣 Projetos aguardando ação</option>
-            </select>
-          </div>
-        </div>
-
-        <div id="listaPendencias" class="pendencias-list"></div>
-        <div class="empty-state" id="vazioPendencias" hidden>Nenhuma pendência! Tudo está em dia. 🎉</div>
+        <div id="pdRoot" class="pd-root"></div>
       </section>
 
       <!-- PROJETOS -->
@@ -222,6 +195,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <!-- Ao publicar mudanças, troque o número de versão (v=) aqui e no style.css acima:
      isso obriga o navegador a baixar os arquivos novos em vez de usar os guardados. -->
-<script src="script.js?v=20260924-2"></script>
+<script src="script.js?v=20260924-3"></script>
 </body>
 </html>

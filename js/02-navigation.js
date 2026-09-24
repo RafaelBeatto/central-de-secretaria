@@ -3,7 +3,7 @@
    --------------------------------------------------------- */
 const VIEW_META = {
   dashboard: { title:'Dashboard', sub:'O que resolver, o que tem hoje e como estão os projetos' },
-  pendencias: { title:'Pendências', sub:'Tudo que exige ação, em um só lugar' },
+  pendencias: { title:'Pendências', sub:'Tudo o que espera por você, com a ação ali mesmo' },
   projetos: { title:'Projetos', sub:'Recursos recebidos e onde cada real foi aplicado' },
   solicitacoes: { title:'Secretaria', sub:'Tarefas e rotinas do dia a dia' },
   agenda: { title:'Agenda', sub:'Eventos, tarefas e prazos num só calendário' },
@@ -18,7 +18,7 @@ const VIEW_META = {
 
 const HELP_TEXT = {
   dashboard: 'A página de entrada. Em "Para resolver" ficam o que está atrasado e o que pede atenção, com o botão para resolver ali mesmo (concluir tarefa, renovar documento, marcar presença). Ao lado, o que tem hoje e nos próximos 7 dias. Embaixo, o andamento dos projetos e três números da semana. Clique em qualquer item para abrir o registro.',
-  pendencias: 'Reúne automaticamente todas as pendências do sistema: documentos vencidos/vencendo, tarefas atrasadas e compromissos de hoje. Veja tudo por prioridade em um só lugar.',
+  pendencias: 'Tudo o que precisa de ação, reunido sozinho a partir das outras telas: tarefas atrasadas e de hoje, documentos vencidos ou perto de vencer, atendimentos sem presença, compromissos de hoje e o que falta nos projetos. Resolva ali mesmo (Concluir, Renovar, Veio/Faltou, Feito, Resolvida) ou clique no item para abrir o registro. Use os filtros para ver só uma área.',
   projetos: 'Cada recurso é um dinheiro que entrou na APAE (convênio, emenda, doação). Dentro dele ficam as execuções: cada aplicação desse dinheiro, com plano, cotações, compra, documentos e pagamentos. A barra lateral da execução mostra quais etapas já estão registradas.',
   solicitacoes: 'As tarefas aparecem separadas por quando precisam ser feitas: atrasadas, hoje, próximos 7 dias e mais adiante. Escreva no campo do topo e aperte Enter para adicionar rápido; use Mais opções para rotinas que se repetem (toda semana, todo mês). Clique numa tarefa para ver detalhes, checklist e histórico.',
   agenda: 'Um calendário só para tudo que tem data: eventos (reuniões, visitas, compromissos), tarefas da Secretaria e prazos de documentos e projetos. Clique num dia para ver o que tem nele, clique num evento para ver detalhes, e arraste eventos e tarefas para outra data. Use as etiquetas coloridas para esconder o que não quer ver.',

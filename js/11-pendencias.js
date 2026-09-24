@@ -60,7 +60,7 @@ function coletarTodasPendencias(){
       tipo: 'tarefa_atrasada',
       prioridade: 'urgente',
       titulo: `Tarefa atrasada: ${s.titulo}`,
-      descricao: `${prazoTexto(prazo).texto} (Responsável: ${s.responsavel || 'Não atribuído'})`,
+      descricao: `${prazoTexto(prazo).texto}${s.responsavel ? ` · ${s.responsavel}` : ''}`,
       data: prazo,
       origem: { modulo: 'solicitacoes', id: s.id, funcao: () => abrirDetalheSolicitacao(s.id) },
       icon: '🔴'
@@ -82,7 +82,7 @@ function coletarTodasPendencias(){
       tipo: 'tarefa_hoje',
       prioridade: 'proximo',
       titulo: `Tarefa de hoje: ${s.titulo}`,
-      descricao: `Prazo hoje (Responsável: ${s.responsavel || 'Não atribuído'})`,
+      descricao: `Prazo hoje${s.responsavel ? ` · ${s.responsavel}` : ''}`,
       data: prazo,
       origem: { modulo: 'solicitacoes', id: s.id, funcao: () => abrirDetalheSolicitacao(s.id) },
       icon: '🟡'
@@ -107,7 +107,7 @@ function coletarTodasPendencias(){
       tipo: 'tarefa_proxima',
       prioridade: 'proximo',
       titulo: `Prazo próximo: ${s.titulo}`,
-      descricao: `Em ${dias} dia${dias===1?'':'s'} (Responsável: ${s.responsavel || 'Não atribuído'})`,
+      descricao: `Em ${dias} dia${dias===1?'':'s'}${s.responsavel ? ` · ${s.responsavel}` : ''}`,
       data: prazo,
       origem: { modulo: 'solicitacoes', id: s.id, funcao: () => abrirDetalheSolicitacao(s.id) },
       icon: '🟡'
@@ -126,7 +126,7 @@ function coletarTodasPendencias(){
       tipo: 'evento_hoje',
       prioridade: 'proximo',
       titulo: `Compromisso de hoje: ${e.titulo}`,
-      descricao: `${e.horarioInicio || 'Sem horário'} (Local: ${e.local || 'Sem local'})`,
+      descricao: [e.horarioInicio || 'sem horário', e.local].filter(Boolean).join(' · '),
       data: e.data,
       origem: { modulo: 'eventos', id: e.id, funcao: () => abrirDetalheEvento(e.id) },
       icon: '🟡'
@@ -166,8 +166,23 @@ function coletarTodasPendencias(){
 function coletarPendenciasDeProjetos(){
   if (typeof projectData !== 'function' || typeof projectChecklist !== 'function') return [];
   const pendencias = [];
-  DB.getAll('projetos')
-    .filter(p => p.tipo !== 'recurso' && !['Concluído', 'Cancelado'].includes(p.status))
+  const todos = DB.getAll('projetos');
+  const arquivado = p => p.arquivado || (p.paiId && todos.find(x => x.id === p.paiId)?.arquivado);
+  // Pendências registradas à mão dentro de um projeto (seção Pendências do projeto).
+  todos.filter(p => !arquivado(p) && !['Concluído','Cancelado','Encerrado'].includes(p.status)).forEach(p => {
+    (p.pendencias || []).filter(x => x && x.status !== 'Concluída').forEach(x => {
+      pendencias.push({
+        id: `prj-item-${p.id}-${x.id}`, tipo: 'projeto_item', prioridade: 'atencao',
+        titulo: `Pendência do projeto: ${x.titulo}`,
+        descricao: [p.nome, x.prioridade && !['Normal','Média'].includes(x.prioridade) && `prioridade ${x.prioridade.toLowerCase()}`].filter(Boolean).join(' · '),
+        data: null,
+        origem: { modulo: 'projetos', id: p.id, itemId: x.id, funcao: () => abrirDetalheProjeto(p.id, 'pendencias') },
+        icon: '🟣'
+      });
+    });
+  });
+  todos
+    .filter(p => p.tipo !== 'recurso' && !arquivado(p) && !['Concluído', 'Cancelado', 'Suspenso'].includes(p.status))
     .forEach(p => {
       const pd = projectData({ ...p });
       const recurso = pd.paiId ? DB.getById('projetos', pd.paiId) : null;
@@ -204,128 +219,139 @@ const CATEGORIA_ACAO_POR_TIPO = {
   atendimento_sem_presenca: 'hoje',
   documento_vencendo: 'atencao',
   projeto_pendencia: 'atencao',
+  projeto_item: 'atencao',
   tarefa_proxima: 'proximo'
 };
 function categoriaAcao(pendencia){
   return CATEGORIA_ACAO_POR_TIPO[pendencia.tipo] || 'atencao';
 }
 
-function renderPendencias(){
-  const filtros = getFiltrosValores('filtrosPendencias');
-  let pendencias = coletarTodasPendencias();
 
-  if (filtros.prioridade) {
-    pendencias = pendencias.filter(p => p.prioridade === filtros.prioridade);
-  }
-  if (filtros.tipo) {
-    pendencias = pendencias.filter(p => p.tipo === filtros.tipo);
-  }
+/* ---------------------------------------------------------
+   21.2 LINHAS COM AÇÃO RÁPIDA — usadas aqui e no Dashboard
+   reg(fn) guarda a ação e devolve um índice; attr é o nome do
+   data-atributo que o despachante de cada tela escuta (data-pd, data-db).
+   --------------------------------------------------------- */
+const PEND_ROTULO_TIPO = {
+  tarefa_atrasada:'Tarefa', tarefa_hoje:'Tarefa', tarefa_proxima:'Tarefa',
+  documento_vencido:'Documento', documento_vencendo:'Documento',
+  atendimento_atrasado:'Atendimento', atendimento_sem_presenca:'Atendimento',
+  evento_hoje:'Agenda', projeto_pendencia:'Projeto', projeto_item:'Projeto'
+};
+const PEND_ORIGEM = {
+  tarefa_atrasada:'tarefas', tarefa_hoje:'tarefas', tarefa_proxima:'tarefas',
+  documento_vencido:'documentos', documento_vencendo:'documentos',
+  atendimento_atrasado:'atendimentos', atendimento_sem_presenca:'atendimentos',
+  evento_hoje:'agenda', projeto_pendencia:'projetos', projeto_item:'projetos'
+};
+const PEND_TOM = { atrasado:'danger', hoje:'hoje', atencao:'warn', proximo:'neutral' };
 
-  // Ordenar por prioridade e depois por data
-  const prioridades = { urgente: 0, atencao: 1, proximo: 2 };
-  pendencias.sort((a, b) => {
-    const priorDiff = (prioridades[a.prioridade] || 9) - (prioridades[b.prioridade] || 9);
-    if (priorDiff !== 0) return priorDiff;
-
-    const dataA = parseISODate(a.data)?.getTime() || 0;
-    const dataB = parseISODate(b.data)?.getTime() || 0;
-    return dataA - dataB;
-  });
-
-  const container = document.getElementById('listaPendencias');
-  const emptyEl = document.getElementById('vazioPendencias');
-
-  if (!pendencias.length) {
-    container.hidden = true;
-    emptyEl.hidden = false;
-    return;
-  }
-
-  container.hidden = false;
-  emptyEl.hidden = true;
-
-  // Agrupar por prioridade
-  const grupos = {
-    urgente: [],
-    atencao: [],
-    proximo: []
-  };
-  pendencias.forEach(p => {
-    if (grupos[p.prioridade]) grupos[p.prioridade].push(p);
-  });
-
-  let html = '';
-
-  if (grupos.urgente.length) {
-    html += `<div class="pendencias-group"><div class="pendencias-group-title">🔴 Urgentes (${grupos.urgente.length})</div>`;
-    html += grupos.urgente.map((p, i) => `
-      <div class="pendencia-card urgente" data-idx="urgente-${i}">
-        <div class="pendencia-header">
-          <div class="pendencia-title">${escapeHTML(p.titulo)}</div>
-          <span class="pendencia-icon">${p.icon}</span>
-        </div>
-        <div class="pendencia-desc">${escapeHTML(p.descricao)}</div>
-        <div class="pendencia-footer">
-          <span class="pendencia-date">${formatDateBR(p.data) || 'Sem data'}</span>
-          <button class="btn btn-sm btn-primary pendencia-action" data-idx="urgente-${i}">Acessar</button>
-        </div>
-      </div>
-    `).join('');
-    html += `</div>`;
-  }
-
-  if (grupos.atencao.length) {
-    html += `<div class="pendencias-group"><div class="pendencias-group-title">🟠 Atenção (${grupos.atencao.length})</div>`;
-    html += grupos.atencao.map((p, i) => `
-      <div class="pendencia-card atencao" data-idx="atencao-${i}">
-        <div class="pendencia-header">
-          <div class="pendencia-title">${escapeHTML(p.titulo)}</div>
-          <span class="pendencia-icon">${p.icon}</span>
-        </div>
-        <div class="pendencia-desc">${escapeHTML(p.descricao)}</div>
-        <div class="pendencia-footer">
-          <span class="pendencia-date">${formatDateBR(p.data) || 'Sem data'}</span>
-          <button class="btn btn-sm btn-primary pendencia-action" data-idx="atencao-${i}">Acessar</button>
-        </div>
-      </div>
-    `).join('');
-    html += `</div>`;
-  }
-
-  if (grupos.proximo.length) {
-    html += `<div class="pendencias-group"><div class="pendencias-group-title">🟡 Próximas ações (${grupos.proximo.length})</div>`;
-    html += grupos.proximo.map((p, i) => `
-      <div class="pendencia-card proximo" data-idx="proximo-${i}">
-        <div class="pendencia-header">
-          <div class="pendencia-title">${escapeHTML(p.titulo)}</div>
-          <span class="pendencia-icon">${p.icon}</span>
-        </div>
-        <div class="pendencia-desc">${escapeHTML(p.descricao)}</div>
-        <div class="pendencia-footer">
-          <span class="pendencia-date">${formatDateBR(p.data) || 'Sem data'}</span>
-          <button class="btn btn-sm btn-primary pendencia-action" data-idx="proximo-${i}">Acessar</button>
-        </div>
-      </div>
-    `).join('');
-    html += `</div>`;
-  }
-
-  container.innerHTML = html;
-
-  // Bindear ações
-  container.querySelectorAll('.pendencia-action[data-idx]').forEach(btn => {
-    const idx = btn.dataset.idx;
-    const [grupo, i] = idx.split('-');
-    const p = grupos[grupo][Number(i)];
-    if (p && p.origem) {
-      btn.addEventListener('click', () => {
-        if (p.origem.funcao) p.origem.funcao();
-      });
-    }
-  });
+function pendLinhaHTML(p, reg, attr){
+  const a = fn => `data-${attr}="${reg(fn)}"`;
+  const titulo = p.titulo.replace(/^[^:]+:\s*/, '');
+  let acoes = '';
+  if (p.tipo.startsWith('tarefa_')) acoes = `<button type="button" class="btn btn-sm" ${a(() => concluirAtividade(p.origem.id))}>✓ Concluir</button>`;
+  else if (p.tipo.startsWith('documento_')) acoes = `<button type="button" class="btn btn-sm" ${a(() => abrirFormRenovarDocumento(p.origem.id))}>Renovar</button>`;
+  else if (p.tipo.startsWith('atendimento_')) acoes = `<div class="at-presenca">
+      <button type="button" ${a(() => { atualizarPresenca(p.origem.id, 'veio'); renderCurrentView(); })}>✓ Veio</button>
+      <button type="button" ${a(() => abrirJustificativaFalta(p.origem.id))}>✕ Faltou</button></div>`;
+  else if (p.tipo === 'evento_hoje') acoes = `<button type="button" class="btn btn-sm" ${a(() => marcarEventoConcluido(p.origem.id))}>✓ Feito</button>`;
+  else if (p.tipo === 'projeto_item') acoes = `<button type="button" class="btn btn-sm" ${a(() => togglePendenciaProjeto(p.origem.id, p.origem.itemId, true))}>✓ Resolvida</button>`;
+  return `<div class="db-item t-${PEND_TOM[categoriaAcao(p)]}">
+    <button type="button" class="db-item-corpo pd-abrir" ${a(() => p.origem.funcao())}><span class="db-tipo">${PEND_ROTULO_TIPO[p.tipo] || 'Item'}</span><strong>${escapeHTML(titulo)}</strong>${p.descricao ? `<small>${escapeHTML(p.descricao)}</small>` : ''}</button>
+    ${acoes ? `<div class="db-item-acoes">${acoes}</div>` : ''}
+  </div>`;
 }
 
-// Renderizar pendências ao mudar filtros
-document.querySelectorAll('#filtrosPendencias [data-filter]').forEach(el => {
-  el.addEventListener('change', renderPendencias);
-});
+/* Monta as linhas por categoria. As etapas do checklist de um mesmo
+   projeto viram uma linha só; atendimentos sem presença acima de
+   maxAtend (por categoria) também, levando à tela de Atendimentos. */
+function pendMontarLinhas(pendencias, reg, attr, maxAtend = 5){
+  const cats = { atrasado:[], hoje:[], atencao:[], proximo:[] };
+  const atend = { atrasado:[], hoje:[] }, porProjeto = new Map();
+  pendencias.forEach(p => {
+    const cat = categoriaAcao(p);
+    if (p.tipo === 'projeto_pendencia') { if (!porProjeto.has(p.origem.id)) porProjeto.set(p.origem.id, []); porProjeto.get(p.origem.id).push(p); return; }
+    if (p.tipo.startsWith('atendimento_') && atend[cat]) { atend[cat].push(p); return; }
+    (cats[cat] || cats.atencao).push(p);
+  });
+  const porData = (x, y) => String(x.data || '9999').localeCompare(String(y.data || '9999'));
+  const linhas = {};
+  Object.keys(cats).forEach(k => { linhas[k] = cats[k].sort(porData).map(p => pendLinhaHTML(p, reg, attr)); });
+  Object.entries(atend).forEach(([cat, lista]) => {
+    if (lista.length <= maxAtend) { lista.sort(porData).forEach(p => linhas[cat].push(pendLinhaHTML(p, reg, attr))); return; }
+    const maisAntigo = lista.map(p => DB.getById('atendimentos', p.origem.id)).filter(Boolean).sort((x, y) => x.data.localeCompare(y.data))[0];
+    const ir = reg(() => { atEstado.soPendentes = true; atEstado.dia = 'semana'; atEstado.painel = null; atendSemanaAtual = atendSegundaDaSemana(maisAntigo.data); goToView('atendimentos'); });
+    linhas[cat].push(`<div class="db-item t-${PEND_TOM[cat]}">
+      <button type="button" class="db-item-corpo pd-abrir" data-${attr}="${ir}"><span class="db-tipo">Atendimentos</span><strong>${lista.length} atendimentos sem presença marcada</strong><small>${cat === 'hoje' ? 'De hoje' : `O mais antigo é de ${formatDateBR(maisAntigo.data)}`}</small></button>
+      <div class="db-item-acoes"><button type="button" class="btn btn-sm" data-${attr}="${ir}">Registrar</button></div></div>`);
+  });
+  porProjeto.forEach(lista => {
+    const pr = DB.getById('projetos', lista[0].origem.id);
+    const pai = pr?.paiId ? DB.getById('projetos', pr.paiId) : null;
+    const etapas = lista.map(p => p.titulo.split(' — ').pop());
+    linhas.atencao.push(`<div class="db-item t-warn">
+      <button type="button" class="db-item-corpo pd-abrir" data-${attr}="${reg(() => lista[0].origem.funcao())}"><span class="db-tipo">Projeto</span><strong>${escapeHTML(pr?.nome)}${pai ? ` <em>· ${escapeHTML(pai.nome)}</em>` : ''}</strong><small>Falta: ${etapas.map(escapeHTML).join(', ')}</small></button>
+    </div>`);
+  });
+  return linhas;
+}
+
+/* ---------------------------------------------------------
+   21.3 TELA DE PENDÊNCIAS
+   --------------------------------------------------------- */
+let pdEstado = { origem:'', busca:'' };
+let pdAcoes = [];
+function pdAcao(fn){ pdAcoes.push(fn); return pdAcoes.length - 1; }
+const PD_SECOES = [
+  ['atrasado', 'Atrasado', 'Passou do prazo — resolva primeiro.'],
+  ['hoje', 'Para hoje', 'Tarefas, compromissos e atendimentos de hoje.'],
+  ['atencao', 'Precisa de atenção', 'Documentos perto de vencer e etapas de projetos.'],
+  ['proximo', 'Próximos dias', 'Tarefas com prazo nos próximos 3 dias.']
+];
+const PD_ORIGENS = [['tarefas','Tarefas'],['documentos','Documentos'],['atendimentos','Atendimentos'],['agenda','Agenda'],['projetos','Projetos']];
+
+function renderPendencias(){
+  const root = document.getElementById('pdRoot'); if (!root) return;
+  pdAcoes = [];
+  const todas = coletarTodasPendencias();
+  const q = normalizarFiltro(pdEstado.busca);
+  const visiveis = todas.filter(p => (!pdEstado.origem || PEND_ORIGEM[p.tipo] === pdEstado.origem)
+    && (!q || normalizarFiltro(`${p.titulo} ${p.descricao || ''}`).includes(q)));
+  const linhas = pendMontarLinhas(visiveis, pdAcao, 'pd', 8);
+  // Conta como a lista mostra: as etapas de um projeto são uma linha só.
+  const porOrigem = {}, vistos = new Set();
+  todas.forEach(p => {
+    if (p.tipo === 'projeto_pendencia') { if (vistos.has(p.origem.id)) return; vistos.add(p.origem.id); }
+    const o = PEND_ORIGEM[p.tipo]; porOrigem[o] = (porOrigem[o] || 0) + 1;
+  });
+  const totalLinhas = Object.values(porOrigem).reduce((a, b) => a + b, 0);
+  const conta = k => linhas[k].length;
+  const frase = { atrasado: n => n === 1 ? 'atrasado' : 'atrasados', hoje: () => 'para hoje', atencao: n => n === 1 ? 'precisa de atenção' : 'precisam de atenção', proximo: () => 'nos próximos dias' };
+  const resumo = PD_SECOES.filter(([k]) => conta(k)).map(([k]) => `<b class="t-${PEND_TOM[k]}">${conta(k)}</b> ${frase[k](conta(k))}`).join(' · ');
+  const chip = (v, t, n) => `<button type="button" class="hi-chip ${pdEstado.origem===v?'is-ativo':''}" data-pd-origem="${v}" aria-pressed="${pdEstado.origem===v}">${t}<span>${n}</span></button>`;
+  const focoBusca = document.activeElement?.id === 'pdBusca';
+  root.innerHTML = `
+    <p class="pd-resumo">${todas.length ? (resumo || 'Nada com esses filtros.') : ''}</p>
+    ${todas.length ? `<div class="pd-filtros">
+      <input type="search" class="input" id="pdBusca" placeholder="Buscar…" value="${escapeHTML(pdEstado.busca)}" aria-label="Buscar pendência">
+      <div class="hi-chips">${chip('', 'Tudo', totalLinhas)}${PD_ORIGENS.filter(([k]) => porOrigem[k]).map(([k, t]) => chip(k, t, porOrigem[k])).join('')}</div>
+    </div>` : ''}
+    ${!todas.length ? '<div class="db-emdia pd-emdia"><strong>✓ Nada pendente</strong><span>Nenhuma tarefa atrasada, documento vencendo, atendimento sem presença ou etapa de projeto esperando.</span></div>'
+      : PD_SECOES.filter(([k]) => conta(k)).map(([k, t, dica]) => `<section class="db-card pd-secao">
+          <header><h2 class="t-${PEND_TOM[k]}">${t} <span>${conta(k)}</span></h2><small>${dica}</small></header>
+          ${linhas[k].join('')}
+        </section>`).join('')}`;
+  if (focoBusca) { const b = document.getElementById('pdBusca'); b.focus(); b.setSelectionRange(b.value.length, b.value.length); }
+}
+
+(function ligarPendencias(){
+  const root = document.getElementById('pdRoot'); if (!root) return;
+  root.addEventListener('click', e => {
+    const o = e.target.closest('[data-pd-origem]');
+    if (o) { pdEstado.origem = o.dataset.pdOrigem; renderPendencias(); return; }
+    const b = e.target.closest('[data-pd]');
+    if (b && root.contains(b)) pdAcoes[Number(b.dataset.pd)]?.();
+  });
+  root.addEventListener('input', e => { if (e.target.id === 'pdBusca') { pdEstado.busca = e.target.value; renderPendencias(); } });
+})();
