@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central da Secretaria</title>
+<link rel="stylesheet" href="style.css?v=20260928-1">
+</head>
+<body>
+
+<!-- ======================= MOBILE HEADER ======================= -->
+<header class="mobile-bar">
+  <button id="btnMenu" class="icon-btn" aria-label="Abrir menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <span class="mobile-title">Central da Secretaria</span>
+  <button id="btnThemeMobile" class="icon-btn" aria-label="Alternar tema">🌙</button>
+</header>
+
+<div class="app-shell">
+
+  <!-- ======================= SIDEBAR ======================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark">CS</span>
+      <span class="brand-name">Central da Secretaria</span>
+    </div>
+
+    <nav class="nav" aria-label="Navegação principal">
+      <div class="nav-grupo">
+        <button class="nav-item is-active" data-view="dashboard"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="nav-rotulo">Dashboard</span><span class="nav-conta" data-conta="dashboard" hidden></span></button>
+        <button class="nav-item" data-view="pendencias"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 2.8 19.5h18.4L12 3.5Z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg></span><span class="nav-rotulo">Pendências</span><span class="nav-conta" data-conta="pendencias" hidden></span></button>
+      </div>
+      <div class="nav-grupo"><span class="nav-grupo-titulo">Dia a dia</span>
+        <button class="nav-item" data-view="solicitacoes"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.8h6V4"/><path d="M9 10h6M9 14h6M9 18h3"/></svg></span><span class="nav-rotulo">Secretaria</span><span class="nav-conta" data-conta="solicitacoes" hidden></span></button>
+        <button class="nav-item" data-view="agenda"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><span class="nav-rotulo">Agenda</span><span class="nav-conta" data-conta="agenda" hidden></span></button>
+        <button class="nav-item" data-view="atendimentos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg></span><span class="nav-rotulo">Atendimentos</span><span class="nav-conta" data-conta="atendimentos" hidden></span></button>
+        <button class="nav-item" data-view="kanban"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="11" rx="1.5"/><rect x="16" y="4" width="5" height="14" rx="1.5"/></svg></span><span class="nav-rotulo">Kanban</span><span class="nav-conta" data-conta="kanban" hidden></span></button>
+      </div>
+      <div class="nav-grupo"><span class="nav-grupo-titulo">Controle</span>
+        <button class="nav-item" data-view="projetos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4L11 8.5h8.5A1.5 1.5 0 0 1 21 10v7.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5Z"/></svg></span><span class="nav-rotulo">Projetos</span><span class="nav-conta" data-conta="projetos" hidden></span></button>
+        <button class="nav-item" data-view="documentos"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg></span><span class="nav-rotulo">Documentos</span><span class="nav-conta" data-conta="documentos" hidden></span></button>
+        <button class="nav-item" data-view="gerador"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M9 13.5h6M9 17h6"/><circle cx="9.6" cy="10" r="1.1"/></svg></span><span class="nav-rotulo">Gerador de Documentos</span><span class="nav-conta" data-conta="gerador" hidden></span></button>
+      </div>
+      <div class="nav-grupo"><span class="nav-grupo-titulo">Consultar</span>
+        <button class="nav-item" data-view="historico"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4v4.5h4.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><span class="nav-rotulo">Histórico</span><span class="nav-conta" data-conta="historico" hidden></span></button>
+        <button class="nav-item" data-view="relatorios"><span class="nav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="nav-rotulo">Relatórios</span><span class="nav-conta" data-conta="relatorios" hidden></span></button>
+      </div>
+    </nav>
+
+    <div class="storage-indicator" id="storageIndicator" hidden></div>
+    <button type="button" class="menu-recolher" id="btnRecolherMenu" aria-label="Recolher menu" aria-expanded="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m15.5 10-2 2 2 2"/></svg>
+      <span>Recolher menu</span>
+    </button>
+
+  </aside>
+
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ======================= MAIN ======================= -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-title">
+        <div class="page-title-row"><h1 id="pageTitle">Dashboard</h1><button type="button" class="page-help" id="btnAjudaPagina" aria-label="Como funciona esta tela" title="Como funciona esta tela">?</button></div>
+        <p id="pageSubtitle" class="muted">Visão geral da secretaria</p>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="quick-search">
+          <span class="qs-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg></span>
+          <input type="search" id="quickSearch" placeholder="Pesquisar em tudo..." aria-label="Pesquisa rápida">
+        </div>
+        <button class="btn btn-primary" id="btnNewGeneric">＋ Novo registro</button>
+        <div class="clock" id="clockBox">
+          <span id="clockTime">--:--</span>
+          <span id="clockDate" class="muted">--/--/----</span>
+        </div>
+        <button class="icon-btn" id="btnTheme" aria-label="Alternar tema">🌙</button>
+      </div>
+    </header>
+
+    <!-- NOTIFICATIONS PANEL -->
+    <!-- TOAST -->
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <!-- QUICK SEARCH RESULTS -->
+    <div id="quickSearchResults" class="qs-results" hidden></div>
+
+    <!-- ======================= VIEWS ======================= -->
+    <main id="viewport">
+
+      <!-- DASHBOARD -->
+      <section class="view" id="view-dashboard" data-view="dashboard">
+        <div id="dbRoot" class="db-root"></div>
+      </section>
+
+      <!-- PENDÊNCIAS -->
+      <section class="view" id="view-pendencias" data-view="pendencias" hidden>
+        <div id="pdRoot" class="pd-root"></div>
+      </section>
+
+      <!-- PROJETOS -->
+      <section class="view" id="view-projetos" data-view="projetos" hidden>
+        <div id="pjRoot" class="pj-root"></div>
+      </section>
+
+      <!-- SECRETARIA -->
+      <section class="view" id="view-solicitacoes" data-view="solicitacoes" hidden>
+        <div id="secRoot" class="sec-root"></div>
+      </section>
+
+      <!-- AGENDA V1 -->
+      <section class="view" id="view-agenda" data-view="agenda" hidden>
+        <div id="agRoot" class="ag-root"></div>
+      </section>
+
+      <!-- DOCUMENTOS -->
+      <section class="view" id="view-documentos" data-view="documentos" hidden>
+        <div id="dcRoot" class="dc-root"></div>
+      </section>
+
+
+      <!-- PESQUISA -->
+      <section class="view" id="view-pesquisa" data-view="pesquisa" hidden>
+        <div class="ps-root">
+          <input type="search" class="input ps-busca" id="buscaGeralInput" placeholder="Buscar em tudo: nome, número, CNPJ, assunto…" aria-label="Buscar em tudo">
+          <div id="resultadosBuscaGeral"></div>
+        </div>
+      </section>
+
+      <!-- KANBAN -->
+      <section class="view" id="view-kanban" data-view="kanban" hidden>
+        <div id="kbRoot" class="kb-root"></div>
+      </section>
+
+      <!-- HISTÓRICO -->
+      <section class="view" id="view-historico" data-view="historico" hidden>
+        <div id="hiRoot" class="hi-root"></div>
+      </section>
+
+      <!-- RELATÓRIOS -->
+      <section class="view" id="view-relatorios" data-view="relatorios" hidden>
+        <div id="rlRoot" class="rl-root"></div>
+      </section>
+
+      <!-- MODELOS DE DOCUMENTOS -->
+      <!-- GERADOR DE DOCUMENTOS -->
+      <section class="view" id="view-gerador" data-view="gerador" hidden>
+        <div id="geRoot" class="ge-root"></div>
+      </section>
+
+      <!-- ATENDIMENTOS -->
+      <section class="view" id="view-atendimentos" data-view="atendimentos" hidden>
+        <div id="atRoot" class="at-root"></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ======================= MODAL (formulários / detalhes) ======================= -->
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal" id="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2 id="modalTitle">Título</h2>
+      <button class="icon-btn" id="btnCloseModal" aria-label="Fechar">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="modal-backdrop" id="confirmBackdrop" hidden>
+  <div class="modal modal-sm" role="alertdialog" aria-modal="true">
+    <div class="modal-body">
+      <p id="confirmText">Tem certeza?</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="btnConfirmCancel">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmOk">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Gerador de PDF guardado junto com o sistema: funciona sem internet. -->
+<script src="js/vendor/html2pdf.bundle.min.js?v=0.10.1"></script>
+<!-- Ao publicar mudanças, troque o número de versão (v=) aqui e no style.css acima:
+     isso obriga o navegador a baixar os arquivos novos em vez de usar os guardados. -->
+<script src="script.js?v=20260928-1"></script>
+</body>
+</html>

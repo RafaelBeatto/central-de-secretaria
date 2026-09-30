@@ -1,0 +1,20 @@
+#!/bin/sh
+# Wrapper do Maven: baixa a distribuição definida em .mvn/wrapper/maven-wrapper.properties
+# (uma única vez, em ~/.m2/wrapper/dists) e executa o mvn com os argumentos recebidos.
+set -e
+RAIZ=$(cd "$(dirname "$0")" && pwd)
+URL_DISTRIBUICAO=$(sed -n 's/^distributionUrl=//p' "$RAIZ/.mvn/wrapper/maven-wrapper.properties" | tr -d '\r')
+ARQUIVO_ZIP=$(basename "$URL_DISTRIBUICAO")
+NOME_DISTRIBUICAO=${ARQUIVO_ZIP%-bin.zip}
+PASTA_DISTRIBUICAO="$HOME/.m2/wrapper/dists/$NOME_DISTRIBUICAO"
+MVN_EXE="$PASTA_DISTRIBUICAO/$NOME_DISTRIBUICAO/bin/mvn"
+
+if [ ! -x "$MVN_EXE" ]; then
+  echo "Baixando $NOME_DISTRIBUICAO..."
+  mkdir -p "$PASTA_DISTRIBUICAO"
+  curl -fsSL "$URL_DISTRIBUICAO" -o "$PASTA_DISTRIBUICAO/$ARQUIVO_ZIP"
+  unzip -q -o "$PASTA_DISTRIBUICAO/$ARQUIVO_ZIP" -d "$PASTA_DISTRIBUICAO"
+  rm "$PASTA_DISTRIBUICAO/$ARQUIVO_ZIP"
+fi
+
+exec "$MVN_EXE" -f "$RAIZ/pom.xml" "$@"

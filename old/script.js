@@ -1,0 +1,52 @@
+/* =========================================================
+   CENTRAL DA SECRETARIA — carregador de módulos
+   Os módulos são carregados em ordem para preservar o comportamento
+   do projeto original sem transformar tudo em ES Modules.
+   ========================================================= */
+(function(){
+  // Repassa a versão do script.js (?v=…) para cada módulo, para o navegador
+  // não misturar arquivos novos com antigos guardados em cache.
+  const versao=new URL(document.currentScript.src).searchParams.get('v')||'';
+  const scripts=[
+    '01-core.js',
+    '02-navigation.js',
+    '03-dashboard.js',
+    '04-projetos.js',
+    '04b-projetos-telas.js',
+    '05a-secretaria.js',
+    '05-agenda.js',
+    '05b-backup.js',
+    '06-documentos.js',
+    '08-pesquisa-historico.js',
+    '08b-historico.js',
+    '09-relatorios.js',
+    '10-inicializacao.js',
+    '11-pendencias.js',
+    '12-relacionamentos.js',
+    '15-kanban.js',
+    '17-gerador-documentos.js',
+    '17b-gerador-telas.js',
+    '18-armazenamento.js',
+    '19-atendimentos.js'
+  ];
+  const base='js/';
+  function load(src){
+    return new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src=base+src+(versao?`?v=${versao}`:''); s.async=false;
+      s.onload=resolve; s.onerror=()=>reject(new Error('Não foi possível carregar '+src));
+      document.body.appendChild(s);
+    });
+  }
+  (async()=>{
+    try{
+      for(const src of scripts) await load(src);
+      // init() (chamado em 10-inicializacao.js) renderiza a view inicial no meio
+      // deste carregamento sequencial, antes de módulos carregados depois
+      // (ex.: pendências, agenda completa, atendimentos, projetos) existirem.
+      // Com tudo já carregado, renderiza de novo para preencher esses blocos.
+      if (typeof renderCurrentView === 'function') renderCurrentView();
+    }
+    catch(e){ console.error(e); const toast=document.getElementById('toast'); if(toast){toast.textContent='⚠ Erro ao carregar uma parte do sistema. Verifique os arquivos do projeto.';toast.hidden=false;} }
+  })();
+})();
