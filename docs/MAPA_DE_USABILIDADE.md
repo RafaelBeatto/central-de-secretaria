@@ -34,7 +34,7 @@ subordinada, todas as telas mostram os dados dela com a faixa "somente leitura" 
 | `/pendencias` | Central de pendências | ⏳ Módulo 7 |
 | `/secretaria` | Tarefas e rotinas (`?tarefa=ID` abre o detalhe) | ✅ |
 | `/agenda` | Calendário: Semana / Mês / Lista, painel do dia ou do item, eventos com repetição, arrastar, imprimir | ✅ |
-| `/atendimentos` | Semana de atendimentos | ⏳ Módulo 3 |
+| `/atendimentos` | Semana de atendimentos | ✅ |
 | `/kanban` | Quadro de tarefas (quadro de execuções de projeto entra no Módulo 5) | ✅ tarefas |
 | `/projetos` | Recursos → execuções | ⏳ Módulo 5 |
 | `/documentos` | Documentos da instituição | ⏳ Módulo 4 |

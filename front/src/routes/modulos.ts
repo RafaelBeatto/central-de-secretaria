@@ -75,6 +75,7 @@ export const MODULOS: Modulo[] = [
     icone: IconHeartHandshake,
     grupo: 'Dia a dia',
     permissao: PERMISSOES.ATENDIMENTO_LER,
+    tela: lazy(() => import('src/views/atendimentos/Atendimentos')),
   },
   {
     caminho: '/kanban',

@@ -64,4 +64,8 @@ public final class Limites {
     public static final int EVENTO_TITULO = 200;
     public static final int EVENTO_LOCAL = 150;
     public static final int EVENTO_PARTICIPANTES = 500;
+
+    // Atendimentos
+    public static final int ATENDIMENTO_NOME = 150;
+    public static final int ATENDIMENTO_REMARCADO_MOTIVO = 200;
 }

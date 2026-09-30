@@ -60,6 +60,7 @@ Chat: `@stomp/stompjs` → `/ws` → `ControladorChatWebSocket` → `ServicoChat
 | **tarefas/** | `Tarefa` (regras de rotina na entidade), `Subtarefa`, `StatusTarefa`, `ServicoTarefa`, `ControladorTarefa` |
 | **agenda/** | `Evento` (regras na entidade), `EventoSerie`, `TipoEvento`, `EscopoSerie`, `ServicoEvento` (CRUD com série), `ServicoAgenda` (itens do período), `ControladorAgenda` |
 | `agenda/fontes/` | `FonteAgenda` (interface: permissão + itens do período), `FonteEventos`, `FonteTarefas` — documentos e projetos entram como novas fontes |
+| **atendimentos/** | `Aluno`, `Profissional` (cadastros de apoio; `Profissional.usuarioId` liga ao usuário professor/profissional), `Atendimento` (regras na entidade: `marcarPresenca`, `remarcarPara`, `desfazerRemarcacao`, `desligarDoOriginal`; série semanal = `serieId` UUID sem tabela própria), `Presenca`, `MotivoFalta`, `ServicoAtendimento` (CRUD, presença, série, remarcação, cópia da semana), `ServicoCadastroAtendimento` (renomear/mesclar/excluir aluno e profissional, contato família, `meuProfissional` do usuário vinculado), `ControladorAtendimento` |
 
 `back/src/main/resources/`: `application.properties` (local) · `db/apae.sql` (schema único + seeds).
 
@@ -93,6 +94,13 @@ Chat: `@stomp/stompjs` → `/ws` → `ControladorChatWebSocket` → `ServicoChat
 `POST /agenda/eventos` · `PUT /agenda/eventos/{id}` (`escopo` SO_ESTA|ESTA_E_PROXIMAS numa série; `frequencia`+`repetirAte` num evento solto) ·
 `DELETE /agenda/eventos/{id}?escopo=SO_ESTA|ESTA_E_PROXIMAS|TODAS` (devolve quantas datas saíram) · `POST /agenda/eventos/{id}/concluir` ·
 `POST /agenda/eventos/{id}/reabrir` · `PATCH /agenda/eventos/{id}/data`.
+
+**Atendimentos** (leitura ATENDIMENTO_LER, alteração ATENDIMENTO_ESCREVER; professor/profissional só veem e criam os próprios):
+`GET /atendimentos?inicio&fim` · `GET /atendimentos/{id}` · `GET /atendimentos/{id}/historico` · `POST /atendimentos` (avulso ou semanal) ·
+`POST /atendimentos/lote` (várias linhas de uma vez, incompletas são ignoradas) · `POST /atendimentos/copiar-semana?segunda=` ·
+`PATCH /atendimentos/{id}/presenca` · `POST /atendimentos/{id}/remarcar` · `DELETE /atendimentos/{id}` · `POST /atendimentos/{id}/encerrar-serie` ·
+`GET|PUT|DELETE /atendimentos/alunos[/{id}]` · `POST /atendimentos/alunos/{id}/mesclar` · `POST /atendimentos/alunos/{id}/contato-familia` ·
+`GET /atendimentos/alunos/{id}/historico` (sem período — filtro de data é no front) · os mesmos 4 últimos para `/atendimentos/profissionais`.
 
 ### Banco — schemas e tabelas (`apae.sql`)
 
@@ -151,6 +159,9 @@ Enums gravados como texto em MAIÚSCULAS (ex.: `EM_ANDAMENTO`); o front traduz p
 | `views/agenda/Agenda.tsx`, `components/apps/agenda/*` | Semana/Mês/Lista, painel do dia/item, formulário com série, diálogos de excluir e mover, arrastar (HTML5), impressão | novo |
 | `types/agenda.ts`, `servicos/agenda.ts`, `utils/agenda.ts` | itens e eventos; período/título/busca/agrupamento da agenda | novo |
 | `hooks/useAvisoAgenda.ts` | aviso 30 min antes dos eventos de hoje (montado no `FullLayout`) | novo |
+| `views/atendimentos/Atendimentos.tsx`, `components/apps/atendimentos/*` | faixa da semana (`FaixaDias`), lista com presença em um clique (`LinhaAtendimento`), painel do atendimento/aluno/profissional, formulário (individual/lote), diálogos de remarcar/justificar falta/gestão de cadastros/lista de presença/relatório | novo |
+| `types/atendimentos.ts`, `servicos/atendimentos.ts`, `utils/atendimentos.ts` | resumo da semana, faltas seguidas (cálculo no front a partir do histórico já carregado), agrupamento por dia | novo |
+| `utils/documentoA4.ts`, `utils/impressaoPdf.ts` | folha A4 com cabeçalho institucional + `imprimir`/`salvarPdf` (`html2pdf.js`, import dinâmico); reaproveitável pelos Módulos 5/6/8 | novo |
 | `views/EmConstrucao.tsx`, `views/erro/Erro.tsx` | módulos não migrados; 403/404 | novo / template |
 
 Assets: `assets/images/logos/logo-apae.png` (extraído do base64 do sistema antigo), fundos do template.

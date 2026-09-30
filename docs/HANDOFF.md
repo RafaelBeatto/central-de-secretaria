@@ -1,7 +1,7 @@
 # HANDOFF — continuar a migração da Central da Secretaria
 
-> Atualizado em: 2026-09-30 · Concluído: **Base + Módulo 1 (Secretaria + Kanban) + Módulo 2 (Agenda)** · Próximo: **Módulo 3 — Atendimentos**
-> (o desenho do Módulo 3 **ainda não foi feito** — comece lendo `old/js/19-atendimentos.js` e o MAPA_DE_USABILIDADE §4.4)
+> Atualizado em: 2026-09-30 · Concluído: **Base + Módulo 1 (Secretaria + Kanban) + Módulo 2 (Agenda) + Módulo 3 (Atendimentos)** · Próximo: **Módulo 4 — Documentos + Empresas**
+> (o desenho do Módulo 4 **ainda não foi feito** — comece lendo `old/js/06-documentos.js` e `old/js/04-projetos.js` [ficha global da empresa] e o MAPA_DE_USABILIDADE §4.5/§4.6)
 >
 > **Para a IA que vai continuar:** leia este arquivo inteiro, depois `MAPA_DE_CODIGO.md` (onde está cada coisa) e
 > `MAPA_DE_USABILIDADE.md` §4 (regras de cada módulo). Siga a seção 4 "Próximo passo exato" e, ao terminar cada módulo,
@@ -105,18 +105,51 @@ Migração do sistema "Central da Secretaria" das APAEs:
   `vite build`; telas testadas no navegador (Semana/Mês/Lista, painel, formulário, arrastar, excluir série, busca,
   filtros, aviso de 30 min, impressão, celular).
 
-### Próximo passo exato — Módulo 3: Atendimentos (espec: MAPA_DE_USABILIDADE §4.4 · fonte: `old/js/19-atendimentos.js`)
-- Ler o antigo inteiro e desenhar como foi feito para a Agenda (entidades com regras, serviço, rotas, telas).
-- As tabelas `atendimentos.aluno`, `atendimentos.profissional` e `atendimentos.atendimento` **já existem** no `apae.sql`.
-- Reaproveitar: `Recorrencia.datasDaSerie` (série semanal, máx. 52), `EscopoSerie`/diálogo de escopo da Agenda se couber,
-  `utils/datas.ts`, `DialogoFormulario`/`CampoFormik`, `useConsulta`, `usePermissao`.
-- PDFs (lista de presença e relatório): decidir a biblioteca antes (ver §8 — html2pdf).
+### Pronto (Módulo 3 — Atendimentos)
+- Back `atendimentos/`: `Aluno`/`Profissional` (`EntidadeBase` + `criadoEm` manual, sem `atualizado_em` — a tabela não tem essa
+  coluna), `Atendimento` (`EntidadeAuditavel`; regras na entidade: `marcarPresenca`, `remarcarPara` — cria a cópia e marca o
+  original, `desfazerRemarcacao`, `desligarDoOriginal`), `Presenca`, `MotivoFalta` (6 opções fixas do antigo, sem CHECK no
+  banco), `ServicoAtendimento` (CRUD avulso/semanal/lote, presença com regra "Veio" só até hoje, remarcar, excluir com
+  religação da remarcação, encerrar série, copiar semana anterior sem duplicar), `ServicoCadastroAtendimento` (renomear,
+  mesclar — com `@Modifying @Query` para reatribuir os atendimentos —, excluir sem uso, contato família), `ControladorAtendimento`.
+- **Professor/profissional** (novidade da migração: `Profissional.usuarioId`, sem equivalente no antigo): só enxergam e
+  criam os **próprios** atendimentos — `ServicoCadastroAtendimento.vinculado()`/`meuProfissional()` cria o cadastro do
+  profissional na 1ª vez que o usuário usa o módulo (nome = nome completo do usuário) e todo o `ServicoAtendimento` filtra
+  por ele; não gerenciam cadastros (renomear/mesclar/excluir de aluno/profissional exige não ser vinculado).
+- Série semanal é só um `serieId` (`UUID`) direto no `Atendimento` — sem tabela própria como a `agenda.evento_serie`,
+  porque aqui só existe frequência semanal. Reaproveitado `Recorrencia.datasDaSerie` (máx. 52).
+- Regras do antigo mantidas: remarcar cria uma cópia e marca o original (excluir a cópia devolve o original; excluir o
+  original solta a cópia); encerrar série remove as futuras sem presença; copiar semana anterior não duplica (mesmo
+  aluno+profissional+dia+horário) nem copia remarcações; lote ignora linhas incompletas; faltas seguidas contam do
+  atendimento mais recente para trás e param na primeira que não é falta.
+- Front: `views/atendimentos/Atendimentos.tsx` + `components/apps/atendimentos/*` (`FaixaDias`, `LinhaAtendimento`,
+  `PainelAtendimento`, `PainelPessoa` — aluno e profissional no mesmo componente —, `FormularioNovoAtendimento` com abas
+  Individual/Lote, `DialogoRemarcar`, `DialogoJustificarFalta`, `DialogoGestaoCadastros`, `DialogoListaPresenca`,
+  `DialogoRelatorio`), `types/atendimentos.ts`, `servicos/atendimentos.ts`, `utils/atendimentos.ts` (resumo e faltas
+  seguidas calculados no front a partir do histórico já carregado, como o antigo fazia).
+- **Primeiro PDF da migração**: `html2pdf.js` instalado (import dinâmico em `utils/impressaoPdf.ts`, por isso não pesa no
+  bundle inicial) + `utils/documentoA4.ts` (cabeçalho institucional com logo do S3, estilo A4) — pensados para serem
+  reaproveitados pelos Módulos 5/6/8. Lista de presença e relatório têm Imprimir (`window.print`) e Salvar PDF.
+- Verificado: back compila, empacota e sobe validando o schema num banco descartável; API testada ponta a ponta (avulso,
+  série semanal de 4 datas, remarcar e desfazer, encerrar série, lote com linha incompleta ignorada, copiar semana anterior
+  com deduplicação e as duas mensagens de erro do antigo, renomear/mesclar/excluir com bloqueio por uso, faltas seguidas +
+  contato família, escopo do professor/profissional incluindo bloqueio 404/403 fora do próprio); front passa em `tsc`,
+  `eslint` e `vite build`. **Um bug encontrado e corrigido nos testes**: `marcarContatoFamilia` pegava a falta mais antiga
+  da sequência em vez da mais recente (laço sem `break`/guarda no primeiro valor) — corrigido antes de fechar o módulo.
+
+### Próximo passo exato — Módulo 4: Documentos + Empresas (espec: MAPA_DE_USABILIDADE §4.5/§4.6 · fonte: `old/js/06-documentos.js`, `old/js/04-projetos.js`)
+- Ler os dois arquivos do antigo inteiros (a ficha de empresa mora dentro do módulo de projetos) antes de desenhar.
+- As tabelas `documentos.documento`/`documento_versao` e `empresas.empresa`/`empresa_documento` **já existem** no `apae.sql`.
+- Documentos entra como nova fonte da Agenda (`agenda/fontes/`, chave `DOCUMENTO-3`) — já previsto no `ServicoAgenda`.
+- Empresas: campo "Buscar dados" chama a API pública `open.cnpja.com/office/{cnpj}` (decidir se via back ou front direto).
+- PDFs: nenhum module 4 pede PDF pelo MAPA_DE_USABILIDADE §4.5/§4.6 (fica para Projetos/Gerador/Relatórios); se precisar,
+  `utils/documentoA4.ts` e `utils/impressaoPdf.ts` já estão prontos para reaproveitar.
 
 ### Próximos módulos (ordem aprovada)
 1. ~~Base~~ → ~~Secretaria + Kanban~~ (prontos)
 2. ~~Agenda~~ (pronto)
-3. **Atendimentos** ← próximo (alunos, profissionais, presença, remarcação, série semanal, faltas seguidas, lista de presença e relatório em PDF)
-4. Documentos (validade, renovação com versões) + Empresas (cadastro único, documentos da empresa, consulta CNPJ)
+3. ~~Atendimentos~~ (pronto)
+4. **Documentos + Empresas** ← próximo (validade, renovação com versões; cadastro único, documentos da empresa, consulta CNPJ)
 5. Projetos (recurso → execuções; financeiro, cotações ≥3 empresas, vencedora, ordem de compra, notas, pagamentos, pendências, checklist, relatório PDF)
 6. Gerador de documentos (modelos com {AUTO}/[MANUAL], numeração por série/ano, versões, vínculos, anexos, PDF)
 7. Pendências + Painel completo ("para resolver", hoje/7 dias, projetos)
@@ -179,6 +212,15 @@ Front:
 - **Seleção com opção vazia** (`valor: ''`): o `CampoFormik` já liga `displayEmpty`; sem isso o MUI mostra o campo em branco.
 - **`@AssertTrue` em record**: o erro chega no front com o nome do método (ex.: `horarioFimValido`), não do campo —
   aparece no alerta do topo do formulário. Valide o mesmo no Yup para o erro sair no campo certo.
+- **Reatribuir uma coluna imutável em massa** (ex.: mesclar cadastros): `@ManyToOne` sem `updatable=false` não ajuda
+  porque a entidade nunca muda a própria referência sozinha — use `@Modifying @Query("update X set x.rel.id = :novo
+  where x.rel.id = :velho")` (ver `AtendimentoRepositorio.reatribuirAluno/reatribuirProfissional`).
+- **`html2pdf.js`** tem `types` no `package.json` (não precisa de `@types`), mas a interface de opções não inclui
+  `pagebreak` — use `as never`/`as any` no `.set({...})` para essa chave. Importe com `await import('html2pdf.js')`
+  dentro da função que gera o PDF: assim ele vira um chunk separado e não pesa no carregamento inicial (~1 MB minificado).
+- **Cargo sem tabela Java**: `Cargo` é uma entidade do banco (`codigo` é `String`), não um enum — para checar um cargo
+  específico (ex.: professor/profissional) compare `usuario().cargoCodigo()` com a string do `codigo` (só
+  `ADMINISTRADOR_SISTEMA` tem uma constante em `Cargo.java`).
 
 ## 8. Pendências conhecidas (fora dos módulos)
 - Upload real para o S3 não testado (faltam credenciais/bucket; variáveis no README raiz).
@@ -186,12 +228,16 @@ Front:
 - Arquivos enviados e nunca ligados a registro ficam órfãos (prever rotina de limpeza).
 - `application-prod.properties` ainda não existe (decisão do dono: depois).
 - Os PDFs do antigo são gerados com **html2pdf** (`old/js/vendor/html2pdf.bundle.min.js`, usado em
-  `old/js/17-gerador-documentos.js`). Para os PDFs dos Módulos 3, 5, 6 e 8, avaliar `html2pdf.js` via npm no front,
-  com o cabeçalho vindo de "Dados da instituição". A Agenda usa só `window.print()`.
+  `old/js/17-gerador-documentos.js`). O Módulo 3 já instalou `html2pdf.js` via npm e criou `utils/documentoA4.ts` +
+  `utils/impressaoPdf.ts` reaproveitáveis pelos Módulos 5, 6 e 8. A Agenda continua só com `window.print()`.
 - Deixados para os módulos seguintes: o quadro "Execuções de projeto" no Kanban (Módulo 5) e os vínculos da tarefa
   (Módulos 4/5).
 - Agenda: o filtro de fontes por permissão (professor/profissional veem eventos, não tarefas) está no `ServicoAgenda`,
   mas não foi testado com um usuário desses cargos. O aviso de 30 min, como no antigo, também avisa (uma vez no dia) um
   evento de hoje que já começou — confirmar com o dono se deve avisar só os que ainda vão começar.
-- Nenhum teste automatizado foi escrito (pedido do dono). Também não houve teste manual no navegador das telas do
-  Módulo 1: o dono ainda vai revisar.
+- Atendimentos: o logo institucional no cabeçalho do PDF/impressão depende do upload real no S3 (pendência acima) —
+  sem ele, sai só o texto (nome/endereço/contato). Testado com o cabeçalho sem logo.
+- Atendimentos: "Cadastros de apoio" (Aluno/Profissional) não têm tela própria fora do diálogo "Alunos e profissionais";
+  se crescer (relatório só de cadastros, por exemplo) considerar uma tela dedicada.
+- Nenhum teste automatizado foi escrito (pedido do dono). Também não houve teste manual no navegador das telas dos
+  Módulos 1, 2 e 3: o dono ainda vai revisar (a API do Módulo 3 foi testada ponta a ponta por curl, sem navegador).
