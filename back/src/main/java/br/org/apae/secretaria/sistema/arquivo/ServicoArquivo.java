@@ -2,6 +2,7 @@ package br.org.apae.secretaria.sistema.arquivo;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.Normalizer;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -10,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import br.org.apae.secretaria.acesso.unidade.Unidade;
+import br.org.apae.secretaria.acesso.unidade.UnidadeRepositorio;
 import br.org.apae.secretaria.comum.Limites;
 import br.org.apae.secretaria.comum.Transacoes;
 import br.org.apae.secretaria.comum.excecao.NaoEncontradoExcecao;
@@ -28,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class ServicoArquivo {
 
     private final ArquivoRepositorio repositorio;
+    private final UnidadeRepositorio unidades;
     private final ArmazenamentoS3 armazenamento;
     private final ContextoSeguranca contexto;
     private final PropriedadesAplicacao propriedades;
@@ -46,8 +50,7 @@ public class ServicoArquivo {
             throw new RegraNegocioExcecao("Formato não aceito aqui. Use: " + String.join(", ", categoria.extensoes()) + ".");
         }
         Long unidadeId = contexto.unidadeEscrita();
-        String chave = "unidades/%d/%s/%s.%s".formatted(unidadeId, categoria.name().toLowerCase(Locale.ROOT),
-                UUID.randomUUID(), extensao);
+        String chave = "%s/%s/%s.%s".formatted(pastaDaUnidade(unidadeId), categoria.pasta(), UUID.randomUUID(), extensao);
         String tipo = StringUtils.hasText(arquivo.getContentType()) ? arquivo.getContentType() : "application/octet-stream";
         try (InputStream conteudo = arquivo.getInputStream()) {
             armazenamento.enviar(chave, conteudo, arquivo.getSize(), tipo);
@@ -94,6 +97,37 @@ public class ServicoArquivo {
         Arquivo arquivo = repositorio.findById(arquivoId).orElseThrow(() -> new NaoEncontradoExcecao("Arquivo"));
         contexto.exigirLeitura(arquivo.getUnidadeId());
         return arquivo;
+    }
+
+    /**
+     * Pasta da unidade no bucket: "RO/porto-velho" (APAE), "RO/federacao-estadual" ou "nacional".
+     * A chave fica gravada no arquivo, então mudar o município depois não perde os antigos.
+     */
+    private String pastaDaUnidade(Long unidadeId) {
+        Unidade unidade = unidades.findById(unidadeId).orElseThrow(() -> new NaoEncontradoExcecao("Unidade"));
+        return switch (unidade.getTipo()) {
+            case NACIONAL -> "nacional";
+            case ESTADUAL -> uf(unidade) + "/federacao-estadual";
+            case MUNICIPAL -> uf(unidade) + "/" + trechoDePasta(
+                    StringUtils.hasText(unidade.getMunicipio()) ? unidade.getMunicipio() : unidade.getNome());
+        };
+    }
+
+    /** UF da própria unidade ou, se vazia, da federação acima dela. */
+    private static String uf(Unidade unidade) {
+        for (Unidade atual = unidade; atual != null; atual = atual.getUnidadePai()) {
+            if (StringUtils.hasText(atual.getUf())) {
+                return atual.getUf().strip().toUpperCase(Locale.ROOT);
+            }
+        }
+        return "sem-uf";
+    }
+
+    /** "São João d'Oeste" → "sao-joao-d-oeste". */
+    private static String trechoDePasta(String texto) {
+        String semAcento = Normalizer.normalize(texto, Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
+        String trecho = semAcento.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+        return trecho.isEmpty() ? "unidade" : trecho;
     }
 
     private static String nomeSeguro(String original) {

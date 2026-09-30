@@ -29,6 +29,8 @@ public record PropriedadesAplicacao(@Valid Jwt jwt, @Valid Cors cors, @Valid Arm
             @NotBlank String bucket,
             @NotBlank String regiao,
             String endpoint,
+            String chaveAcesso,
+            String chaveSecreta,
             @Positive long tamanhoMaximoMb,
             @Positive long validadeUrlMinutos) {
 

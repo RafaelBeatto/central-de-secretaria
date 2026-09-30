@@ -22,7 +22,8 @@ O script é único, em ordem, e separa as tabelas em schemas por domínio
 
 ## 2. Back
 
-Variáveis de ambiente (os padrões servem para a máquina local):
+Variáveis em `back/.env` (copie de `back/.env.exemplo`; o arquivo não é versionado) ou
+como variáveis de ambiente — as de ambiente têm prioridade. Os padrões servem para a máquina local:
 
 | Variável | Padrão |
 |---|---|
@@ -30,7 +31,9 @@ Variáveis de ambiente (os padrões servem para a máquina local):
 | `APAE_JWT_SEGREDO` | segredo local (troque em produção, mín. 32 caracteres) |
 | `APAE_S3_BUCKET` / `APAE_S3_REGIAO` | `apae-central-secretaria-local` / `sa-east-1` |
 | `APAE_S3_ENDPOINT` | vazio (preencha só para S3 compatível local, ex.: MinIO) |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | credenciais da AWS (cadeia padrão do SDK) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | chaves do usuário IAM; vazias, vale a cadeia padrão do SDK (`~/.aws`) |
+
+O `.env` é lido da pasta de onde o back é iniciado — rode os comandos dentro de `back/`.
 
 ```bash
 cd back

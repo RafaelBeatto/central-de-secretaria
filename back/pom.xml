@@ -19,7 +19,7 @@
     <description>API da Central da Secretaria APAE</description>
 
     <properties>
-        <java.version>25</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aws.sdk.version>2.30.0</aws.sdk.version>
     </properties>

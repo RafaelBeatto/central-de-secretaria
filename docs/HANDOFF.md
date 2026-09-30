@@ -170,6 +170,21 @@ Recriar o banco do zero (apaga tudo!): `psql -U postgres -c "DROP DATABASE apae"
 Para testes sem sujar o `apae`, crie um banco descartável e rode o jar com
 `--spring.datasource.url=jdbc:postgresql://localhost:5432/<banco> --server.port=8081`.
 
+Chaves da AWS no Windows: `back/.env` (não versionado; modelo em `back/.env.exemplo`), importado pelo
+`application.properties`. **Nunca** colocar chave em `properties`: o jar não pode levar segredo.
+
+### Produção (BrasilCloud, 177.131.140.222) — publicado em 2026-09-30
+- Acesso provisório: `http://177.131.140.222:8090` (nginx) → back em `127.0.0.1:8082`, perfil `prod`
+  (`application-prod.properties`). Depois do DNS: `apae.chorobura.com.br` + certbot e fechar a 8090.
+- Arquivos em `deploy/`: `instalar.sh` (idempotente), `apae-backend.service` (`-Xmx384m`, `MemoryMax=600M`),
+  `nginx-apae.conf`. Front em `/opt/apae/front`, jar em `/opt/apae/back`, segredos em `/etc/apae/apae.env` (600):
+  senha do banco e JWT gerados no servidor; `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` preenchidos pelo dono.
+- Banco `apae` com usuário `apae` próprio (PostgreSQL 16 — nada de `uuidv7()`).
+- No servidor rodam também System Car (8080), GT06 (8081/5001) e sites do nginx: não mexer. Publicar de novo =
+  gerar jar/`front/dist`, enviar para `/tmp/apae-deploy` e rodar `instalar.sh` (ele reinicia o serviço).
+- Pastas no S3 (bucket `apae-chorobura`): `UF/municipio/logo/` e `UF/municipio/documentos/<categoria>/`
+  (federações: `UF/federacao-estadual/`, `nacional/`). A pasta de cada categoria está em `CategoriaArquivo`.
+
 ## 6. Como implementar um módulo (receita)
 
 Back (pacote `br.org.apae.secretaria.<modulo>`):
@@ -223,7 +238,7 @@ Front:
   `ADMINISTRADOR_SISTEMA` tem uma constante em `Cargo.java`).
 
 ## 8. Pendências conhecidas (fora dos módulos)
-- Upload real para o S3 não testado (faltam credenciais/bucket; variáveis no README raiz).
+- Upload real para o S3 não testado (bucket `apae-chorobura` criado; falta o dono preencher as chaves no servidor).
 - Token de renovação fica no `localStorage` (alternativa mais segura: cookie httpOnly — perguntar ao dono).
 - Arquivos enviados e nunca ligados a registro ficam órfãos (prever rotina de limpeza).
 - `application-prod.properties` ainda não existe (decisão do dono: depois).

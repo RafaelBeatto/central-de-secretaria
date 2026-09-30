@@ -7,21 +7,28 @@ import java.util.Set;
  * (os mesmos que o sistema antigo aceitava em cada tela).
  */
 public enum CategoriaArquivo {
-    LOGO(Formatos.IMAGENS),
-    DOCUMENTO(Formatos.DOCUMENTOS),
-    DOCUMENTO_EMPRESA(Formatos.DOCUMENTOS),
-    DOCUMENTO_RECURSO(Formatos.DOCUMENTOS),
-    PLANO_APLICACAO(Formatos.DOCUMENTOS),
-    COTACAO(Formatos.DOCUMENTOS),
-    ORDEM_COMPRA(Formatos.DOCUMENTOS),
-    DOCUMENTO_EXECUCAO(Formatos.DOCUMENTOS),
-    COMPROVANTE_PAGAMENTO(Formatos.COMPROVANTES),
-    ANEXO_GERADOR(Formatos.DOCUMENTOS);
+    LOGO("logo", Formatos.IMAGENS),
+    DOCUMENTO("documentos/gerais", Formatos.DOCUMENTOS),
+    DOCUMENTO_EMPRESA("documentos/empresas", Formatos.DOCUMENTOS),
+    DOCUMENTO_RECURSO("documentos/recursos", Formatos.DOCUMENTOS),
+    PLANO_APLICACAO("documentos/planos-aplicacao", Formatos.DOCUMENTOS),
+    COTACAO("documentos/cotacoes", Formatos.DOCUMENTOS),
+    ORDEM_COMPRA("documentos/ordens-compra", Formatos.DOCUMENTOS),
+    DOCUMENTO_EXECUCAO("documentos/execucao", Formatos.DOCUMENTOS),
+    COMPROVANTE_PAGAMENTO("documentos/comprovantes", Formatos.COMPROVANTES),
+    ANEXO_GERADOR("documentos/anexos", Formatos.DOCUMENTOS);
 
+    private final String pasta;
     private final Set<String> extensoes;
 
-    CategoriaArquivo(Set<String> extensoes) {
+    CategoriaArquivo(String pasta, Set<String> extensoes) {
+        this.pasta = pasta;
         this.extensoes = extensoes;
+    }
+
+    /** Pasta dentro da unidade no bucket (ex.: "documentos/ordens-compra"). */
+    public String pasta() {
+        return pasta;
     }
 
     public boolean aceita(String extensao) {
