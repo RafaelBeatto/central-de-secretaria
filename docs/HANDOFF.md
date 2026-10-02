@@ -1,7 +1,7 @@
 # HANDOFF — continuar a migração da Central da Secretaria
 
-> Atualizado em: 2026-10-02 · Concluído: **Base + Módulos 1 a 6 (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos, Gerador)** · Próximo: **Módulo 7 — Pendências + Painel completo**
-> (o desenho do Módulo 7 **ainda não foi feito** — comece lendo `old/js/11-pendencias.js`, `old/js/03-dashboard.js` e o MAPA_DE_USABILIDADE §4.9)
+> Atualizado em: 2026-10-02 · Concluído: **Base + Módulos 1 a 7 (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos, Gerador, Pendências + Painel)** · Próximo: **Módulo 8 — Histórico (tela), Relatórios, Pesquisa geral**
+> (o desenho do Módulo 8 **ainda não foi feito** — comece lendo `old/js/08b-historico.js`, `old/js/09-relatorios.js`, `old/js/08-pesquisa-historico.js` e o MAPA_DE_USABILIDADE §4.10)
 >
 > **Para a IA que vai continuar:** leia este arquivo inteiro, depois `MAPA_DE_CODIGO.md` (onde está cada coisa) e
 > `MAPA_DE_USABILIDADE.md` §4 (regras de cada módulo). Siga a seção 4 "Próximo passo exato" e, ao terminar cada módulo,
@@ -252,13 +252,20 @@ Migração do sistema "Central da Secretaria" das APAEs:
   excluir documento apagando o anexo, excluir empresa ligada recusado); front passa em `tsc`, `eslint` e `vite build`.
 - Não testado: telas no navegador (o dono vai revisar) — principalmente o editor rico (`execCommand`), a prévia, o PDF e a impressão.
 
-### Próximo passo exato — Módulo 7: Pendências + Painel completo (espec: MAPA_DE_USABILIDADE §4.9 · fonte: `old/js/11-pendencias.js`, `old/js/03-dashboard.js`)
-- Ler os dois arquivos do antigo inteiros antes de desenhar. Pendências junta tarefas atrasadas/de hoje, documentos vencidos/vencendo,
-  atendimentos passados sem presença, alunos com 3 faltas seguidas, compromissos de hoje, etapas faltando nos projetos e pendências de
-  execução — com ação ali mesmo. O Painel ganha "Para resolver", hoje/7 dias, andamento dos projetos e contadores no menu.
-- Reaproveitar o que já existe: `FonteAgenda` (hoje/7 dias), `CalculoProjetos` (etapas faltando), `utils/documentos.ts` (situação),
-  `utils/atendimentos.ts` (faltas seguidas), `utils/tarefas.ts`. Prefira **um endpoint de agregação** no back a vários no front.
-- Ao terminar: criar `melhorias/modulo-07-pendencias-painel.md` e atualizar HANDOFF e mapas.
+### Pronto (Módulo 7 — Pendências + Painel)
+- Detalhe em **[melhorias/modulo-07-pendencias-painel.md](melhorias/modulo-07-pendencias-painel.md)**.
+- Back `painel/`: só `GET /api/painel/extras` (atendimentos sem presença, alunos com 3+ faltas seguidas nos últimos 90 dias, pendências manuais de
+  execução). A lógica ficou nos módulos donos: `ServicoAtendimento.semPresenca/alunosComFaltasSeguidas` (respeita o escopo do professor/profissional),
+  `ServicoItensExecucao.pendenciasAbertas`. O resto (tarefas, documentos, agenda, recursos/etapas, atendimentos da semana) o front lê das APIs existentes.
+- Front: `utils/pendencias.ts` (`montarPendencias`, regras do antigo), `servicos/painel.ts` + `hooks/useDadosPainel` (carrega só o que a permissão permite),
+  `components/apps/pendencias/SecoesPendencias` (seções + ações Concluir/Renovar/Veio/Faltou/Feito/Família contatada/Resolvida, reutilizado no Painel),
+  `views/pendencias/Pendencias.tsx`, `views/painel/Painel.tsx` + `components/apps/painel/BlocosPainel`.
+- Verificado: back compila e sobe validando as consultas; front passa em `tsc`, `eslint` e `vite build`. Não testado no navegador. Adiado: contadores no menu lateral.
+
+### Próximo passo exato — Módulo 8: Histórico (tela), Relatórios, Pesquisa geral (espec: MAPA_DE_USABILIDADE §4.10 · fonte: `old/js/08b-historico.js`, `09-relatorios.js`, `08-pesquisa-historico.js`)
+- Ler os três arquivos do antigo antes de desenhar. O histórico já é gravado por todos os módulos (`ServicoHistorico`, tabela `sistema.historico`); falta a tela
+  global com filtros, o relatório de atividades em PDF (reaproveitar `utils/documentoA4.ts` + `utils/impressaoPdf.ts`) e a pesquisa geral entre módulos.
+- Ao terminar: criar `melhorias/modulo-08-*.md` e atualizar HANDOFF e mapas.
 
 ### Próximos módulos (ordem aprovada)
 1. ~~Base~~ → ~~Secretaria + Kanban~~ (prontos)
@@ -267,8 +274,8 @@ Migração do sistema "Central da Secretaria" das APAEs:
 4. ~~Documentos + Empresas~~ (pronto)
 5. ~~Projetos~~ (pronto) (recurso → execuções; financeiro, cotações ≥3 empresas, vencedora, ordem de compra, notas, pagamentos, pendências, checklist, relatório PDF)
 6. ~~Gerador de documentos~~ (pronto) (modelos com {AUTO}/[MANUAL], numeração por série/ano, versões, vínculos, anexos, PDF)
-7. **Pendências + Painel completo** ← próximo ("para resolver", hoje/7 dias, projetos)
-8. Histórico (tela), Relatórios (relatório de atividades em PDF), Pesquisa geral
+7. ~~Pendências + Painel completo~~ (pronto)
+8. **Histórico (tela), Relatórios (relatório de atividades em PDF), Pesquisa geral** ← próximo
 9. Vínculos entre registros (tabela `sistema.vinculo_registro`) — encaixar nos módulos 4–6
 
 ## 5. Como rodar

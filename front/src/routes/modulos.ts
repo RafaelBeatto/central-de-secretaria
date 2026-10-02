@@ -49,6 +49,8 @@ export const MODULOS: Modulo[] = [
     subtitulo: 'Tudo o que espera por você, com a ação ali mesmo',
     icone: IconAlertTriangle,
     grupo: 'Início',
+
+    tela: lazy(() => import('src/views/pendencias/Pendencias')),
   },
   {
     caminho: '/secretaria',

@@ -32,6 +32,21 @@ public interface AtendimentoRepositorio extends JpaRepository<Atendimento, Long>
     @Query(BASE + "where a.profissional.id = :profissionalId order by a.data desc, a.horario desc")
     List<Atendimento> porProfissional(Long profissionalId);
 
+    /** Painel: atendimentos já ocorridos (hoje ou antes) sem presença marcada, os mais antigos primeiro. */
+    @Query(BASE + """
+             where a.unidadeId = :unidadeId and a.data <= :hoje and a.presenca = :semPresenca and a.remarcado = false
+             order by a.data, a.horario
+            """)
+    List<Atendimento> semPresenca(Long unidadeId, LocalDate hoje, Presenca semPresenca);
+
+    /** Painel: presenças já decididas desde uma data, do mais novo ao mais velho (para as faltas seguidas). */
+    @Query(BASE + """
+             where a.unidadeId = :unidadeId and a.data between :desde and :hoje and a.remarcado = false
+               and a.presenca <> :semPresenca
+             order by a.data desc, a.horario desc
+            """)
+    List<Atendimento> decididosDesde(Long unidadeId, LocalDate desde, LocalDate hoje, Presenca semPresenca);
+
     Optional<Atendimento> findByRemarcadoDeId(Long id);
 
     List<Atendimento> findBySerieIdAndDataGreaterThanEqualAndPresencaAndRemarcadoFalse(UUID serieId, LocalDate data,

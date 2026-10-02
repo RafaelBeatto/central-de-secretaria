@@ -3,7 +3,11 @@ package br.org.apae.secretaria.atendimentos;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -18,6 +22,7 @@ import br.org.apae.secretaria.atendimentos.dto.RequisicoesAtendimento.NovaPresen
 import br.org.apae.secretaria.atendimentos.dto.RequisicoesAtendimento.Remarcar;
 import br.org.apae.secretaria.comum.Datas;
 import br.org.apae.secretaria.comum.Relogio;
+import br.org.apae.secretaria.painel.dto.ExtrasPainel;
 import br.org.apae.secretaria.comum.Textos;
 import br.org.apae.secretaria.comum.dominio.Frequencia;
 import br.org.apae.secretaria.comum.dominio.Recorrencia;
@@ -42,6 +47,10 @@ public class ServicoAtendimento {
     static final String REF = "ATENDIMENTO";
     /** Como no antigo: no máximo 52 semanas por série. */
     private static final int LIMITE_SERIE = 52;
+    private static final int LIMITE_PAINEL = 300;
+    private static final int FALTAS_PARA_ALERTA = 3;
+    /** Só olha o último trimestre: uma sequência de faltas mais antiga já não pede busca ativa. */
+    private static final int JANELA_FALTAS_DIAS = 90;
 
     private final AtendimentoRepositorio atendimentos;
     private final AlunoRepositorio alunos;
@@ -61,6 +70,60 @@ public class ServicoAtendimento {
                 ? atendimentos.porPeriodoDoProfissional(unidadeId, meuProfissionalId, inicio, fim)
                 : atendimentos.porPeriodo(unidadeId, inicio, fim);
         return lista.stream().map(this::resposta).toList();
+    }
+
+    /** Atendimentos que já aconteceram e ainda esperam a presença (no escopo do usuário). */
+    @Transactional(readOnly = true)
+    public List<ExtrasPainel.AtendimentoSemPresenca> semPresenca() {
+        Long unidadeId = contexto.unidadeLeitura();
+        return doEscopo(unidadeId, atendimentos.semPresenca(unidadeId, relogio.hoje(), Presenca.NAO_INFORMADO)).stream()
+                .limit(LIMITE_PAINEL)
+                .map(a -> new ExtrasPainel.AtendimentoSemPresenca(a.getId(), a.getAluno().getNome(),
+                        a.getProfissional().getNome(), a.getData(), a.getHorario()))
+                .toList();
+    }
+
+    /**
+     * Alunos com {@value #FALTAS_PARA_ALERTA} faltas seguidas ou mais ainda não tratadas com a família
+     * (mesma regra do front: conta do mais recente para trás e para na primeira presença).
+     */
+    @Transactional(readOnly = true)
+    public List<ExtrasPainel.AlunoComFaltas> alunosComFaltasSeguidas() {
+        Long unidadeId = contexto.unidadeLeitura();
+        LocalDate hoje = relogio.hoje();
+        Map<Aluno, List<Atendimento>> porAluno = doEscopo(unidadeId,
+                atendimentos.decididosDesde(unidadeId, hoje.minusDays(JANELA_FALTAS_DIAS), hoje, Presenca.NAO_INFORMADO))
+                .stream().collect(Collectors.groupingBy(Atendimento::getAluno, LinkedHashMap::new, Collectors.toList()));
+        List<ExtrasPainel.AlunoComFaltas> resultado = new ArrayList<>();
+        porAluno.forEach((aluno, lista) -> {
+            List<Atendimento> faltas = new ArrayList<>();
+            for (Atendimento a : lista) {
+                if (a.getPresenca() != Presenca.FALTOU) {
+                    break;
+                }
+                faltas.add(a);
+            }
+            if (faltas.size() < FALTAS_PARA_ALERTA) {
+                return;
+            }
+            LocalDate ultima = faltas.get(0).getData();
+            LocalDate tratadaAte = aluno.getFaltasContatoAte();
+            if (tratadaAte != null && !ultima.isAfter(tratadaAte)) {
+                return;
+            }
+            List<MotivoFalta> motivos = faltas.stream().map(Atendimento::getFaltaMotivo).filter(Objects::nonNull)
+                    .distinct().toList();
+            resultado.add(new ExtrasPainel.AlunoComFaltas(aluno.getId(), aluno.getNome(), faltas.size(),
+                    faltas.get(faltas.size() - 1).getData(), ultima, motivos));
+        });
+        return resultado;
+    }
+
+    /** Professor/profissional só enxergam os próprios atendimentos. */
+    private List<Atendimento> doEscopo(Long unidadeId, List<Atendimento> lista) {
+        Long meuProfissionalId = meuProfissionalIdOuNull(unidadeId);
+        return meuProfissionalId == null ? lista
+                : lista.stream().filter(a -> a.getProfissional().getId().equals(meuProfissionalId)).toList();
     }
 
     @Transactional(readOnly = true)

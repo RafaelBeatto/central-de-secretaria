@@ -19,6 +19,8 @@ import br.org.apae.secretaria.projetos.dto.RequisicoesProjeto.RequisicaoOrdem;
 import br.org.apae.secretaria.projetos.dto.RequisicoesProjeto.RequisicaoPagamento;
 import br.org.apae.secretaria.projetos.dto.RequisicoesProjeto.RequisicaoPendencia;
 import br.org.apae.secretaria.projetos.dto.RespostasProjeto.ExecucaoDetalhe;
+import br.org.apae.secretaria.painel.dto.ExtrasPainel.PendenciaExecucao;
+import br.org.apae.secretaria.seguranca.ContextoSeguranca;
 import br.org.apae.secretaria.sistema.arquivo.CategoriaArquivo;
 import br.org.apae.secretaria.sistema.arquivo.ServicoArquivo;
 import br.org.apae.secretaria.sistema.historico.AcaoHistorico;
@@ -37,6 +39,15 @@ public class ServicoItensExecucao {
 
     private static final int MINIMO_EMPRESAS_COTADAS = 3;
 
+    /** Pendências manuais abertas, para o Painel e as Pendências (a execução é identificada pelo id). */
+    @Transactional(readOnly = true)
+    public List<PendenciaExecucao> pendenciasAbertas() {
+        return pendencias.abertas(contexto.unidadeLeitura(),
+                List.of(Enums.StatusExecucao.CONCLUIDO, Enums.StatusExecucao.CANCELADO)).stream()
+                .map(p -> new PendenciaExecucao(p.getId(), p.getExecucaoId(), p.getTitulo(), p.getPrioridade()))
+                .toList();
+    }
+
     private final ServicoExecucao servicoExecucao;
     private final ExecucaoEmpresaRepositorio vinculos;
     private final CotacaoRepositorio cotacoes;
@@ -47,6 +58,7 @@ public class ServicoItensExecucao {
     private final EmpresaRepositorio empresas;
     private final ServicoHistorico historico;
     private final ServicoArquivo servicoArquivo;
+    private final ContextoSeguranca contexto;
 
     // ----- cotações -----
 
