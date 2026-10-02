@@ -16,7 +16,8 @@ import { Prioridade, ROTULO_PRIORIDADE } from 'src/types/comum';
 import type { SugestoesTarefa, Tarefa } from 'src/types/tarefas';
 import { mensagemDeErro } from 'src/utils/erroApi';
 import { useSelector } from 'src/store/Store';
-import { encerrada, GrupoTarefa, normalizar } from 'src/utils/tarefas';
+import { normalizar } from 'src/utils/formatacao';
+import { encerrada, GrupoTarefa } from 'src/utils/tarefas';
 
 const SEM_SUGESTOES: SugestoesTarefa = { responsaveis: [], categorias: [] };
 

@@ -1,7 +1,7 @@
 import type { GrupoOrigem, ItemAgenda, ModoAgenda } from 'src/types/agenda';
 import { diasEntre, doIso, hojeIso, inicioDaSemana, MESES, mesPorExtenso, somarDias, somarMeses } from './datas';
 import { formatarData } from './formatacao';
-import { normalizar } from './tarefas';
+import { normalizar } from './formatacao';
 
 /**
  * Regras de exibição da Agenda (as mesmas de old/js/05-agenda.js),

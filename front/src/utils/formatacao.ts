@@ -35,6 +35,10 @@ export function iniciais(nome: string) {
   return ((partes[0]?.[0] ?? '') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase();
 }
 
+/** Busca sem diferenciar acento e maiúscula. */
+export const normalizar = (texto: string | null | undefined) =>
+  (texto ?? '').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[̀-ͯ]/g, '');
+
 /** 00.000.000/0000-00 enquanto digita. */
 export function mascaraCnpj(valor: string) {
   return valor

@@ -101,6 +101,7 @@ export const MODULOS: Modulo[] = [
     icone: IconFileText,
     grupo: 'Controle',
     permissao: PERMISSOES.DOCUMENTO_LER,
+    tela: lazy(() => import('src/views/documentos/Documentos')),
   },
   {
     caminho: '/gerador',
@@ -117,6 +118,7 @@ export const MODULOS: Modulo[] = [
     icone: IconBuildingStore,
     grupo: 'Controle',
     permissao: PERMISSOES.EMPRESA_LER,
+    tela: lazy(() => import('src/views/empresas/Empresas')),
   },
   {
     caminho: '/historico',

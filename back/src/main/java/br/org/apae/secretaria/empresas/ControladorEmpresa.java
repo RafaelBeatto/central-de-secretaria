@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import br.org.apae.secretaria.acesso.permissao.Permissoes;
 import br.org.apae.secretaria.empresas.dto.EmpresaCriada;
-import br.org.apae.secretaria.empresas.dto.EmpresaDocumentoResposta;
 import br.org.apae.secretaria.empresas.dto.EmpresaResposta;
 import br.org.apae.secretaria.empresas.dto.RequisicaoEmpresa;
 import br.org.apae.secretaria.empresas.dto.RequisicaoEmpresaDocumento;
@@ -49,12 +48,6 @@ public class ControladorEmpresa {
         return servico.historicoDo(id);
     }
 
-    @GetMapping("/{id}/documentos")
-    @PreAuthorize(Permissoes.EMPRESA_LER)
-    public List<EmpresaDocumentoResposta> documentos(@PathVariable Long id) {
-        return servico.documentosDe(id);
-    }
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize(Permissoes.EMPRESA_ESCREVER)
@@ -75,18 +68,18 @@ public class ControladorEmpresa {
         servico.excluir(id);
     }
 
+    /** Devolve a empresa já com a lista de documentos atualizada. */
     @PostMapping("/{id}/documentos")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize(Permissoes.EMPRESA_ESCREVER)
-    public EmpresaDocumentoResposta adicionarDocumento(@PathVariable Long id,
+    public EmpresaResposta adicionarDocumento(@PathVariable Long id,
             @Valid @RequestBody RequisicaoEmpresaDocumento requisicao) {
         return servico.adicionarDocumento(id, requisicao);
     }
 
     @DeleteMapping("/{id}/documentos/{documentoId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize(Permissoes.EMPRESA_ESCREVER)
-    public void excluirDocumento(@PathVariable Long id, @PathVariable Long documentoId) {
-        servico.excluirDocumento(id, documentoId);
+    public EmpresaResposta excluirDocumento(@PathVariable Long id, @PathVariable Long documentoId) {
+        return servico.excluirDocumento(id, documentoId);
     }
 }

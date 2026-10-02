@@ -42,4 +42,7 @@ export const servicoArquivos = {
   },
 
   url: (id: number) => api.get<{ url: string }>(`/arquivos/${id}/url`).then((r) => r.data.url),
+
+  /** Nome, tipo e tamanho (sem baixar o arquivo). */
+  dados: (id: number) => api.get<ArquivoResposta>(`/arquivos/${id}`).then((r) => r.data),
 };

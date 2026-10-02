@@ -89,7 +89,3 @@ export const progressoSubtarefas = (t: Tarefa) => {
   const feitas = t.subtarefas.filter((s) => s.feita).length;
   return { total, feitas, pct: total ? Math.round((feitas / total) * 100) : 0 };
 };
-
-/** Busca sem diferenciar acento e maiúscula. */
-export const normalizar = (texto: string | null | undefined) =>
-  (texto ?? '').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[̀-ͯ]/g, '');

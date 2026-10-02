@@ -34,7 +34,7 @@ Chat: `@stomp/stompjs` → `/ws` → `ControladorChatWebSocket` → `ServicoChat
 | `Transacoes` | `aposConfirmar()` / `aoDesfazer()` (eventos WS, limpeza S3) |
 | `Relogio` | `hoje()` no fuso do navegador (`X-Fuso-Horario`) |
 | `entidade/EntidadeBase`, `EntidadeAuditavel` | id IDENTITY, equals por id; `criado_em`/`atualizado_em` automáticos |
-| `dominio/Prioridade`, `Frequencia`, `Recorrencia` | enums compartilhados e cálculo de datas repetidas (`proximaDepoisDe` das rotinas, `datasDaSerie` das séries) |
+| `dominio/Prioridade`, `Frequencia`, `Recorrencia` | enums compartilhados e cálculo de datas repetidas (`proximaDepoisDe` das rotinas, `datasDaSerie` das séries); `Prioridade.pelaProximidade` dá a prioridade de prazos de outros módulos na Agenda |
 | `excecao/*` | `RegraNegocioExcecao`(422), `NaoEncontradoExcecao`(404), `AcessoNegadoExcecao`(403) |
 | `validacao/*` | `@Cpf`, `@Cnpj`, `@SenhaForte`, `DocumentoFiscal` (dígitos e formatação) |
 | `web/TratadorGlobalExcecoes` | ProblemDetail pt-BR; `campos` = erros por campo |
@@ -59,8 +59,10 @@ Chat: `@stomp/stompjs` → `/ws` → `ControladorChatWebSocket` → `ServicoChat
 | `comum/Relogio`, `comum/Datas` | "hoje" no fuso do navegador (`X-Fuso-Horario`); datas dd/MM/aaaa nas mensagens |
 | **tarefas/** | `Tarefa` (regras de rotina na entidade), `Subtarefa`, `StatusTarefa`, `ServicoTarefa`, `ControladorTarefa` |
 | **agenda/** | `Evento` (regras na entidade), `EventoSerie`, `TipoEvento`, `EscopoSerie`, `ServicoEvento` (CRUD com série), `ServicoAgenda` (itens do período), `ControladorAgenda` |
-| `agenda/fontes/` | `FonteAgenda` (interface: permissão + itens do período), `FonteEventos`, `FonteTarefas` — documentos e projetos entram como novas fontes |
+| `agenda/fontes/` | `FonteAgenda` (interface: permissão + itens do período), `FonteEventos`, `FonteTarefas`, `FonteDocumentos` (vencimentos) — projetos entram como nova fonte |
 | **atendimentos/** | `Aluno`, `Profissional` (cadastros de apoio; `Profissional.usuarioId` liga ao usuário professor/profissional), `Atendimento` (regras na entidade: `marcarPresenca`, `remarcarPara`, `desfazerRemarcacao`, `desligarDoOriginal`; série semanal = `serieId` UUID sem tabela própria), `Presenca`, `MotivoFalta`, `ServicoAtendimento` (CRUD, presença, série, remarcação, cópia da semana), `ServicoCadastroAtendimento` (renomear/mesclar/excluir aluno e profissional, contato família, `meuProfissional` do usuário vinculado), `ControladorAtendimento` |
+| **documentos/** | `Documento` (regra `renovar` na entidade → `DocumentoVersao`), `CategoriaDocumento`, `ExigenciaApae` (documento que vale nos projetos), `ServicoDocumento` (CRUD, renovar, excluir com os arquivos das versões), `ControladorDocumento` |
+| **empresas/** | `Empresa`, `EmpresaDocumento` (arquivo obrigatório), `ServicoEmpresa` (mesmo CNPJ ou razão social = mesma empresa; CNPJ/CPF gravados formatados; lista já com os documentos), `ControladorEmpresa` |
 
 `back/src/main/resources/`: `application.properties` (local) · `db/apae.sql` (schema único + seeds).
 
@@ -102,6 +104,14 @@ Chat: `@stomp/stompjs` → `/ws` → `ControladorChatWebSocket` → `ServicoChat
 `GET|PUT|DELETE /atendimentos/alunos[/{id}]` · `POST /atendimentos/alunos/{id}/mesclar` · `POST /atendimentos/alunos/{id}/contato-familia` ·
 `GET /atendimentos/alunos/{id}/historico` (sem período — filtro de data é no front) · os mesmos 4 últimos para `/atendimentos/profissionais`.
 
+**Documentos** (leitura DOCUMENTO_LER, alteração DOCUMENTO_ESCREVER): `GET /documentos` (sem versões) · `GET /documentos/{id}` (com versões) ·
+`GET /documentos/{id}/historico` · `POST /documentos` · `PUT /documentos/{id}` · `POST /documentos/{id}/renovar` · `DELETE /documentos/{id}`.
+
+**Empresas** (leitura EMPRESA_LER, alteração EMPRESA_ESCREVER): `GET /empresas` (cada uma com `documentos`) · `GET /empresas/{id}` ·
+`GET /empresas/{id}/historico` · `POST /empresas` (devolve `{empresa, jaExistia}`) · `PUT /empresas/{id}` · `DELETE /empresas/{id}` ·
+`POST /empresas/{id}/documentos` · `DELETE /empresas/{id}/documentos/{documentoId}` (os dois devolvem a empresa atualizada).
+A consulta de CNPJ (`open.cnpja.com/office/{cnpj}`) é feita direto do navegador, sem passar pelo back.
+
 ### Banco — schemas e tabelas (`apae.sql`)
 
 | Schema | Tabelas |
@@ -131,7 +141,7 @@ Enums gravados como texto em MAIÚSCULAS (ex.: `EM_ANDAMENTO`); o front traduz p
 | `utils/axios.ts` | cliente HTTP único; objeto `sessao`; renovação single-flight; `tokenValidoParaWebSocket` | template reescrito |
 | `utils/erroApi.ts` | `ErroApi` (status, mensagem, campos) a partir do ProblemDetail | novo |
 | `utils/validacao.ts` | `regras` Yup (texto, obrigatorio, email, telefone, cpf, cnpj, uf, senha, login, dataPassada) | novo |
-| `utils/formatacao.ts` | datas pt-BR, iniciais, máscaras CPF/CNPJ/telefone | novo |
+| `utils/formatacao.ts` | datas pt-BR, iniciais, máscaras CPF/CNPJ/telefone, `normalizar` (busca sem acento/maiúscula) | novo |
 | `constantes/limites.ts`, `permissoes.ts` | espelho dos limites do banco e códigos de permissão | novo |
 | `types/*.ts` | tipos dos DTOs do back | novo |
 | `servicos/*.ts` | uma função por rota da API; `chatSocket.ts` (STOMP) | novo |
@@ -144,7 +154,7 @@ Enums gravados como texto em MAIÚSCULAS (ex.: `EM_ANDAMENTO`); o front traduz p
 | `hooks/useChatTempoReal.ts` | conecta o chat no layout | novo |
 | `components/container/Pagina.tsx` | moldura de toda tela (título, subtítulo, aviso somente leitura) | novo |
 | `components/compartilhados/` | `ProvedorInteracao` (notificar/confirmar), `TabelaResponsiva`, `MenuAcoes`, `AvisoSomenteLeitura` | novo |
-| `components/formularios/` | `CampoFormik` (limite/contador/máscara/seleção), `DialogoFormulario` (tela cheia no celular, erros do back por campo) | novo |
+| `components/formularios/` | `CampoFormik` (limite/contador/máscara/seleção), `DialogoFormulario` (tela cheia no celular, erros do back por campo), `CampoArquivoFormik` (upload S3 → id no formulário, nome do arquivo atual, abrir) | novo |
 | `components/apps/chats/` | `ChatPainel`, `ChatSidebar`, `ChatListing`, `ChatContent`, `ChatMsgSent` | template adaptado |
 | `components/shared/`, `forms/theme-elements/`, `custom-scroll/`, `container/PageContainer` | cards, campos, scrollbar | **cópia fiel do template** |
 | `layouts/full/` | `FullLayout`, `vertical/sidebar/*` (menu por permissão), `vertical/header/*` (seletor de unidade, aviso de chat, tema, perfil), `shared/logo` (logo APAE) | template adaptado |
@@ -161,6 +171,9 @@ Enums gravados como texto em MAIÚSCULAS (ex.: `EM_ANDAMENTO`); o front traduz p
 | `hooks/useAvisoAgenda.ts` | aviso 30 min antes dos eventos de hoje (montado no `FullLayout`) | novo |
 | `views/atendimentos/Atendimentos.tsx`, `components/apps/atendimentos/*` | faixa da semana (`FaixaDias`), lista com presença em um clique (`LinhaAtendimento`), painel do atendimento/aluno/profissional, formulário (individual/lote), diálogos de remarcar/justificar falta/gestão de cadastros/lista de presença/relatório | novo |
 | `types/atendimentos.ts`, `servicos/atendimentos.ts`, `utils/atendimentos.ts` | resumo da semana, faltas seguidas (cálculo no front a partir do histórico já carregado), agrupamento por dia | novo |
+| `views/documentos/Documentos.tsx`, `components/apps/documentos/*` | lista agrupada por situação, linha com "Renovar", detalhe com versões e histórico, formulário, diálogo de renovar, atalhos de validade (`?documento=ID`) | novo |
+| `views/empresas/Empresas.tsx`, `components/apps/empresas/*` | lista com situação, ficha com abas (Dados/Documentos/Histórico), formulário com "Buscar dados" do CNPJ, documento da empresa | novo |
+| `types/documentos.ts`, `types/empresas.ts`, `servicos/documentos.ts`, `servicos/empresas.ts`, `utils/documentos.ts` | situação pela validade, texto do prazo, grupos, atalhos de validade, situação da empresa; `consultarCnpj` | novo |
 | `utils/documentoA4.ts`, `utils/impressaoPdf.ts` | folha A4 com cabeçalho institucional + `imprimir`/`salvarPdf` (`html2pdf.js`, import dinâmico); reaproveitável pelos Módulos 5/6/8 | novo |
 | `views/EmConstrucao.tsx`, `views/erro/Erro.tsx` | módulos não migrados; 403/404 | novo / template |
 

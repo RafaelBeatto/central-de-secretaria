@@ -1,7 +1,7 @@
 # HANDOFF — continuar a migração da Central da Secretaria
 
-> Atualizado em: 2026-09-30 · Concluído: **Base + Módulo 1 (Secretaria + Kanban) + Módulo 2 (Agenda) + Módulo 3 (Atendimentos)** · Próximo: **Módulo 4 — Documentos + Empresas**
-> (o desenho do Módulo 4 **ainda não foi feito** — comece lendo `old/js/06-documentos.js` e `old/js/04-projetos.js` [ficha global da empresa] e o MAPA_DE_USABILIDADE §4.5/§4.6)
+> Atualizado em: 2026-10-01 · Concluído: **Base + Módulo 1 (Secretaria + Kanban) + Módulo 2 (Agenda) + Módulo 3 (Atendimentos) + Módulo 4 (Documentos + Empresas)** · Próximo: **Módulo 5 — Projetos**
+> (o desenho do Módulo 5 **ainda não foi feito** — comece lendo `old/js/04-projetos.js`, `old/js/04b-projetos-telas.js` e o MAPA_DE_USABILIDADE §4.7)
 >
 > **Para a IA que vai continuar:** leia este arquivo inteiro, depois `MAPA_DE_CODIGO.md` (onde está cada coisa) e
 > `MAPA_DE_USABILIDADE.md` §4 (regras de cada módulo). Siga a seção 4 "Próximo passo exato" e, ao terminar cada módulo,
@@ -137,20 +137,67 @@ Migração do sistema "Central da Secretaria" das APAEs:
   `eslint` e `vite build`. **Um bug encontrado e corrigido nos testes**: `marcarContatoFamilia` pegava a falta mais antiga
   da sequência em vez da mais recente (laço sem `break`/guarda no primeiro valor) — corrigido antes de fechar o módulo.
 
-### Próximo passo exato — Módulo 4: Documentos + Empresas (espec: MAPA_DE_USABILIDADE §4.5/§4.6 · fonte: `old/js/06-documentos.js`, `old/js/04-projetos.js`)
-- Ler os dois arquivos do antigo inteiros (a ficha de empresa mora dentro do módulo de projetos) antes de desenhar.
-- As tabelas `documentos.documento`/`documento_versao` e `empresas.empresa`/`empresa_documento` **já existem** no `apae.sql`.
-- Documentos entra como nova fonte da Agenda (`agenda/fontes/`, chave `DOCUMENTO-3`) — já previsto no `ServicoAgenda`.
-- Empresas: campo "Buscar dados" chama a API pública `open.cnpja.com/office/{cnpj}` (decidir se via back ou front direto).
-- PDFs: nenhum module 4 pede PDF pelo MAPA_DE_USABILIDADE §4.5/§4.6 (fica para Projetos/Gerador/Relatórios); se precisar,
-  `utils/documentoA4.ts` e `utils/impressaoPdf.ts` já estão prontos para reaproveitar.
+### Pronto (Módulo 4 — Documentos + Empresas)
+- Back `documentos/`: `Documento` (regra `renovar` na entidade: guarda número/emissão/validade/arquivo atuais numa
+  `DocumentoVersao` e assume os novos — o arquivo só continua se vier um novo, igual ao antigo), `CategoriaDocumento`,
+  `ExigenciaApae` ("vale como documento da APAE nos projetos" — o Módulo 5 lê por aqui), `ServicoDocumento` (CRUD, renovar,
+  excluir apagando os arquivos das versões; trocar o arquivo na edição apaga o anterior), `ControladorDocumento`.
+  Situação (vencido/vencendo ≤30 dias/válido/sem validade) é calculada **no front**, como no antigo.
+- Back `empresas/`: `Empresa`, `EmpresaDocumento` (arquivo obrigatório, categoria `DOCUMENTO_EMPRESA`), `ServicoEmpresa`,
+  `ControladorEmpresa`. **Mesmo CNPJ ou mesma razão social = mesma empresa**: `POST` devolve `{empresa, jaExistia: true}` com a
+  existente em vez de duplicar; `PUT` recusa (422) o CNPJ/nome de outra. CNPJ e CPF são gravados sempre formatados
+  (`DocumentoFiscal.formatarCnpj/Cpf`) para a comparação por igualdade funcionar. A lista já traz os documentos de cada
+  empresa (uma consulta só, `findByEmpresaIdIn`) para mostrar a situação 🟢/🟠/🔴; adicionar/excluir documento devolve a
+  empresa atualizada.
+- Agenda: nova fonte `agenda/fontes/FonteDocumentos` (DOCUMENTO_LER, chave `DOCUMENTO-<id>`, título "Vencimento: nome").
+  Comum novo `Prioridade.pelaProximidade(data, hoje, padrao)` (vencido = Urgente, ≤3 dias = Alta, ≤7 = Média) — o Módulo 5
+  usa o mesmo para `PROJETO_FIM`. O painel do item na Agenda tem "Abrir documento" (`/documentos?documento=ID`).
+- **"Buscar dados" do CNPJ é chamado do navegador** (`servicoEmpresas.consultarCnpj`, `fetch` puro para não mandar o JWT
+  a terceiros), como o antigo fazia; preenche só campos vazios e corta no limite de cada coluna. Se um dia o nginx ganhar
+  CSP, liberar `connect-src https://open.cnpja.com`.
+- Front: `views/documentos/Documentos.tsx` (lista agrupada Vencidos / Vencem em até 30 dias / Em dia / Sem validade, filtros
+  busca/categoria/responsável, "Renovar" nos vencidos/vencendo, painel com versões anteriores e histórico; aceita
+  `?documento=ID`) + `components/apps/documentos/*` (`ListaDocumentos`, `LinhaDocumento`, `DetalheDocumento`,
+  `FormularioDocumento`, `DialogoRenovarDocumento`, `AtalhosValidade` +30d/+90d/+6m/+1a); `views/empresas/Empresas.tsx`
+  (lista com situação, busca e filtro por situação, ficha ao lado com abas Dados/Documentos/Histórico) +
+  `components/apps/empresas/*` (`LinhaEmpresa`, `FichaEmpresa`, `FormularioEmpresa` com "Buscar dados",
+  `DialogoDocumentoEmpresa`); `types/documentos.ts`, `types/empresas.ts`, `servicos/documentos.ts`, `servicos/empresas.ts`,
+  `utils/documentos.ts` (situação, texto do prazo, grupos, atalhos de validade, situação da empresa — reaproveitar no Módulo 5).
+- Reaproveitáveis novos no front: **`components/formularios/CampoArquivoFormik`** (envia ao S3 ao escolher, guarda só o id,
+  mostra o nome do arquivo atual e abre ao clicar — usar em Projetos/Gerador) e `servicoArquivos.dados(id)`.
+  `normalizar` (busca sem acento) saiu de `utils/tarefas.ts` para `utils/formatacao.ts` (o chat também passou a usá-lo).
+- Fica para o Módulo 5/6: abas Cotações, Ordens de compra e Projetos da ficha, "Ligar a um projeto", "Gerar documento" e o
+  bloqueio de excluir empresa ligada a documento gerado (o antigo bloqueava); a lista "empresas só dentro de projetos
+  antigos" não existe mais (banco começa do zero).
+- Verificado: back compila, empacota e sobe validando o schema num banco descartável; API testada ponta a ponta por curl
+  (criar/validar/renovar com versão/trocar arquivo/excluir com arquivos das versões; histórico com datas dd/mm/aaaa; fonte
+  da Agenda com prioridade; empresas: deduplicação por CNPJ formatado ou não e por nome, edição sem falso conflito entre
+  empresas sem CNPJ, 422 ao repetir CNPJ/nome de outra, validações de CNPJ/CPF/e-mail/UF, documento com arquivo obrigatório
+  e da categoria certa, 404 ao excluir documento de outra empresa, exclusão em cascata apagando os arquivos); front passa em
+  `tsc`, `eslint` e `vite build`. Os arquivos dos testes foram inseridos direto no banco (sem chaves da AWS nesta máquina).
+  **Corrigido no código herdado do commit anterior:** `Empresa.uf` sem `bpchar(2)` (derrubaria a validação do schema), CNPJ/
+  CPF/e-mail/UF sem validação, `findBy...CnpjAndIdNot(null)` virava `IS NULL` (duas empresas sem CNPJ "conflitavam"),
+  cadastro com CNPJ não conferia a razão social (estourava o índice `ux_empresa_razao`) e histórico da renovação com data ISO.
+- Não testado: telas no navegador (o dono vai revisar) e a consulta real à CNPJá.
+
+### Próximo passo exato — Módulo 5: Projetos (espec: MAPA_DE_USABILIDADE §4.7 · fonte: `old/js/04-projetos.js`, `old/js/04b-projetos-telas.js`)
+- Ler os dois arquivos do antigo inteiros antes de desenhar (são os maiores: recurso → execuções, financeiro com movimentações,
+  checklist de seções, cotações ≥3 empresas, ordem de compra, notas, pagamentos, pendências, relatório PDF).
+- As tabelas do schema `projetos` **já existem** no `apae.sql` (11 tabelas).
+- Projetos entra como fonte da Agenda (`PROJETO_INICIO-<id>`, `PROJETO_FIM-<id>` com `Prioridade.pelaProximidade`) e como o
+  quadro "Execuções de projeto" do Kanban.
+- "Documentação da APAE" lê `documentos.documento.exigencia_apae` (old: `situacaoDocsApae` — para cada exigência, o documento
+  de validade mais longa; sem validade conta como válido). Avisos de documentos da empresa vencidos na data da ordem/pagamento
+  leem `empresas.empresa_documento` (old: `documentosVencidosEmpresa`). `utils/documentos.ts` já tem a situação no front.
+- Completar a ficha da empresa (abas Cotações, Ordens de compra, Projetos; "Ligar a um projeto").
+- PDF do relatório do recurso: reaproveitar `utils/documentoA4.ts` + `utils/impressaoPdf.ts`; arquivos com `CampoArquivoFormik`.
 
 ### Próximos módulos (ordem aprovada)
 1. ~~Base~~ → ~~Secretaria + Kanban~~ (prontos)
 2. ~~Agenda~~ (pronto)
 3. ~~Atendimentos~~ (pronto)
-4. **Documentos + Empresas** ← próximo (validade, renovação com versões; cadastro único, documentos da empresa, consulta CNPJ)
-5. Projetos (recurso → execuções; financeiro, cotações ≥3 empresas, vencedora, ordem de compra, notas, pagamentos, pendências, checklist, relatório PDF)
+4. ~~Documentos + Empresas~~ (pronto)
+5. **Projetos** ← próximo (recurso → execuções; financeiro, cotações ≥3 empresas, vencedora, ordem de compra, notas, pagamentos, pendências, checklist, relatório PDF)
 6. Gerador de documentos (modelos com {AUTO}/[MANUAL], numeração por série/ano, versões, vínculos, anexos, PDF)
 7. Pendências + Painel completo ("para resolver", hoje/7 dias, projetos)
 8. Histórico (tela), Relatórios (relatório de atividades em PDF), Pesquisa geral
@@ -236,6 +283,10 @@ Front:
 - **Cargo sem tabela Java**: `Cargo` é uma entidade do banco (`codigo` é `String`), não um enum — para checar um cargo
   específico (ex.: professor/profissional) compare `usuario().cargoCodigo()` com a string do `codigo` (só
   `ADMINISTRADOR_SISTEMA` tem uma constante em `Cargo.java`).
+- **Spring Data com parâmetro `null`** em método derivado (`findByUnidadeIdAndCnpj(id, null)`) gera `cnpj IS NULL` e acha
+  qualquer registro sem o campo — teste o `null` antes de consultar (ver `ServicoEmpresa.mesmaEmpresa`).
+- **Chamada a serviço de fora** (ex.: CNPJá): use `fetch` puro, nunca o `api` de `utils/axios` (ele manda o JWT e o
+  `X-Unidade`).
 
 ## 8. Pendências conhecidas (fora dos módulos)
 - Upload real para o S3 não testado (bucket `apae-chorobura` criado; falta o dono preencher as chaves no servidor).
@@ -255,4 +306,6 @@ Front:
 - Atendimentos: "Cadastros de apoio" (Aluno/Profissional) não têm tela própria fora do diálogo "Alunos e profissionais";
   se crescer (relatório só de cadastros, por exemplo) considerar uma tela dedicada.
 - Nenhum teste automatizado foi escrito (pedido do dono). Também não houve teste manual no navegador das telas dos
-  Módulos 1, 2 e 3: o dono ainda vai revisar (a API do Módulo 3 foi testada ponta a ponta por curl, sem navegador).
+  Módulos 1, 2, 3 e 4: o dono ainda vai revisar (as APIs dos Módulos 3 e 4 foram testadas ponta a ponta por curl, sem navegador).
+- Documentos: a seção "Vincular a outros registros" do formulário antigo fica para o item 9 (vínculos entre registros).
+- `back/erro-backend.txt` (no stage do git) é só um log de "porta 8080 já em uso" — não é bug; pode ser apagado.

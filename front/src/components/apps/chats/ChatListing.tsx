@@ -21,11 +21,8 @@ import {
   selecionarConversa,
 } from 'src/store/apps/chat/ChatSlice';
 import Scrollbar from 'src/components/custom-scroll/Scrollbar';
-import { formatarMomento, iniciais } from 'src/utils/formatacao';
+import { formatarMomento, iniciais, normalizar } from 'src/utils/formatacao';
 import type { ConversaResumo } from 'src/types/chat';
-
-const normalizar = (texto: string) =>
-  texto.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /** Conversas recentes e colegas da unidade (para começar uma conversa nova). */
 const ChatListing = ({ aoSelecionar }: { aoSelecionar: () => void }) => {

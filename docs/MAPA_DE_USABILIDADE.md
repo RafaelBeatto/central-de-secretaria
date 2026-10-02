@@ -37,9 +37,9 @@ subordinada, todas as telas mostram os dados dela com a faixa "somente leitura" 
 | `/atendimentos` | Semana de atendimentos | ✅ |
 | `/kanban` | Quadro de tarefas (quadro de execuções de projeto entra no Módulo 5) | ✅ tarefas |
 | `/projetos` | Recursos → execuções | ⏳ Módulo 5 |
-| `/documentos` | Documentos da instituição | ⏳ Módulo 4 |
+| `/documentos` | Documentos da instituição (`?documento=ID` abre o detalhe) | ✅ |
 | `/gerador` | Gerador de documentos | ⏳ Módulo 6 |
-| `/empresas` | Fornecedores | ⏳ Módulo 4 |
+| `/empresas` | Fornecedores (abas Cotações/Ordens/Projetos da ficha entram no Módulo 5) | ✅ |
 | `/historico` | Histórico | ⏳ Módulo 8 |
 | `/relatorios` | Relatório de atividades | ⏳ Módulo 8 |
 | `/administracao/usuarios` | Lista, busca, novo, editar, redefinir senha, ativar/desativar | ✅ |
@@ -156,6 +156,9 @@ Diálogos de formulário ocupam a tela inteira no celular; listas viram cartões
   validade e arquivo obrigatório. Situação: 🟢 OK / 🟠 incompleta (sem docs ou sem arquivo) / 🔴 vencido.
 - Ficha com abas: Dados, Documentos, Cotações, Ordens de compra, Projetos, Histórico. "Gerar documento" abre o Gerador
   com a empresa vinculada.
+- **Migrado (Módulo 4):** lista com situação e filtro por situação; a ficha abre ao lado da lista (no celular ocupa a tela),
+  como nas outras telas novas, com Dados, Documentos e Histórico. Cadastrar uma empresa que já existe (mesmo CNPJ ou nome)
+  abre a ficha dela com o aviso "já está cadastrada". Cotações, Ordens, Projetos e "Gerar documento" chegam nos Módulos 5/6.
 
 ### 4.7 Projetos (`old/js/04-projetos.js`, `04b-projetos-telas.js`) · `projetos.*`
 - **Recurso** (dinheiro que entrou): nome*, tipo/origem*, órgão repassador, convênio/termo, data de recebimento,

@@ -16,7 +16,8 @@ import { ROTULO_STATUS_TAREFA, StatusTarefa, Tarefa } from 'src/types/tarefas';
 import { useSelector } from 'src/store/Store';
 import { hojeIso, somarDias } from 'src/utils/datas';
 import { mensagemDeErro } from 'src/utils/erroApi';
-import { normalizar, ordenarTarefas } from 'src/utils/tarefas';
+import { normalizar } from 'src/utils/formatacao';
+import { ordenarTarefas } from 'src/utils/tarefas';
 
 const COLUNAS: StatusTarefa[] = ['PENDENTE', 'EM_ANDAMENTO', 'AGUARDANDO', 'CONCLUIDA'];
 const COR_COLUNA: Record<string, string> = {
