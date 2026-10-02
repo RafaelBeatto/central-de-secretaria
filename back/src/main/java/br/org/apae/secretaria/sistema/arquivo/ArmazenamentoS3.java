@@ -6,6 +6,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
 import br.org.apae.secretaria.configuracao.PropriedadesAplicacao;
@@ -19,7 +20,8 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 
 /** Operações de baixo nível no bucket. Não conhece regras de negócio. */
 @Component
-public class ArmazenamentoS3 {
+@ConditionalOnExpression("!(" + Armazenamento.CONDICAO_LOCAL + ")")
+public class ArmazenamentoS3 implements Armazenamento {
 
     private final S3Client cliente;
     private final S3Presigner assinador;
@@ -33,6 +35,7 @@ public class ArmazenamentoS3 {
         this.validadeUrl = Duration.ofMinutes(propriedades.armazenamento().validadeUrlMinutos());
     }
 
+    @Override
     public void enviar(String chave, InputStream conteudo, long tamanho, String tipoConteudo) throws IOException {
         cliente.putObject(PutObjectRequest.builder()
                 .bucket(bucket)
@@ -43,6 +46,7 @@ public class ArmazenamentoS3 {
     }
 
     /** Link temporário para baixar/abrir o arquivo com o nome original. */
+    @Override
     public String urlTemporaria(String chave, String nomeOriginal) {
         String disposicao = "inline; filename*=UTF-8''" + URLEncoder.encode(nomeOriginal, StandardCharsets.UTF_8).replace("+", "%20");
         GetObjectRequest pedido = GetObjectRequest.builder()
@@ -56,6 +60,7 @@ public class ArmazenamentoS3 {
                 .build()).url().toString();
     }
 
+    @Override
     public void excluir(String chave) {
         cliente.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(chave).build());
     }

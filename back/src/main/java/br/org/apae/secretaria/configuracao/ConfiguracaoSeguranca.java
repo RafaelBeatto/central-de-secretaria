@@ -45,7 +45,9 @@ public class ConfiguracaoSeguranca {
     private static final String[] ROTAS_PUBLICAS = {
         "/api/autenticacao/entrar", "/api/autenticacao/renovar", "/api/autenticacao/sair",
         // O WebSocket autentica no CONNECT do STOMP (ver ConfiguracaoWebSocket).
-        "/ws/**"
+        "/ws/**",
+        // Só existe com o armazenamento local de desenvolvimento (link assinado, igual ao do S3).
+        "/api/arquivos-locais/**"
     };
 
     @Bean

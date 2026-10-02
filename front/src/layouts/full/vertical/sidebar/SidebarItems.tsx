@@ -4,6 +4,7 @@ import { Box, List, useMediaQuery, Theme } from '@mui/material';
 import { useSelector, useDispatch } from 'src/store/Store';
 import { closeMobileSidebar } from 'src/store/customizer/CustomizerSlice';
 import { usePermissao } from 'src/hooks/usePermissao';
+import { useContadoresMenu } from 'src/hooks/useContadoresMenu';
 import { montarMenu } from './MenuItems';
 import NavItem from './NavItem';
 import NavGroup from './NavGroup/NavGroup';
@@ -15,6 +16,7 @@ const SidebarItems = () => {
   const hideMenu = lgUp ? customizer.isCollapse && !customizer.isSidebarHover : '';
   const dispatch = useDispatch();
   const { tem } = usePermissao();
+  const contadores = useContadoresMenu();
   const menu = useMemo(() => montarMenu((m) => !m.permissao || tem(m.permissao)), [tem]);
   // Qualquer subpágina (ex.: /projetos/12) mantém o item do menu selecionado.
   const ativo = menu.find((item) => item.href && pathname.startsWith(item.href))?.href ?? pathname;
@@ -27,7 +29,7 @@ const SidebarItems = () => {
             <NavGroup item={item} hideMenu={hideMenu} key={item.subheader} />
           ) : (
             <NavItem
-              item={item}
+              item={item.href && contadores[item.href] ? { ...item, chip: String(contadores[item.href].n), chipColor: contadores[item.href].cor } : item}
               key={item.id}
               pathDirect={ativo}
               hideMenu={hideMenu}

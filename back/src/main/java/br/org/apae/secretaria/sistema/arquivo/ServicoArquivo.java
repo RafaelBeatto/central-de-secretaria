@@ -32,7 +32,7 @@ public class ServicoArquivo {
 
     private final ArquivoRepositorio repositorio;
     private final UnidadeRepositorio unidades;
-    private final ArmazenamentoS3 armazenamento;
+    private final Armazenamento armazenamento;
     private final ContextoSeguranca contexto;
     private final PropriedadesAplicacao propriedades;
 

@@ -22,6 +22,7 @@ import br.org.apae.secretaria.comum.excecao.AcessoNegadoExcecao;
 import br.org.apae.secretaria.comum.excecao.NaoEncontradoExcecao;
 import br.org.apae.secretaria.comum.excecao.RegraNegocioExcecao;
 import jakarta.validation.ConstraintViolationException;
+import software.amazon.awssdk.core.exception.SdkException;
 
 /**
  * Converte exceções em respostas RFC 9457 (ProblemDetail) com mensagens em português.
@@ -92,6 +93,15 @@ public class TratadorGlobalExcecoes {
         log.warn("Violação de integridade: {}", excecao.getMostSpecificCause().getMessage());
         return problema(HttpStatus.CONFLICT,
                 "Não foi possível salvar: o registro já existe ou está em uso por outro cadastro.");
+    }
+
+    /** Falha ao falar com o S3 (sem chaves da AWS, bucket inexistente, sem rede…): o arquivo não foi guardado. */
+    @ExceptionHandler(SdkException.class)
+    public ProblemDetail armazenamento(SdkException excecao) {
+        log.error("Falha no armazenamento de arquivos (S3)", excecao);
+        return problema(HttpStatus.SERVICE_UNAVAILABLE,
+                "Não foi possível guardar/abrir o arquivo: o armazenamento (AWS S3) não está configurado ou não respondeu. "
+                        + "Confira as chaves da AWS no arquivo back/.env (modelo: back/.env.exemplo).");
     }
 
     @ExceptionHandler(Exception.class)

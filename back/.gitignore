@@ -8,3 +8,6 @@ target/
 .settings/
 .factorypath
 .env
+
+# Arquivos enviados no desenvolvimento sem AWS
+arquivos-locais/

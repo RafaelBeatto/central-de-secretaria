@@ -26,9 +26,11 @@ Fonte no antigo: `old/js/11-pendencias.js`, `old/js/03-dashboard.js` · Espec: M
 - Muitos atendimentos sem presença (>8 em Pendências, >2 no Painel) viram **uma linha-resumo** que leva à tela de Atendimentos.
 - Atualiza a tela sozinha após cada ação (recarrega as fontes), sem recarregar a página.
 
+## Selos no menu lateral (feito depois)
+- `hooks/useContadoresMenu`: Pendências (total; vermelho se há atrasado), Secretaria (atrasadas), Documentos (vencidos), Atendimentos (sem presença) e
+  Agenda (compromissos de hoje). Atualiza a cada 3 min e ao trocar de tela (no máx. 1×/min), da unidade em consulta; se falhar, o menu fica sem selo.
+
 ## Deixado de fora / adiado
-- Contadores no menu lateral (antigo mostrava atrasadas/documentos/atendimentos/eventos) — o Painel e as Pendências já
-  mostram os totais; fica como melhoria se o dono quiser o selo no menu.
 - "Tarefas concluídas nos últimos 7 dias" conta só tarefas não recorrentes (não há histórico agregado no back).
 - Aviso de backup do Painel antigo: removido (backup foi retirado do sistema, decisão já aprovada).
 

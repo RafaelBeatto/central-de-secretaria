@@ -259,7 +259,7 @@ Migração do sistema "Central da Secretaria" das APAEs:
 - Front: `utils/pendencias.ts` (`montarPendencias`, regras do antigo), `servicos/painel.ts` + `hooks/useDadosPainel` (carrega só o que a permissão permite),
   `components/apps/pendencias/SecoesPendencias` (seções + ações Concluir/Renovar/Veio/Faltou/Feito/Família contatada/Resolvida, reutilizado no Painel),
   `views/pendencias/Pendencias.tsx`, `views/painel/Painel.tsx` + `components/apps/painel/BlocosPainel`.
-- Verificado: back compila e sobe validando as consultas; front passa em `tsc`, `eslint` e `vite build`. Não testado no navegador. Adiado: contadores no menu lateral.
+- Verificado: back compila e sobe validando as consultas; front passa em `tsc`, `eslint` e `vite build`. Não testado no navegador. Selos no menu lateral feitos depois (`hooks/useContadoresMenu`).
 
 ### Pronto (Módulo 8 — Histórico, Relatórios, Pesquisa geral)
 - Detalhe em **[melhorias/modulo-08-historico-relatorios-pesquisa.md](melhorias/modulo-08-historico-relatorios-pesquisa.md)**.
@@ -282,7 +282,7 @@ Migração do sistema "Central da Secretaria" das APAEs:
 
 ### Próximo passo
 - Todos os módulos aprovados estão migrados. O que resta: o dono revisar as telas no navegador (nenhuma foi aberta em teste manual) e as pendências da seção 8
-  (upload real no S3, token em cookie httpOnly, limpeza de arquivos órfãos, `application-prod.properties`, contadores no menu lateral).
+  (upload real no S3, token em cookie httpOnly, limpeza de arquivos órfãos, `application-prod.properties`). Os selos do menu lateral já foram feitos (`hooks/useContadoresMenu`).
 
 ### Próximos módulos (ordem aprovada)
 1. ~~Base~~ → ~~Secretaria + Kanban~~ (prontos)
@@ -396,9 +396,14 @@ Front:
 
 ## 8. Pendências conhecidas (fora dos módulos)
 - Upload real para o S3 não testado (bucket `apae-chorobura` criado; falta o dono preencher as chaves no servidor).
+- **PENDENTE — armazenamento local provisório (2026-10-02):** sem `back/.env` (sem chaves da AWS) o envio de arquivos falhava com erro 500. Para destravar o desenvolvimento,
+  `sistema/arquivo/ArmazenamentoLocal` + `ControladorArquivoLocal` guardam os arquivos em `back/arquivos-locais/` (não versionada) e abrem por link assinado
+  (`/api/arquivos-locais/{token}`, expira como o do S3) **só quando não há `AWS_ACCESS_KEY_ID` e `aplicacao.armazenamento.pasta-local` está preenchida** (dev). Produção
+  deixa `pasta-local=` vazio em `application-prod.properties` e usa o S3. **A fazer:** preencher `back/.env` com as chaves, testar o S3 de verdade e então remover
+  (ou manter só como opção) o armazenamento local; arquivos enviados em modo local não existem no S3. Falhas do S3 agora respondem 503 com mensagem clara (`TratadorGlobalExcecoes`).
 - Token de renovação fica no `localStorage` (alternativa mais segura: cookie httpOnly — perguntar ao dono).
 - Arquivos enviados e nunca ligados a registro ficam órfãos (prever rotina de limpeza).
-- `application-prod.properties` ainda não existe (decisão do dono: depois).
+- `application-prod.properties` já existe (usado na publicação de 2026-09-30).
 - Os PDFs do antigo são gerados com **html2pdf** (`old/js/vendor/html2pdf.bundle.min.js`, usado em
   `old/js/17-gerador-documentos.js`). O Módulo 3 já instalou `html2pdf.js` via npm e criou `utils/documentoA4.ts` +
   `utils/impressaoPdf.ts` reaproveitáveis pelos Módulos 5, 6 e 8. A Agenda continua só com `window.print()`.
