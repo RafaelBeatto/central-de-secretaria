@@ -111,6 +111,7 @@ export const MODULOS: Modulo[] = [
     icone: IconFilePencil,
     grupo: 'Controle',
     permissao: PERMISSOES.GERADOR_LER,
+    tela: lazy(() => import('src/views/gerador/Gerador')),
   },
   {
     caminho: '/empresas',

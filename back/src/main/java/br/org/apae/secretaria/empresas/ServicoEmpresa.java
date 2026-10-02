@@ -18,6 +18,8 @@ import br.org.apae.secretaria.empresas.dto.EmpresaDocumentoResposta;
 import br.org.apae.secretaria.empresas.dto.EmpresaResposta;
 import br.org.apae.secretaria.empresas.dto.RequisicaoEmpresa;
 import br.org.apae.secretaria.empresas.dto.RequisicaoEmpresaDocumento;
+import br.org.apae.secretaria.gerador.ServicoDocumentoGerado;
+import br.org.apae.secretaria.gerador.TipoVinculo;
 import br.org.apae.secretaria.seguranca.ContextoSeguranca;
 import br.org.apae.secretaria.sistema.arquivo.Arquivo;
 import br.org.apae.secretaria.sistema.arquivo.CategoriaArquivo;
@@ -44,6 +46,7 @@ public class ServicoEmpresa {
     private final ContextoSeguranca contexto;
     private final ServicoHistorico historico;
     private final ServicoArquivo servicoArquivo;
+    private final ServicoDocumentoGerado documentosGerados;
 
     @Transactional(readOnly = true)
     public List<EmpresaResposta> itens() {
@@ -115,6 +118,10 @@ public class ServicoEmpresa {
     @Transactional
     public void excluir(Long id) {
         Empresa e = buscarParaEscrita(id);
+        if (documentosGerados.existeLigadoA(e.getUnidadeId(), TipoVinculo.EMPRESA, id)) {
+            throw new RegraNegocioExcecao(
+                    "Esta empresa está ligada a documentos gerados. Exclua ou desligue esses documentos antes.");
+        }
         String nome = e.getRazaoSocial();
         List<Long> arquivos = documentos.findByEmpresaIdOrderByNomeAsc(id).stream().map(EmpresaDocumento::getArquivoId)
                 .toList();

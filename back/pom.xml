@@ -85,6 +85,19 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
+        <!-- Hibernate 7 só mapeia colunas jsonb com Jackson 2 no classpath (o Spring usa o Jackson 3) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Sanitização do HTML dos modelos do Gerador -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.18.3</version>
+        </dependency>
+
         <!-- AWS S3 (arquivos) -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>

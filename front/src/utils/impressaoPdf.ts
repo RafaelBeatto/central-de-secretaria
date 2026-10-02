@@ -22,11 +22,11 @@ export function imprimir(html: string, titulo: string) {
 }
 
 /** Gera e baixa o PDF (html2pdf.js) a partir do mesmo HTML usado na impressão. */
-export async function salvarPdf(html: string, nomeArquivo: string) {
+export async function salvarPdf(html: string, nomeArquivo: string, opcoes: { paginaXdeY?: boolean } = {}) {
   const { default: html2pdf } = await import('html2pdf.js');
   const wrapper = document.createElement('div');
   wrapper.innerHTML = `<style>${ESTILO_A4}</style>${html}`;
-  await html2pdf()
+  const trabalho = html2pdf()
     .set({
       margin: 0,
       filename: `${nomeArquivo.replace(/[^\w-]+/g, '_')}.pdf`,
@@ -35,6 +35,25 @@ export async function salvarPdf(html: string, nomeArquivo: string) {
       jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
       pagebreak: { mode: ['css'], before: '.doc-quebra-pagina' },
     } as never)
-    .from(wrapper)
-    .save();
+    .from(wrapper);
+  if (!opcoes.paginaXdeY) {
+    await trabalho.save();
+    return;
+  }
+  // "Página X de Y" só é possível depois que o PDF existe e o total de páginas é conhecido.
+  const comNumeracao = trabalho
+    .toPdf()
+    .get('pdf')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .then((pdf: any) => {
+      const total = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= total; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(9);
+        pdf.setTextColor(90);
+        pdf.text(`Página ${i} de ${total}`, pdf.internal.pageSize.getWidth() / 2, pdf.internal.pageSize.getHeight() - 8, { align: 'center' });
+      }
+    });
+  // O worker do html2pdf continua encadeável depois do `then`, mas a tipagem não diz isso.
+  await (comNumeracao as unknown as { save: () => Promise<void> }).save();
 }

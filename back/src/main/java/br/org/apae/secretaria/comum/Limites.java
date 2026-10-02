@@ -100,4 +100,19 @@ public final class Limites {
     public static final int PAGAMENTO_FORMA = 30;
     public static final int PENDENCIA_TITULO = 200;
     public static final int PENDENCIA_DESCRICAO = 1000;
+
+    // Gerador de documentos
+    public static final int GERADOR_MODELO_NOME = 100;
+    public static final int GERADOR_TITULO = 150;
+    public static final int GERADOR_SERIE = 60;
+    public static final int GERADOR_TEXTO = 100000;
+    public static final int GERADOR_ESPACAMENTO = 4;
+    public static final int GERADOR_NUMERO = 20;
+    public static final int GERADOR_VINCULO_ROTULO = 200;
+    public static final int GERADOR_CAMPO_NOME = 60;
+    public static final int GERADOR_CAMPO_VALOR = 5000;
+    public static final int GERADOR_CAMPOS_MAXIMO = 60;
+    public static final int GERADOR_ASSINATURAS_MAXIMO = 10;
+    public static final int GERADOR_ASSINATURA_LINHAS_MAXIMO = 5;
+    public static final int GERADOR_ASSINATURA_LINHA = 150;
 }

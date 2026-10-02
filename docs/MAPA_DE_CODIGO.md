@@ -62,6 +62,7 @@ Chat: `@stomp/stompjs` → `/ws` → `ControladorChatWebSocket` → `ServicoChat
 | `agenda/fontes/` | `FonteAgenda` (interface: permissão + itens do período), `FonteEventos`, `FonteTarefas`, `FonteDocumentos` (vencimentos), `FonteProjetos` (início/fim de recursos e execuções) |
 | **atendimentos/** | `Aluno`, `Profissional` (cadastros de apoio; `Profissional.usuarioId` liga ao usuário professor/profissional), `Atendimento` (regras na entidade: `marcarPresenca`, `remarcarPara`, `desfazerRemarcacao`, `desligarDoOriginal`; série semanal = `serieId` UUID sem tabela própria), `Presenca`, `MotivoFalta`, `ServicoAtendimento` (CRUD, presença, série, remarcação, cópia da semana), `ServicoCadastroAtendimento` (renomear/mesclar/excluir aluno e profissional, contato família, `meuProfissional` do usuário vinculado), `ControladorAtendimento` |
 | **documentos/** | `Documento` (regra `renovar` na entidade → `DocumentoVersao`), `CategoriaDocumento`, `ExigenciaApae` (documento que vale nos projetos), `ServicoDocumento` (CRUD, renovar, excluir com os arquivos das versões), `ControladorDocumento` |
+| **gerador/** | `ModeloDocumento`, `DocumentoGerado`, `DocumentoGeradoVersao`, `FormatoModelo`, `TipoVinculo`; `SanitizadorHtml` (jsoup); `ServicoModeloDocumento`, `ServicoDocumentoGerado`; `ControladorGerador`; `dto/` |
 | **projetos/** | `Recurso`, `Execucao`, `RecursoDocumento`, `MovimentacaoRecurso`, `ExecucaoEmpresa`, `Cotacao` (+`Cotacao.Item`), `OrdemCompra`, `ExecucaoDocumento`, `Pagamento`, `ExecucaoPendencia`, `Enums`; `CalculoProjetos` (financeiro, checklist, docs da APAE — em lote); `ServicoRecurso`, `ServicoExecucao`, `ServicoItensExecucao`; `ControladorProjeto`; `dto/RequisicoesProjeto`, `dto/RespostasProjeto` |
 | **empresas/** | `Empresa`, `EmpresaDocumento` (arquivo obrigatório), `ServicoEmpresa` (mesmo CNPJ ou razão social = mesma empresa; CNPJ/CPF gravados formatados; lista já com os documentos), `ControladorEmpresa` |
 
@@ -121,6 +122,11 @@ A consulta de CNPJ (`open.cnpja.com/office/{cnpj}`) é feita direto do navegador
 `PUT /projetos/execucoes/{id}/plano` · `POST|DELETE /projetos/execucoes/{id}/empresas[/{vinculoId}]` · `POST /projetos/execucoes/{id}/cotacoes` ·
 `POST /projetos/execucoes/{id}/cotacoes/{cid}/vencedora` · `DELETE /projetos/execucoes/{id}/cotacoes/{cid}` · `POST|DELETE …/ordens`, `…/documentos`, `…/pagamentos`, `…/pendencias` ·
 `PATCH /projetos/execucoes/{id}/pendencias/{pid}` (`{concluida}`) · `GET /projetos/empresas/{empresaId}` (abas da ficha da empresa).
+
+**Gerador** (leitura GERADOR_LER, alteração GERADOR_ESCREVER; modelos do sistema = `unidade_id` nulo, só leitura):
+`GET|POST /gerador/modelos` · `PUT|DELETE /gerador/modelos/{id}` · `POST /gerador/modelos/{id}/duplicar` ·
+`GET|POST /gerador/documentos` (lista sem texto, com respostas) · `GET|PUT|DELETE /gerador/documentos/{id}` (PUT = nova versão) ·
+`GET /gerador/documentos/{id}/historico` · `POST /gerador/documentos/{id}/duplicar` · `POST /gerador/documentos/{id}/anexos` (`{arquivoId}`) · `DELETE …/anexos/{arquivoId}`.
 
 ### Banco — schemas e tabelas (`apae.sql`)
 
@@ -185,9 +191,12 @@ Enums gravados como texto em MAIÚSCULAS (ex.: `EM_ANDAMENTO`); o front traduz p
 | `views/empresas/Empresas.tsx`, `components/apps/empresas/*` | lista com situação, ficha com abas (Dados/Documentos/Histórico), formulário com "Buscar dados" do CNPJ, documento da empresa | novo |
 | `views/projetos/Projetos.tsx`, `components/apps/projetos/*` | Lista → Recurso → Execução pela URL (`?recurso=`, `?execucao=&secao=`); seções da execução = checklist; diálogos (cotação com itens, ordem/pagamento com avisos); relatório PDF do recurso | novo |
 | `components/apps/kanban/QuadroExecucoes.tsx` | quadro "Execuções de projeto" do Kanban | novo |
+| `views/gerador/Gerador.tsx`, `components/apps/gerador/*` | abas Documentos/Modelos; prévia A4 ao vivo, vínculos, versões, anexos, PDF/impressão; aceita `?documento=` e `?vinculoTipo=&vinculoId=` | novo |
+| `components/formularios/EditorRico.tsx` | editor de texto rico (contenteditable) reaproveitável | novo |
+| `types/gerador.ts`, `servicos/gerador.ts`, `utils/gerador.ts`, `utils/geradorVinculos.ts` | campos {AUTO}/[MANUAL], `montarHtmlDocumento`, `textoBusca`; listas e dados dos vínculos | novo |
 | `types/projetos.ts`, `servicos/projetos.ts`, `utils/projetos.ts` | `formatarMoeda`, `PROPS_VALOR`, `TOM_STATUS`, `empresasCotadas`, `avisoDocumentosEmpresa` | novo |
 | `types/documentos.ts`, `types/empresas.ts`, `servicos/documentos.ts`, `servicos/empresas.ts`, `utils/documentos.ts` | situação pela validade, texto do prazo, grupos, atalhos de validade, situação da empresa; `consultarCnpj` | novo |
-| `utils/documentoA4.ts`, `utils/impressaoPdf.ts` | folha A4 com cabeçalho institucional + `imprimir`/`salvarPdf` (`html2pdf.js`, import dinâmico); reaproveitável pelos Módulos 5/6/8 | novo |
+| `utils/documentoA4.ts`, `utils/impressaoPdf.ts` | folha A4 com cabeçalho e rodapé institucionais (`ESTILO_DOCUMENTO` serve também para prévia na tela) + `imprimir`/`salvarPdf` (`html2pdf.js`, import dinâmico, `paginaXdeY`); usado nos Módulos 3, 5 e 6, reaproveitável pelo 8 | novo |
 | `views/EmConstrucao.tsx`, `views/erro/Erro.tsx` | módulos não migrados; 403/404 | novo / template |
 
 Assets: `assets/images/logos/logo-apae.png` (extraído do base64 do sistema antigo), fundos do template.

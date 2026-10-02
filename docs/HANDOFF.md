@@ -1,11 +1,11 @@
 # HANDOFF — continuar a migração da Central da Secretaria
 
-> Atualizado em: 2026-10-01 · Concluído: **Base + Módulos 1 a 5 (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos)** · Próximo: **Módulo 6 — Gerador de documentos**
-> (o desenho do Módulo 6 **ainda não foi feito** — comece lendo `old/js/17-gerador-documentos.js`, `old/js/17b-gerador-telas.js` e o MAPA_DE_USABILIDADE §4.8)
+> Atualizado em: 2026-10-02 · Concluído: **Base + Módulos 1 a 6 (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos, Gerador)** · Próximo: **Módulo 7 — Pendências + Painel completo**
+> (o desenho do Módulo 7 **ainda não foi feito** — comece lendo `old/js/11-pendencias.js`, `old/js/03-dashboard.js` e o MAPA_DE_USABILIDADE §4.9)
 >
 > **Para a IA que vai continuar:** leia este arquivo inteiro, depois `MAPA_DE_CODIGO.md` (onde está cada coisa) e
 > `MAPA_DE_USABILIDADE.md` §4 (regras de cada módulo). Siga a seção 4 "Próximo passo exato" e, ao terminar cada módulo,
-> atualize este arquivo e os dois mapas.
+> atualize este arquivo, os dois mapas e crie `melhorias/modulo-NN-*.md` (pasta `docs/melhorias/`).
 
 ## 1. O que é o projeto
 
@@ -231,13 +231,34 @@ Migração do sistema "Central da Secretaria" das APAEs:
   `flush` antes de marcar a nova (o índice único `ux_cotacao_vencedora` aceita só uma). Front passa em `tsc`, `eslint` e `vite build`.
 - Não testado: telas no navegador (o dono vai revisar) e PDF do relatório (depende do navegador).
 
-### Próximo passo exato — Módulo 6: Gerador de documentos (espec: MAPA_DE_USABILIDADE §4.8 · fonte: `old/js/17-gerador-documentos.js`, `old/js/17b-gerador-telas.js`)
-- Ler os dois arquivos do antigo inteiros antes de desenhar. As tabelas `gerador.*` já existem; os 12 modelos do sistema já
-  estão no seed (unidade NULL). Numeração por série/ano: `ServicoNumeracao.numeroDoAno`.
-- Vínculos que preenchem campos: empresa (`EmpresaResposta`), execução (`ExecucaoDetalhe`), aluno, atendimento, documento,
-  tarefa. A ficha da empresa ganha "Gerar documento" e o bloqueio de excluir empresa ligada a documento gerado (o antigo bloqueava).
-- PDF/impressão: `utils/documentoA4.ts` (`ESTILO_A4`, cabeçalho) + `utils/impressaoPdf.ts`; anexos com `CampoArquivoFormik`
-  (categoria `ANEXO_GERADOR`). HTML do editor rico precisa ser sanitizado no back.
+### Pronto (Módulo 6 — Gerador de documentos)
+- Detalhe das melhorias e decisões em **[melhorias/modulo-06-gerador.md](melhorias/modulo-06-gerador.md)** (pasta nova: um arquivo por módulo).
+- Back `gerador/`: `ModeloDocumento` (unidade nula = modelo do sistema, só leitura), `DocumentoGerado` (cópia do texto do modelo,
+  respostas em `jsonb`, anexos em `@ElementCollection`; regra `editar` na entidade empilha a versão anterior em
+  `DocumentoGeradoVersao`), `FormatoModelo` (HTML/TEXTO), `TipoVinculo` (EMPRESA, EXECUCAO, ALUNO, ATENDIMENTO, DOCUMENTO, TAREFA),
+  `SanitizadorHtml` (jsoup: sem script/`on*`/imagens/estilo perigoso), `ServicoModeloDocumento`, `ServicoDocumentoGerado`
+  (numeração por série/ano via `ServicoNumeracao`, duplicar, anexos `ANEXO_GERADOR`, `existeLigadoA`), `ControladorGerador` (`/api/gerador`).
+  `ServicoEmpresa.excluir` bloqueia empresa ligada a documento gerado.
+- O back guarda só texto/respostas; **a montagem do documento (substituição dos campos, cabeçalho, rodapé), a prévia e o PDF são do front**
+  (`utils/gerador.ts` → `montarHtmlDocumento`), como no antigo.
+- Front: `views/gerador/Gerador.tsx` (abas Documentos/Modelos; aceita `?documento=ID` e `?vinculoTipo=EMPRESA&vinculoId=ID`) +
+  `components/apps/gerador/*` (`ListaDocumentosGerados`, `DetalheDocumentoGerado`, `DialogoEscolherModelo`, `FormularioGerador` com prévia
+  ao vivo, vínculo, assinaturas, `ListaModelos`, `FormularioModelo`, `DialogoVisualizar`, `PaginaA4Previa`), `components/formularios/EditorRico`,
+  `types/gerador.ts`, `servicos/gerador.ts`, `utils/gerador.ts`, `utils/geradorVinculos.ts`. A ficha da empresa ganhou "Gerar documento".
+- **Infra:** `pom.xml` ganhou `jsoup` e `jackson-databind` (Jackson 2 — o Hibernate 7 precisa dele para mapear `jsonb`; sem ele o INSERT falha com 500).
+- Verificado: back compila, empacota e sobe validando o schema num banco descartável; API testada ponta a ponta por curl (modelo com HTML
+  perigoso sanitizado, modelo vazio recusado, modelo do sistema não editável, duplicar modelo, numeração 001/002/003 por série e ano, versão 2
+  na edição, duplicar documento, vínculo incompleto recusado, limite de campo 5000, histórico, anexo de categoria errada recusado/certo aceito,
+  excluir documento apagando o anexo, excluir empresa ligada recusado); front passa em `tsc`, `eslint` e `vite build`.
+- Não testado: telas no navegador (o dono vai revisar) — principalmente o editor rico (`execCommand`), a prévia, o PDF e a impressão.
+
+### Próximo passo exato — Módulo 7: Pendências + Painel completo (espec: MAPA_DE_USABILIDADE §4.9 · fonte: `old/js/11-pendencias.js`, `old/js/03-dashboard.js`)
+- Ler os dois arquivos do antigo inteiros antes de desenhar. Pendências junta tarefas atrasadas/de hoje, documentos vencidos/vencendo,
+  atendimentos passados sem presença, alunos com 3 faltas seguidas, compromissos de hoje, etapas faltando nos projetos e pendências de
+  execução — com ação ali mesmo. O Painel ganha "Para resolver", hoje/7 dias, andamento dos projetos e contadores no menu.
+- Reaproveitar o que já existe: `FonteAgenda` (hoje/7 dias), `CalculoProjetos` (etapas faltando), `utils/documentos.ts` (situação),
+  `utils/atendimentos.ts` (faltas seguidas), `utils/tarefas.ts`. Prefira **um endpoint de agregação** no back a vários no front.
+- Ao terminar: criar `melhorias/modulo-07-pendencias-painel.md` e atualizar HANDOFF e mapas.
 
 ### Próximos módulos (ordem aprovada)
 1. ~~Base~~ → ~~Secretaria + Kanban~~ (prontos)
@@ -245,8 +266,8 @@ Migração do sistema "Central da Secretaria" das APAEs:
 3. ~~Atendimentos~~ (pronto)
 4. ~~Documentos + Empresas~~ (pronto)
 5. ~~Projetos~~ (pronto) (recurso → execuções; financeiro, cotações ≥3 empresas, vencedora, ordem de compra, notas, pagamentos, pendências, checklist, relatório PDF)
-6. **Gerador de documentos** ← próximo (modelos com {AUTO}/[MANUAL], numeração por série/ano, versões, vínculos, anexos, PDF)
-7. Pendências + Painel completo ("para resolver", hoje/7 dias, projetos)
+6. ~~Gerador de documentos~~ (pronto) (modelos com {AUTO}/[MANUAL], numeração por série/ano, versões, vínculos, anexos, PDF)
+7. **Pendências + Painel completo** ← próximo ("para resolver", hoje/7 dias, projetos)
 8. Histórico (tela), Relatórios (relatório de atividades em PDF), Pesquisa geral
 9. Vínculos entre registros (tabela `sistema.vinculo_registro`) — encaixar nos módulos 4–6
 
@@ -343,6 +364,12 @@ Front:
 - **Chamada a serviço de fora** (ex.: CNPJá): use `fetch` puro, nunca o `api` de `utils/axios` (ele manda o JWT e o
   `X-Unidade`).
 
+- **Hibernate 7 + `jsonb`**: precisa de Jackson 2 (`com.fasterxml.jackson.core:jackson-databind`) no classpath, mesmo com Spring Boot 4/Jackson 3;
+  sem isso o INSERT dá "Could not find a FormatMapper for the JSON format". Colunas `jsonb` mapeiam com `@JdbcTypeCode(SqlTypes.JSON)` + `columnDefinition = "jsonb"`.
+- **`execCommand`** (editor rico) é "obsoleto", mas funciona em todos os navegadores; botões da barra usam `onMouseDown preventDefault` para não perder a seleção.
+- **Parar o back de teste no Windows**: `pkill` não existe; use `Get-CimInstance Win32_Process` (PowerShell) filtrando pela linha de comando e `Stop-Process` —
+  com o jar rodando o `mvnw package` falha ao renomear o `.jar`.
+
 ## 8. Pendências conhecidas (fora dos módulos)
 - Upload real para o S3 não testado (bucket `apae-chorobura` criado; falta o dono preencher as chaves no servidor).
 - Token de renovação fica no `localStorage` (alternativa mais segura: cookie httpOnly — perguntar ao dono).
@@ -360,6 +387,6 @@ Front:
 - Atendimentos: "Cadastros de apoio" (Aluno/Profissional) não têm tela própria fora do diálogo "Alunos e profissionais";
   se crescer (relatório só de cadastros, por exemplo) considerar uma tela dedicada.
 - Nenhum teste automatizado foi escrito (pedido do dono). Também não houve teste manual no navegador das telas dos
-  Módulos 1 a 5: o dono ainda vai revisar (as APIs dos Módulos 3, 4 e 5 foram testadas ponta a ponta por curl, sem navegador).
+  Módulos 1 a 6: o dono ainda vai revisar (as APIs dos Módulos 3, 4 e 5 foram testadas ponta a ponta por curl, sem navegador).
 - Documentos: a seção "Vincular a outros registros" do formulário antigo fica para o item 9 (vínculos entre registros).
 - `back/erro-backend.txt` (no stage do git) é só um log de "porta 8080 já em uso" — não é bug; pode ser apagado.

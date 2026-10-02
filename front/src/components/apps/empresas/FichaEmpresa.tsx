@@ -1,9 +1,11 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { Link as LinkRouter } from 'react-router-dom';
+import { Link as LinkRouter, useNavigate } from 'react-router-dom';
 import { Box, Button, Chip, Grid, IconButton, Link, List, ListItem, ListItemText, Stack, Tab, Tabs, Typography } from '@mui/material';
-import { IconArrowLeft, IconArrowRight, IconEdit, IconLink, IconPaperclip, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
+import { IconArrowLeft, IconArrowRight, IconEdit, IconFilePencil, IconLink, IconPaperclip, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
 import BlankCard from 'src/components/shared/BlankCard';
 import HistoricoDoRegistro from 'src/components/compartilhados/HistoricoDoRegistro';
+import { PERMISSOES } from 'src/constantes/permissoes';
+import { usePermissao } from 'src/hooks/usePermissao';
 import { servicoArquivos } from 'src/servicos/arquivos';
 import { servicoEmpresas } from 'src/servicos/empresas';
 import { servicoProjetos } from 'src/servicos/projetos';
@@ -46,6 +48,8 @@ interface Props {
  * Ordens de compra, Projetos e Histórico (old: abrirFichaEmpresaGlobal).
  */
 const FichaEmpresa = ({ empresa: e, podeAlterar, verProjetos, ligarProjetos, aoEditar, aoExcluir, aoNovoDocumento, aoExcluirDocumento, aoFechar }: Props) => {
+  const navegar = useNavigate();
+  const gerarDocumento = usePermissao().podeAlterar(PERMISSOES.GERADOR_ESCREVER);
   const [aba, setAba] = useState<Aba>('dados');
   const [projetos, setProjetos] = useState<EmpresaNosProjetos | null>(null);
   const [erroProjetos, setErroProjetos] = useState<string | null>(null);
@@ -97,6 +101,11 @@ const FichaEmpresa = ({ empresa: e, podeAlterar, verProjetos, ligarProjetos, aoE
             {ligarProjetos ? (
               <Button size="small" variant="outlined" startIcon={<IconLink size={16} />} onClick={() => setLigando(true)}>
                 Ligar a um projeto
+              </Button>
+            ) : null}
+            {gerarDocumento ? (
+              <Button size="small" variant="outlined" startIcon={<IconFilePencil size={16} />} onClick={() => navegar(`/gerador?vinculoTipo=EMPRESA&vinculoId=${e.id}`)}>
+                Gerar documento
               </Button>
             ) : null}
             <Button size="small" color="error" startIcon={<IconTrash size={16} />} onClick={aoExcluir}>
