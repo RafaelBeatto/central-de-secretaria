@@ -37,12 +37,20 @@ public class Documento extends EntidadeAuditavel {
 
     @Setter
     @Enumerated(EnumType.STRING)
+<<<<<<< HEAD
     @Column(nullable = false, length = 40)
+=======
+    @Column(nullable = false, length = 30)
+>>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
     private CategoriaDocumento categoria;
 
     @Setter
     @Enumerated(EnumType.STRING)
+<<<<<<< HEAD
     @Column(name = "exigencia_apae", length = 40)
+=======
+    @Column(name = "exigencia_apae", length = 30)
+>>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
     private ExigenciaApae exigenciaApae;
 
     @Setter

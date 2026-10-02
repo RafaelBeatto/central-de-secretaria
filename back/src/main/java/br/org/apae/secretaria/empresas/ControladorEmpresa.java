@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import br.org.apae.secretaria.acesso.permissao.Permissoes;
 import br.org.apae.secretaria.empresas.dto.EmpresaCriada;
+<<<<<<< HEAD
+=======
+import br.org.apae.secretaria.empresas.dto.EmpresaDocumentoResposta;
+>>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
 import br.org.apae.secretaria.empresas.dto.EmpresaResposta;
 import br.org.apae.secretaria.empresas.dto.RequisicaoEmpresa;
 import br.org.apae.secretaria.empresas.dto.RequisicaoEmpresaDocumento;
@@ -48,6 +52,15 @@ public class ControladorEmpresa {
         return servico.historicoDo(id);
     }
 
+<<<<<<< HEAD
+=======
+    @GetMapping("/{id}/documentos")
+    @PreAuthorize(Permissoes.EMPRESA_LER)
+    public List<EmpresaDocumentoResposta> documentos(@PathVariable Long id) {
+        return servico.documentosDe(id);
+    }
+
+>>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize(Permissoes.EMPRESA_ESCREVER)
@@ -68,18 +81,32 @@ public class ControladorEmpresa {
         servico.excluir(id);
     }
 
+<<<<<<< HEAD
     /** Devolve a empresa já com a lista de documentos atualizada. */
     @PostMapping("/{id}/documentos")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize(Permissoes.EMPRESA_ESCREVER)
     public EmpresaResposta adicionarDocumento(@PathVariable Long id,
+=======
+    @PostMapping("/{id}/documentos")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize(Permissoes.EMPRESA_ESCREVER)
+    public EmpresaDocumentoResposta adicionarDocumento(@PathVariable Long id,
+>>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
             @Valid @RequestBody RequisicaoEmpresaDocumento requisicao) {
         return servico.adicionarDocumento(id, requisicao);
     }
 
     @DeleteMapping("/{id}/documentos/{documentoId}")
+<<<<<<< HEAD
     @PreAuthorize(Permissoes.EMPRESA_ESCREVER)
     public EmpresaResposta excluirDocumento(@PathVariable Long id, @PathVariable Long documentoId) {
         return servico.excluirDocumento(id, documentoId);
+=======
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(Permissoes.EMPRESA_ESCREVER)
+    public void excluirDocumento(@PathVariable Long id, @PathVariable Long documentoId) {
+        servico.excluirDocumento(id, documentoId);
+>>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
     }
 }

@@ -6,7 +6,10 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+<<<<<<< HEAD
 import br.org.apae.secretaria.comum.Datas;
+=======
+>>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
 import br.org.apae.secretaria.comum.Textos;
 import br.org.apae.secretaria.comum.excecao.NaoEncontradoExcecao;
 import br.org.apae.secretaria.comum.excecao.RegraNegocioExcecao;
@@ -109,14 +112,23 @@ public class ServicoDocumento {
     @Transactional
     public DocumentoResposta renovar(Long id, RequisicaoRenovarDocumento r) {
         Documento d = buscarParaEscrita(id);
+<<<<<<< HEAD
         String validadeAnterior = d.getDataValidade() != null ? Datas.br(d.getDataValidade()) : "sem validade";
+=======
+        String validadeAnterior = d.getDataValidade() != null ? d.getDataValidade().toString() : "sem validade";
+>>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
         Long novoArquivoId = validarArquivo(r.arquivoId());
         DocumentoVersao versaoAnterior = d.renovar(r.dataEmissao(), r.dataValidade(), Textos.limpo(r.numero()),
                 novoArquivoId);
         versoes.save(versaoAnterior);
         historico.registrar(ModuloHistorico.DOCUMENTOS, AcaoHistorico.RENOVACAO,
+<<<<<<< HEAD
                 "Documento \"%s\" renovado: nova validade %s (antes %s).".formatted(d.getNome(),
                         Datas.br(r.dataValidade()), validadeAnterior),
+=======
+                "Documento \"%s\" renovado: nova validade %s (antes %s).".formatted(d.getNome(), r.dataValidade(),
+                        validadeAnterior),
+>>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
                 REF, id);
         return resposta(d);
     }
