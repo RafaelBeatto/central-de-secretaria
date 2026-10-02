@@ -21,6 +21,8 @@ import br.org.apae.secretaria.empresas.dto.RequisicaoEmpresaDocumento;
 import br.org.apae.secretaria.gerador.ServicoDocumentoGerado;
 import br.org.apae.secretaria.gerador.TipoVinculo;
 import br.org.apae.secretaria.seguranca.ContextoSeguranca;
+import br.org.apae.secretaria.vinculos.ServicoVinculo;
+import br.org.apae.secretaria.vinculos.TipoRegistro;
 import br.org.apae.secretaria.sistema.arquivo.Arquivo;
 import br.org.apae.secretaria.sistema.arquivo.CategoriaArquivo;
 import br.org.apae.secretaria.sistema.arquivo.ServicoArquivo;
@@ -41,6 +43,7 @@ public class ServicoEmpresa {
 
     private static final String REF = "EMPRESA";
 
+    private final ServicoVinculo servicoVinculo;
     private final EmpresaRepositorio empresas;
     private final EmpresaDocumentoRepositorio documentos;
     private final ContextoSeguranca contexto;
@@ -125,6 +128,7 @@ public class ServicoEmpresa {
         String nome = e.getRazaoSocial();
         List<Long> arquivos = documentos.findByEmpresaIdOrderByNomeAsc(id).stream().map(EmpresaDocumento::getArquivoId)
                 .toList();
+        servicoVinculo.removerDoRegistro(TipoRegistro.EMPRESA, id);
         empresas.delete(e);
         arquivos.forEach(servicoArquivo::excluir);
         historico.registrar(ModuloHistorico.EMPRESAS, AcaoHistorico.EXCLUSAO,

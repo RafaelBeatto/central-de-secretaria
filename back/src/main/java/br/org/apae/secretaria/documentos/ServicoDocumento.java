@@ -15,6 +15,8 @@ import br.org.apae.secretaria.documentos.dto.DocumentoVersaoResposta;
 import br.org.apae.secretaria.documentos.dto.RequisicaoDocumento;
 import br.org.apae.secretaria.documentos.dto.RequisicaoRenovarDocumento;
 import br.org.apae.secretaria.seguranca.ContextoSeguranca;
+import br.org.apae.secretaria.vinculos.ServicoVinculo;
+import br.org.apae.secretaria.vinculos.TipoRegistro;
 import br.org.apae.secretaria.sistema.arquivo.Arquivo;
 import br.org.apae.secretaria.sistema.arquivo.CategoriaArquivo;
 import br.org.apae.secretaria.sistema.arquivo.ServicoArquivo;
@@ -36,6 +38,7 @@ public class ServicoDocumento {
 
     private static final String REF = "DOCUMENTO";
 
+    private final ServicoVinculo servicoVinculo;
     private final DocumentoRepositorio documentos;
     private final DocumentoVersaoRepositorio versoes;
     private final ContextoSeguranca contexto;
@@ -126,6 +129,7 @@ public class ServicoDocumento {
         Documento d = buscarParaEscrita(id);
         List<DocumentoVersao> versoesDoDocumento = versoes.findByDocumentoIdOrderBySubstituidaEmDesc(id);
         String nome = d.getNome();
+        servicoVinculo.removerDoRegistro(TipoRegistro.DOCUMENTO, id);
         documentos.delete(d);
         if (d.getArquivoId() != null) {
             servicoArquivo.excluir(d.getArquivoId());

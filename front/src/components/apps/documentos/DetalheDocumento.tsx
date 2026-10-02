@@ -3,6 +3,7 @@ import { Alert, Box, Button, Grid, IconButton, List, ListItem, ListItemText, Sta
 import { IconArrowLeft, IconEdit, IconPaperclip, IconRefresh, IconTrash, IconX } from '@tabler/icons-react';
 import BlankCard from 'src/components/shared/BlankCard';
 import HistoricoDoRegistro from 'src/components/compartilhados/HistoricoDoRegistro';
+import Relacionados from 'src/components/compartilhados/Relacionados';
 import { servicoArquivos } from 'src/servicos/arquivos';
 import { servicoDocumentos } from 'src/servicos/documentos';
 import { Documento, ROTULO_CATEGORIA_DOCUMENTO, ROTULO_EXIGENCIA_APAE } from 'src/types/documentos';
@@ -139,6 +140,7 @@ const DetalheDocumento = ({ documento: d, podeAlterar, aoRenovar, aoEditar, aoEx
           </>
         ) : null}
 
+        <Relacionados tipo="DOCUMENTO" id={d.id} />
         <HistoricoDoRegistro carregar={() => servicoDocumentos.historico(d.id)} versao={d.atualizadoEm} />
       </Box>
     </BlankCard>

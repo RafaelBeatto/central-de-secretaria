@@ -10,5 +10,6 @@ Ao terminar (ou ao longo de) cada módulo: criar/atualizar `modulo-NN-nome.md` a
 | 6 — Gerador de documentos | [modulo-06-gerador.md](modulo-06-gerador.md) |
 | 7 — Pendências + Painel | [modulo-07-pendencias-painel.md](modulo-07-pendencias-painel.md) |
 | 8 — Histórico, Relatórios, Pesquisa | [modulo-08-historico-relatorios-pesquisa.md](modulo-08-historico-relatorios-pesquisa.md) |
+| 9 — Vínculos entre registros | [modulo-09-vinculos.md](modulo-09-vinculos.md) |
 
 > Os módulos 1 a 5 foram registrados no [HANDOFF.md](../HANDOFF.md) (seção "Estado atual"), antes desta pasta existir.

@@ -4,6 +4,7 @@ import { Box, Button, Chip, Grid, IconButton, Link, List, ListItem, ListItemText
 import { IconArrowLeft, IconArrowRight, IconEdit, IconFilePencil, IconLink, IconPaperclip, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
 import BlankCard from 'src/components/shared/BlankCard';
 import HistoricoDoRegistro from 'src/components/compartilhados/HistoricoDoRegistro';
+import Relacionados from 'src/components/compartilhados/Relacionados';
 import { PERMISSOES } from 'src/constantes/permissoes';
 import { usePermissao } from 'src/hooks/usePermissao';
 import { servicoArquivos } from 'src/servicos/arquivos';
@@ -251,7 +252,10 @@ const FichaEmpresa = ({ empresa: e, podeAlterar, verProjetos, ligarProjetos, aoE
         ) : null}
 
         {aba === 'historico' ? (
-          <HistoricoDoRegistro carregar={() => servicoEmpresas.historico(e.id)} versao={`${e.atualizadoEm}|${e.documentos.map((d) => d.id).join()}`} />
+          <>
+            <Relacionados tipo="EMPRESA" id={e.id} />
+            <HistoricoDoRegistro carregar={() => servicoEmpresas.historico(e.id)} versao={`${e.atualizadoEm}|${e.documentos.map((d) => d.id).join()}`} />
+          </>
         ) : null}
       </Box>
       <DialogoEscolherExecucao aberto={ligando} empresa={e} aoFechar={() => setLigando(false)} aoLigar={carregarProjetos} />

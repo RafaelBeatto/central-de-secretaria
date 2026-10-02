@@ -39,6 +39,8 @@ import br.org.apae.secretaria.projetos.dto.RespostasProjeto.OrdemResposta;
 import br.org.apae.secretaria.projetos.dto.RespostasProjeto.PagamentoResposta;
 import br.org.apae.secretaria.projetos.dto.RespostasProjeto.PendenciaResposta;
 import br.org.apae.secretaria.seguranca.ContextoSeguranca;
+import br.org.apae.secretaria.vinculos.ServicoVinculo;
+import br.org.apae.secretaria.vinculos.TipoRegistro;
 import br.org.apae.secretaria.sistema.arquivo.CategoriaArquivo;
 import br.org.apae.secretaria.sistema.arquivo.ServicoArquivo;
 import br.org.apae.secretaria.sistema.historico.AcaoHistorico;
@@ -59,6 +61,7 @@ public class ServicoExecucao {
     static final String REF = "EXECUCAO";
     private static final String REF_EMPRESA = "EMPRESA";
 
+    private final ServicoVinculo servicoVinculo;
     private final ExecucaoRepositorio execucoes;
     private final RecursoRepositorio recursos;
     private final ExecucaoEmpresaRepositorio vinculos;
@@ -163,6 +166,7 @@ public class ServicoExecucao {
         servicoRecurso.movimentar(e.getRecursoId(), TipoMovimentacao.AJUSTE, e.getValorPlanejado().negate(),
                 "Execução \"%s\" excluída — valor devolvido ao saldo não distribuído.".formatted(e.getNome()), e.getId(),
                 null);
+        servicoVinculo.removerDoRegistro(TipoRegistro.EXECUCAO, id);
         ordens.deleteAll(ordens.findByExecucaoIdOrderByCriadoEmAsc(id));
         ordens.flush();
         execucoes.delete(e);

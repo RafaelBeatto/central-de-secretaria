@@ -14,6 +14,8 @@ import br.org.apae.secretaria.comum.Textos;
 import br.org.apae.secretaria.comum.dominio.Prioridade;
 import br.org.apae.secretaria.comum.excecao.NaoEncontradoExcecao;
 import br.org.apae.secretaria.seguranca.ContextoSeguranca;
+import br.org.apae.secretaria.vinculos.ServicoVinculo;
+import br.org.apae.secretaria.vinculos.TipoRegistro;
 import br.org.apae.secretaria.sistema.historico.AcaoHistorico;
 import br.org.apae.secretaria.sistema.historico.ModuloHistorico;
 import br.org.apae.secretaria.sistema.historico.ServicoHistorico;
@@ -35,6 +37,7 @@ public class ServicoTarefa {
     private static final Set<StatusTarefa> ENCERRADAS = Set.of(StatusTarefa.CONCLUIDA, StatusTarefa.CANCELADA);
     private static final int LIMITE_ENCERRADAS = 200;
 
+    private final ServicoVinculo servicoVinculo;
     private final TarefaRepositorio repositorio;
     private final ContextoSeguranca contexto;
     private final ServicoHistorico historico;
@@ -112,6 +115,7 @@ public class ServicoTarefa {
     @Transactional
     public void excluir(Long id) {
         Tarefa tarefa = buscarParaEscrita(id);
+        servicoVinculo.removerDoRegistro(TipoRegistro.TAREFA, id);
         repositorio.delete(tarefa);
         registrar(tarefa, AcaoHistorico.EXCLUSAO, "Tarefa \"%s\" excluída.".formatted(tarefa.getTitulo()));
     }

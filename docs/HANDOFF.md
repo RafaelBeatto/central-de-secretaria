@@ -1,7 +1,6 @@
 # HANDOFF — continuar a migração da Central da Secretaria
 
-> Atualizado em: 2026-10-02 · Concluído: **Base + Módulos 1 a 8 (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos, Gerador, Pendências + Painel, Histórico + Relatórios + Pesquisa)** · Próximo: **Módulo 9 — Vínculos entre registros**
-> (o desenho do Módulo 9 **ainda não foi feito** — leia o MAPA_DE_USABILIDADE e procure "vínculos" em `old/js/` antes de desenhar)
+> Atualizado em: 2026-10-02 · Concluído: **Base + Módulos 1 a 9 — toda a lista aprovada** (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos, Gerador, Pendências + Painel, Histórico + Relatórios + Pesquisa, Vínculos) · Próximo: **revisão do dono no navegador + pendências da seção 8** (nenhum módulo novo planejado)
 >
 > **Para a IA que vai continuar:** leia este arquivo inteiro, depois `MAPA_DE_CODIGO.md` (onde está cada coisa) e
 > `MAPA_DE_USABILIDADE.md` §4 (regras de cada módulo). Siga a seção 4 "Próximo passo exato" e, ao terminar cada módulo,
@@ -273,10 +272,17 @@ Migração do sistema "Central da Secretaria" das APAEs:
 - Decisões: sem "Limpar histórico" (auditoria imutável); backup removido; pesquisa não cobre cotações/ordens e mostra alunos/profissionais em vez de atendimentos.
 - Verificado: back compila e sobe validando as consultas; front passa em `tsc`, `eslint`, `vite build`. Não testado no navegador.
 
-### Próximo passo exato — Módulo 9: Vínculos entre registros (tabela `sistema.vinculo_registro`)
-- Encaixar nos módulos 4–6 (documento, tarefa e execução: "Vincular a outros registros" que o formulário antigo tinha). Ler no `old/js` como o vínculo era
-  gravado e exibido antes de desenhar; o Gerador já tem seus próprios vínculos (`TipoVinculo`) — não duplicar.
-- Ao terminar: criar `melhorias/modulo-09-*.md` e atualizar HANDOFF e mapas.
+### Pronto (Módulo 9 — Vínculos entre registros)
+- Detalhe em **[melhorias/modulo-09-vinculos.md](melhorias/modulo-09-vinculos.md)**.
+- Back `vinculos/`: `VinculoRegistro` (par ordenado), `ServicoVinculo` (listar, opções, adicionar, remover, `removerDoRegistro` chamado ao excluir tarefa/documento/empresa/execução),
+  `ControladorVinculo` (`/api/vinculos`). Permissão conferida no serviço (ler os dois módulos + escrever no de origem; só na própria unidade). Empresa ↔ execução fica de fora
+  (já existe "ligar empresa" em Projetos).
+- Front: `components/compartilhados/Relacionados.tsx` (usado em DetalheTarefa, DetalheDocumento, FichaEmpresa [aba Histórico] e TelaExecucao [Resumo]), `types/vinculos.ts`, `servicos/vinculos.ts`.
+- Verificado: back compila e sobe; front passa em `tsc`, `eslint`, `vite build`. Não testado no navegador.
+
+### Próximo passo
+- Todos os módulos aprovados estão migrados. O que resta: o dono revisar as telas no navegador (nenhuma foi aberta em teste manual) e as pendências da seção 8
+  (upload real no S3, token em cookie httpOnly, limpeza de arquivos órfãos, `application-prod.properties`, contadores no menu lateral).
 
 ### Próximos módulos (ordem aprovada)
 1. ~~Base~~ → ~~Secretaria + Kanban~~ (prontos)
@@ -287,7 +293,7 @@ Migração do sistema "Central da Secretaria" das APAEs:
 6. ~~Gerador de documentos~~ (pronto) (modelos com {AUTO}/[MANUAL], numeração por série/ano, versões, vínculos, anexos, PDF)
 7. ~~Pendências + Painel completo~~ (pronto)
 8. ~~Histórico (tela), Relatórios (relatório de atividades em PDF), Pesquisa geral~~ (pronto)
-9. **Vínculos entre registros** (tabela `sistema.vinculo_registro`) — encaixar nos módulos 4–6 ← próximo
+9. ~~Vínculos entre registros~~ (pronto)
 
 ## 5. Como rodar
 
@@ -396,7 +402,7 @@ Front:
 - Os PDFs do antigo são gerados com **html2pdf** (`old/js/vendor/html2pdf.bundle.min.js`, usado em
   `old/js/17-gerador-documentos.js`). O Módulo 3 já instalou `html2pdf.js` via npm e criou `utils/documentoA4.ts` +
   `utils/impressaoPdf.ts` reaproveitáveis pelos Módulos 5, 6 e 8. A Agenda continua só com `window.print()`.
-- Deixados para os módulos seguintes: os vínculos da tarefa, do documento e da execução (item 9, tabela `sistema.vinculo_registro`).
+- Vínculos da tarefa, do documento, da empresa e da execução: feitos no Módulo 9.
 - Agenda: o filtro de fontes por permissão (professor/profissional veem eventos, não tarefas) está no `ServicoAgenda`,
   mas não foi testado com um usuário desses cargos. O aviso de 30 min, como no antigo, também avisa (uma vez no dia) um
   evento de hoje que já começou — confirmar com o dono se deve avisar só os que ainda vão começar.
@@ -406,5 +412,4 @@ Front:
   se crescer (relatório só de cadastros, por exemplo) considerar uma tela dedicada.
 - Nenhum teste automatizado foi escrito (pedido do dono). Também não houve teste manual no navegador das telas dos
   Módulos 1 a 6: o dono ainda vai revisar (as APIs dos Módulos 3, 4 e 5 foram testadas ponta a ponta por curl, sem navegador).
-- Documentos: a seção "Vincular a outros registros" do formulário antigo fica para o item 9 (vínculos entre registros).
 - `back/erro-backend.txt` (no stage do git) é só um log de "porta 8080 já em uso" — não é bug; pode ser apagado.

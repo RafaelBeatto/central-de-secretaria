@@ -3,6 +3,7 @@ import { Box, Breadcrumbs, Button, Chip, Grid, Link, List, ListItemButton, ListI
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 import BlankCard from 'src/components/shared/BlankCard';
 import HistoricoDoRegistro from 'src/components/compartilhados/HistoricoDoRegistro';
+import Relacionados from 'src/components/compartilhados/Relacionados';
 import { useInteracao } from 'src/components/compartilhados/ProvedorInteracao';
 import DialogoRenovarDocumento from 'src/components/apps/documentos/DialogoRenovarDocumento';
 import { servicoDocumentos } from 'src/servicos/documentos';
@@ -190,6 +191,7 @@ const TelaExecucao = ({ execucao: e, secao, podeAlterar, podeRenovarDocumentos, 
           <BlankCard>
             <Box p={{ xs: 2, md: 3 }}>
               <Conteudo execucao={e} podeAlterar={alterar} podeRenovarDocumentos={podeRenovarDocumentos} acoes={acoes} />
+              {secao === 'resumo' ? <Relacionados tipo="EXECUCAO" id={e.id} /> : null}
               {secao === 'resumo' ? <HistoricoDoRegistro carregar={() => servicoProjetos.historicoExecucao(e.id)} versao={e.atualizadoEm + e.situacao.etapasFeitas} /> : null}
             </Box>
           </BlankCard>

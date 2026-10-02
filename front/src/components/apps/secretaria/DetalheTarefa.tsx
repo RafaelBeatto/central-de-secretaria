@@ -2,6 +2,7 @@ import { Box, Button, Chip, Grid, IconButton, MenuItem, Stack, TextField, Typogr
 import { IconArrowLeft, IconCheck, IconEdit, IconRotate, IconTrash, IconX } from '@tabler/icons-react';
 import BlankCard from 'src/components/shared/BlankCard';
 import HistoricoDoRegistro from 'src/components/compartilhados/HistoricoDoRegistro';
+import Relacionados from 'src/components/compartilhados/Relacionados';
 import { servicoTarefas } from 'src/servicos/tarefas';
 import { Prioridade, ROTULO_FREQUENCIA, ROTULO_PRIORIDADE } from 'src/types/comum';
 import { ROTULO_STATUS_TAREFA, StatusTarefa, Tarefa } from 'src/types/tarefas';
@@ -161,6 +162,7 @@ const DetalheTarefa = ({ tarefa: t, podeAlterar, executar, aoConcluir, aoReabrir
         ) : null}
 
         <ChecklistTarefa tarefa={t} podeAlterar={podeAlterar} executar={executar} />
+        <Relacionados tipo="TAREFA" id={t.id} />
         <HistoricoDoRegistro carregar={() => servicoTarefas.historico(t.id)} versao={`${t.atualizadoEm}|${t.subtarefas.map((s) => `${s.id}${s.feita ? '+' : '-'}`).join()}`} />
       </Box>
     </BlankCard>
