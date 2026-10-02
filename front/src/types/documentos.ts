@@ -49,6 +49,13 @@ export const ROTULO_EXIGENCIA_APAE: Record<ExigenciaApae, string> = {
   CNDT: 'CNDT',
 };
 
+/** Categoria sugerida ao cadastrar um documento a partir da exigência (old: CATEGORIA_EXIGENCIA_APAE). */
+export const CATEGORIA_DA_EXIGENCIA: Partial<Record<ExigenciaApae, CategoriaDocumento>> = {
+  CNPJ: 'DOCUMENTO_INSTITUCIONAL',
+  ESTATUTO: 'DOCUMENTO_INSTITUCIONAL',
+  ATA_ELEICAO_POSSE: 'ATA',
+};
+
 export interface DocumentoVersao {
   id: number;
   numero: string | null;

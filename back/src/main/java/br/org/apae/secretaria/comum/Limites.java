@@ -83,4 +83,21 @@ public final class Limites {
     public static final int EMPRESA_OBSERVACAO = 1000;
     public static final int EMPRESA_DOCUMENTO_NOME = 60;
     public static final int EMPRESA_DOCUMENTO_OBSERVACAO = 500;
+
+    // Projetos
+    public static final int PROJETO_NOME = 150;
+    public static final int PROJETO_FONTE = 120;
+    public static final int PROJETO_ORGAO = 150;
+    public static final int PROJETO_CONVENIO = 100;
+    public static final int PROJETO_CONTA = 100;
+    public static final int PROJETO_OBSERVACAO = 500;
+    public static final int PLANO_DESCRICAO = 4000;
+    public static final int RECURSO_DOCUMENTO_NOME = 60;
+    public static final int COTACAO_ITEM_DESCRICAO = 200;
+    public static final int ORDEM_NUMERO = 40;
+    public static final int EXECUCAO_DOCUMENTO_NOME = 150;
+    public static final int PAGAMENTO_FORNECEDOR = 200;
+    public static final int PAGAMENTO_FORMA = 30;
+    public static final int PENDENCIA_TITULO = 200;
+    public static final int PENDENCIA_DESCRICAO = 1000;
 }

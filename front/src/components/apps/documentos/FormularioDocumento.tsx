@@ -5,6 +5,7 @@ import CampoArquivoFormik from 'src/components/formularios/CampoArquivoFormik';
 import { LIMITES } from 'src/constantes/limites';
 import { servicoDocumentos } from 'src/servicos/documentos';
 import {
+  CATEGORIA_DA_EXIGENCIA,
   CategoriaDocumento,
   Documento,
   ExigenciaApae,
@@ -44,17 +45,20 @@ const OPCOES_EXIGENCIA = [
 interface Props {
   aberto: boolean;
   documento: Documento | null;
+  /** Vindo da Documentação da APAE de um projeto: já marca a exigência. */
+  exigenciaInicial?: ExigenciaApae | null;
   responsaveis: string[];
   aoFechar: () => void;
   aoSalvar: (d: Documento, novo: boolean) => void;
 }
 
 /** Cadastro e edição de documento (old/js/06-documentos.js: openFormDocumento). */
-const FormularioDocumento = ({ aberto, documento: d, responsaveis, aoFechar, aoSalvar }: Props) => {
+const FormularioDocumento = ({ aberto, documento: d, exigenciaInicial, responsaveis, aoFechar, aoSalvar }: Props) => {
+  const exigencia = d ? d.exigenciaApae : exigenciaInicial ?? null;
   const valoresIniciais: RequisicaoDocumento = {
-    nome: d?.nome ?? '',
-    categoria: d?.categoria ?? 'CERTIDAO',
-    exigenciaApae: d?.exigenciaApae ?? '',
+    nome: d?.nome ?? (exigencia ? ROTULO_EXIGENCIA_APAE[exigencia] : ''),
+    categoria: d?.categoria ?? (exigencia ? CATEGORIA_DA_EXIGENCIA[exigencia] ?? 'CERTIDAO' : 'CERTIDAO'),
+    exigenciaApae: exigencia ?? '',
     numero: d?.numero ?? '',
     orgao: d?.orgao ?? '',
     responsavel: d?.responsavel ?? '',

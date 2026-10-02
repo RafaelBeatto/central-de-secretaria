@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Grid, LinearProgress, MenuItem, Stack, TextField, Theme, Typography, useMediaQuery } from '@mui/material';
 import { IconPlus } from '@tabler/icons-react';
 import Pagina from 'src/components/container/Pagina';
@@ -26,7 +27,7 @@ const FILTROS_SITUACAO = [
 
 /** Fornecedores: cadastro único por unidade, com documentos e situação (old: ficha global da empresa). */
 const Empresas = () => {
-  const { podeAlterar } = usePermissao();
+  const { podeAlterar, tem } = usePermissao();
   const { notificar, confirmar } = useInteracao();
   const alterar = podeAlterar(PERMISSOES.EMPRESA_ESCREVER);
   const celular = useMediaQuery((theme: Theme) => theme.breakpoints.down('md'));
@@ -39,6 +40,15 @@ const Empresas = () => {
   const [novoDocumentoPara, setNovoDocumentoPara] = useState<Empresa | null>(null);
 
   useEffect(() => setSelecionadaId(null), [unidadeVisualizadaId]);
+
+  // Vindo de um projeto: /empresas?empresa=ID abre a ficha.
+  const [parametros, setParametros] = useSearchParams();
+  const empresaPedida = Number(parametros.get('empresa')) || null;
+  useEffect(() => {
+    if (!empresaPedida) return;
+    setSelecionadaId(empresaPedida);
+    setParametros({}, { replace: true });
+  }, [empresaPedida, setParametros]);
 
   const todas = useMemo(() => [...(empresas ?? [])].sort((a, b) => a.razaoSocial.localeCompare(b.razaoSocial, 'pt-BR')), [empresas]);
   const selecionada = todas.find((e) => e.id === selecionadaId) ?? null;
@@ -125,6 +135,8 @@ const Empresas = () => {
     <FichaEmpresa
       empresa={selecionada}
       podeAlterar={alterar}
+      verProjetos={tem(PERMISSOES.PROJETO_LER)}
+      ligarProjetos={podeAlterar(PERMISSOES.PROJETO_ESCREVER)}
       aoEditar={() => setFormulario({ aberto: true, empresa: selecionada })}
       aoExcluir={() => excluir(selecionada)}
       aoNovoDocumento={() => setNovoDocumentoPara(selecionada)}

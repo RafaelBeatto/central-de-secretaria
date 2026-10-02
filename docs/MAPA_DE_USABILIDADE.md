@@ -35,11 +35,11 @@ subordinada, todas as telas mostram os dados dela com a faixa "somente leitura" 
 | `/secretaria` | Tarefas e rotinas (`?tarefa=ID` abre o detalhe) | ✅ |
 | `/agenda` | Calendário: Semana / Mês / Lista, painel do dia ou do item, eventos com repetição, arrastar, imprimir | ✅ |
 | `/atendimentos` | Semana de atendimentos | ✅ |
-| `/kanban` | Quadro de tarefas (quadro de execuções de projeto entra no Módulo 5) | ✅ tarefas |
-| `/projetos` | Recursos → execuções | ⏳ Módulo 5 |
-| `/documentos` | Documentos da instituição (`?documento=ID` abre o detalhe) | ✅ |
+| `/kanban` | Quadro de tarefas e de execuções de projeto | ✅ |
+| `/projetos` | Recursos → execuções (`?recurso=ID`, `?execucao=ID&secao=…`) | ✅ |
+| `/documentos` | Documentos da instituição (`?documento=ID` abre o detalhe; `?exigencia=CNPJ` abre o cadastro) | ✅ |
 | `/gerador` | Gerador de documentos | ⏳ Módulo 6 |
-| `/empresas` | Fornecedores (abas Cotações/Ordens/Projetos da ficha entram no Módulo 5) | ✅ |
+| `/empresas` | Fornecedores (`?empresa=ID` abre a ficha) | ✅ |
 | `/historico` | Histórico | ⏳ Módulo 8 |
 | `/relatorios` | Relatório de atividades | ⏳ Módulo 8 |
 | `/administracao/usuarios` | Lista, busca, novo, editar, redefinir senha, ativar/desativar | ✅ |
@@ -158,7 +158,8 @@ Diálogos de formulário ocupam a tela inteira no celular; listas viram cartões
   com a empresa vinculada.
 - **Migrado (Módulo 4):** lista com situação e filtro por situação; a ficha abre ao lado da lista (no celular ocupa a tela),
   como nas outras telas novas, com Dados, Documentos e Histórico. Cadastrar uma empresa que já existe (mesmo CNPJ ou nome)
-  abre a ficha dela com o aviso "já está cadastrada". Cotações, Ordens, Projetos e "Gerar documento" chegam nos Módulos 5/6.
+  abre a ficha dela com o aviso "já está cadastrada". Cotações, Ordens de compra, Projetos e "Ligar a um projeto"
+  entraram no Módulo 5; "Gerar documento" chega no Módulo 6.
 
 ### 4.7 Projetos (`old/js/04-projetos.js`, `04b-projetos-telas.js`) · `projetos.*`
 - **Recurso** (dinheiro que entrou): nome*, tipo/origem*, órgão repassador, convênio/termo, data de recebimento,
@@ -179,6 +180,9 @@ Diálogos de formulário ocupam a tela inteira no celular; listas viram cartões
   Outro; nota fiscal conclui a etapa), Pagamentos (fornecedor, data, valor*, forma, comprovante*; aviso se passar do
   saldo ou docs da empresa vencidos), Pendências (título*, prioridade, detalhes; concluir/reabrir).
   "Próximo passo" = primeira etapa pendente. Cotação: itens (descrição, qtd, valor) somam o total, proposta* anexada.
+- **Migrado (Módulo 5):** igual ao antigo, com a navegação Lista → Recurso → Execução guardada na URL. Diferenças forçadas pelo
+  banco: a ordem de compra fica presa à cotação vencedora (para trocar a vencedora ou excluir a cotação, exclua a ordem antes)
+  e não se cria execução em recurso arquivado. Sem a pasta .zip da prestação e sem "classificar projeto antigo" (decisão aprovada).
 - **Relatório do recurso em PDF** (números + tabela de execuções). Lista inicial com totais (recebido, distribuído,
   pago, disponível), cartão por recurso com execuções, filtros busca/status/arquivados. Navegação Lista → Recurso → Execução.
 

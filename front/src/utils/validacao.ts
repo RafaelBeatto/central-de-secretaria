@@ -81,6 +81,13 @@ export const regras = {
       .min(3)
       .max(LIMITES.USUARIO_LOGIN)
       .matches(/^[A-Za-z0-9._-]+$/, 'Use só letras, números, ponto, hífen ou sublinhado'),
+  /** Valor em reais: obrigatório, a partir do mínimo, com no máximo 2 casas decimais. */
+  valor: (minimo = 0) =>
+    Yup.number()
+      .typeError('Informe um valor')
+      .required('Informe um valor')
+      .min(minimo, minimo > 0 ? 'Informe um valor maior que zero' : 'O valor não pode ser negativo')
+      .test('centavos', 'Use no máximo 2 casas decimais', (v) => v === undefined || Math.abs(Math.round(v * 100) - v * 100) < 1e-6),
   dataPassada: () =>
     Yup.string()
       .required()

@@ -1,5 +1,6 @@
 package br.org.apae.secretaria.sistema.historico;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
@@ -38,5 +39,13 @@ public class ServicoHistorico {
     @Transactional(readOnly = true)
     public List<HistoricoResposta> doRegistro(Long unidadeId, String refTipo, Long refId) {
         return repositorio.doRegistro(unidadeId, refTipo, refId, PageRequest.of(0, LIMITE_DO_REGISTRO));
+    }
+
+    /** Ações sobre um registro e os filhos dele, juntas (até 60, como a linha do tempo do recurso no antigo). */
+    @Transactional(readOnly = true)
+    public List<HistoricoResposta> doRegistroEFilhos(Long unidadeId, String refTipo, Long refId, String filhosTipo,
+            Collection<Long> filhosIds) {
+        Collection<Long> ids = filhosIds.isEmpty() ? List.of(-1L) : filhosIds;
+        return repositorio.doRegistroEFilhos(unidadeId, refTipo, refId, filhosTipo, ids, PageRequest.of(0, 60));
     }
 }

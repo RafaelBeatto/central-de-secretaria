@@ -193,6 +193,18 @@ const PainelItem = (p: Props) => {
       <Typography variant="body2" color="textSecondary" mt={2}>
         Esta data vem de outro módulo; para mudá-la, abra o registro original.
       </Typography>
+      {i.origem === 'PROJETO' ? (
+        <Button
+          size="small"
+          variant="outlined"
+          component={LinkRouter}
+          to={`/projetos?${i.chave.startsWith('RECURSO') ? 'recurso' : 'execucao'}=${i.refId}`}
+          endIcon={<IconArrowRight size={16} />}
+          sx={{ mt: 1 }}
+        >
+          Abrir projeto
+        </Button>
+      ) : null}
       {i.origem === 'DOCUMENTO' ? (
         <Button size="small" variant="outlined" component={LinkRouter} to={`/documentos?documento=${i.refId}`} endIcon={<IconArrowRight size={16} />} sx={{ mt: 1 }}>
           Abrir documento

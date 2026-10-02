@@ -78,6 +78,15 @@ public class ServicoArquivo {
         return arquivo;
     }
 
+    /** Arquivo da unidade de escrita e da categoria esperada (ex.: comprovante de pagamento). */
+    public Arquivo exigirCategoria(Long arquivoId, CategoriaArquivo categoria) {
+        Arquivo arquivo = buscarParaVincular(arquivoId);
+        if (arquivo.getCategoria() != categoria) {
+            throw new RegraNegocioExcecao("O arquivo enviado não é do tipo esperado para este registro.");
+        }
+        return arquivo;
+    }
+
     /** Remove o registro e, só depois do commit, o objeto no S3. */
     @Transactional
     public void excluir(Long arquivoId) {

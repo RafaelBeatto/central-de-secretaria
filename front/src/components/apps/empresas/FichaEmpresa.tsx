@@ -1,15 +1,23 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { Box, Button, Chip, Grid, IconButton, List, ListItem, ListItemText, Stack, Tab, Tabs, Typography } from '@mui/material';
-import { IconArrowLeft, IconEdit, IconPaperclip, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
+import { Link as LinkRouter } from 'react-router-dom';
+import { Box, Button, Chip, Grid, IconButton, Link, List, ListItem, ListItemText, Stack, Tab, Tabs, Typography } from '@mui/material';
+import { IconArrowLeft, IconArrowRight, IconEdit, IconLink, IconPaperclip, IconPlus, IconTrash, IconX } from '@tabler/icons-react';
 import BlankCard from 'src/components/shared/BlankCard';
 import HistoricoDoRegistro from 'src/components/compartilhados/HistoricoDoRegistro';
 import { servicoArquivos } from 'src/servicos/arquivos';
 import { servicoEmpresas } from 'src/servicos/empresas';
+import { servicoProjetos } from 'src/servicos/projetos';
+import { EmpresaNosProjetos, ROTULO_STATUS_ORDEM } from 'src/types/projetos';
+import { formatarMoeda } from 'src/utils/projetos';
+import { mensagemDeErro } from 'src/utils/erroApi';
+import { ChipStatus } from 'src/components/apps/projetos/Comuns';
+import { DialogoEscolherExecucao } from 'src/components/apps/projetos/DialogosProjeto';
 import type { Empresa, EmpresaDocumento } from 'src/types/empresas';
 import { ROTULO_SITUACAO, situacaoEmpresa, situacaoValidade, TOM_SITUACAO } from 'src/utils/documentos';
 import { formatarData } from 'src/utils/formatacao';
 
-type Aba = 'dados' | 'documentos' | 'historico';
+type Aba = 'dados' | 'documentos' | 'cotacoes' | 'ordens' | 'projetos' | 'historico';
+const ABAS_PROJETOS: Aba[] = ['cotacoes', 'ordens', 'projetos'];
 
 const Fato = ({ rotulo, largo, children }: { rotulo: string; largo?: boolean; children: ReactNode }) => (
   <Grid item xs={12} sm={largo ? 12 : 6}>
@@ -23,6 +31,9 @@ const Fato = ({ rotulo, largo, children }: { rotulo: string; largo?: boolean; ch
 interface Props {
   empresa: Empresa;
   podeAlterar: boolean;
+  /** Abas de projetos só para quem lê projetos; "Ligar a um projeto" para quem altera. */
+  verProjetos: boolean;
+  ligarProjetos: boolean;
   aoEditar: () => void;
   aoExcluir: () => void;
   aoNovoDocumento: () => void;
@@ -31,13 +42,29 @@ interface Props {
 }
 
 /**
- * Ficha da empresa ao lado da lista (no celular ocupa a tela). Abas Dados, Documentos e
- * Histórico; Cotações, Ordens de compra e Projetos entram com o módulo de Projetos.
+ * Ficha da empresa ao lado da lista (no celular ocupa a tela): Dados, Documentos, Cotações,
+ * Ordens de compra, Projetos e Histórico (old: abrirFichaEmpresaGlobal).
  */
-const FichaEmpresa = ({ empresa: e, podeAlterar, aoEditar, aoExcluir, aoNovoDocumento, aoExcluirDocumento, aoFechar }: Props) => {
+const FichaEmpresa = ({ empresa: e, podeAlterar, verProjetos, ligarProjetos, aoEditar, aoExcluir, aoNovoDocumento, aoExcluirDocumento, aoFechar }: Props) => {
   const [aba, setAba] = useState<Aba>('dados');
+  const [projetos, setProjetos] = useState<EmpresaNosProjetos | null>(null);
+  const [erroProjetos, setErroProjetos] = useState<string | null>(null);
+  const [ligando, setLigando] = useState(false);
   const situacao = situacaoEmpresa(e);
-  useEffect(() => setAba('dados'), [e.id]);
+  const carregarProjetos = () =>
+    servicoProjetos
+      .daEmpresa(e.id)
+      .then(setProjetos)
+      .catch((x) => setErroProjetos(mensagemDeErro(x)));
+  useEffect(() => {
+    setAba('dados');
+    setProjetos(null);
+    setErroProjetos(null);
+  }, [e.id]);
+  useEffect(() => {
+    if (verProjetos && ABAS_PROJETOS.includes(aba) && !projetos) carregarProjetos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aba, verProjetos, projetos]);
 
   const subtitulo = [e.cnpj ? `CNPJ ${e.cnpj}` : 'CNPJ não informado', e.nomeFantasia, [e.municipio, e.uf].filter(Boolean).join('/')]
     .filter(Boolean)
@@ -67,6 +94,11 @@ const FichaEmpresa = ({ empresa: e, podeAlterar, aoEditar, aoExcluir, aoNovoDocu
             <Button size="small" variant="outlined" startIcon={<IconEdit size={16} />} onClick={aoEditar}>
               Editar dados
             </Button>
+            {ligarProjetos ? (
+              <Button size="small" variant="outlined" startIcon={<IconLink size={16} />} onClick={() => setLigando(true)}>
+                Ligar a um projeto
+              </Button>
+            ) : null}
             <Button size="small" color="error" startIcon={<IconTrash size={16} />} onClick={aoExcluir}>
               Excluir
             </Button>
@@ -76,6 +108,9 @@ const FichaEmpresa = ({ empresa: e, podeAlterar, aoEditar, aoExcluir, aoNovoDocu
         <Tabs value={aba} onChange={(_, v) => setAba(v)} variant="scrollable" allowScrollButtonsMobile sx={{ mt: 2, borderBottom: 1, borderColor: 'divider' }}>
           <Tab value="dados" label="Dados" />
           <Tab value="documentos" label={`Documentos (${e.documentos.length})`} />
+          {verProjetos ? <Tab value="cotacoes" label={`Cotações${projetos ? ` (${projetos.cotacoes.length})` : ''}`} /> : null}
+          {verProjetos ? <Tab value="ordens" label={`Ordens de compra${projetos ? ` (${projetos.ordens.length})` : ''}`} /> : null}
+          {verProjetos ? <Tab value="projetos" label={`Projetos${projetos ? ` (${projetos.execucoes.length})` : ''}`} /> : null}
           <Tab value="historico" label="Histórico" />
         </Tabs>
 
@@ -153,12 +188,90 @@ const FichaEmpresa = ({ empresa: e, podeAlterar, aoEditar, aoExcluir, aoNovoDocu
           </Box>
         ) : null}
 
+        {ABAS_PROJETOS.includes(aba) ? (
+          <Box mt={2}>
+            {erroProjetos ? <Typography color="error">{erroProjetos}</Typography> : null}
+            {!projetos && !erroProjetos ? <Typography color="textSecondary">Carregando…</Typography> : null}
+            {projetos && aba === 'cotacoes' ? (
+              <ListaProjetos
+                vazio="Nenhuma cotação desta empresa ainda."
+                itens={projetos.cotacoes.map((c) => ({
+                  id: c.id,
+                  titulo: `${formatarMoeda(c.valorTotal)}${c.vencedora ? ' · vencedora' : ''}`,
+                  detalhe: `${c.data ? formatarData(c.data) : 'sem data'} · ${c.execucaoNome}`,
+                  arquivoId: c.arquivoId,
+                  execucaoId: c.execucaoId,
+                }))}
+              />
+            ) : null}
+            {projetos && aba === 'ordens' ? (
+              <ListaProjetos
+                vazio="Nenhuma ordem de compra para esta empresa ainda. Só a empresa com a cotação vencedora recebe a ordem."
+                itens={projetos.ordens.map((o) => ({
+                  id: o.id,
+                  titulo: `${o.numero} · ${formatarMoeda(o.valor)}`,
+                  detalhe: [o.data && formatarData(o.data), ROTULO_STATUS_ORDEM[o.status], o.execucaoNome].filter(Boolean).join(' · '),
+                  arquivoId: o.arquivoId,
+                  execucaoId: o.execucaoId,
+                }))}
+              />
+            ) : null}
+            {projetos && aba === 'projetos' ? (
+              projetos.execucoes.length ? (
+                <List dense disablePadding>
+                  {projetos.execucoes.map((x) => (
+                    <ListItem key={x.id} disableGutters secondaryAction={<ChipStatus status={x.status} />}>
+                      <ListItemText
+                        primary={
+                          <Link component={LinkRouter} to={`/projetos?execucao=${x.id}`} underline="hover">
+                            {x.nome}
+                          </Link>
+                        }
+                        secondary={x.recursoNome}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="textSecondary">
+                  Esta empresa ainda não está ligada a nenhum projeto.{ligarProjetos ? ' Use “Ligar a um projeto” acima.' : ''}
+                </Typography>
+              )
+            ) : null}
+          </Box>
+        ) : null}
+
         {aba === 'historico' ? (
           <HistoricoDoRegistro carregar={() => servicoEmpresas.historico(e.id)} versao={`${e.atualizadoEm}|${e.documentos.map((d) => d.id).join()}`} />
         ) : null}
       </Box>
+      <DialogoEscolherExecucao aberto={ligando} empresa={e} aoFechar={() => setLigando(false)} aoLigar={carregarProjetos} />
     </BlankCard>
   );
 };
+
+/** Cotações e ordens da empresa em todos os projetos, com o arquivo e o atalho para a execução. */
+const ListaProjetos = ({ itens, vazio }: { itens: { id: number; titulo: string; detalhe: string; arquivoId: number; execucaoId: number }[]; vazio: string }) =>
+  itens.length ? (
+    <List dense disablePadding>
+      {itens.map((i) => (
+        <ListItem key={i.id} disableGutters sx={{ gap: 1, flexWrap: 'wrap' }}>
+          <ListItemText sx={{ minWidth: 160 }} primary={i.titulo} secondary={i.detalhe} />
+          <Stack direction="row" spacing={0.5}>
+            <Button size="small" startIcon={<IconPaperclip size={16} />} onClick={() => servicoArquivos.abrir(i.arquivoId)}>
+              Abrir
+            </Button>
+            <Button size="small" component={LinkRouter} to={`/projetos?execucao=${i.execucaoId}&secao=empresas`} endIcon={<IconArrowRight size={16} />}>
+              Ver projeto
+            </Button>
+          </Stack>
+        </ListItem>
+      ))}
+    </List>
+  ) : (
+    <Typography variant="body2" color="textSecondary">
+      {vazio}
+    </Typography>
+  );
 
 export default FichaEmpresa;

@@ -1,5 +1,6 @@
 package br.org.apae.secretaria.sistema.historico;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.domain.Pageable;
@@ -19,4 +20,16 @@ public interface HistoricoRepositorio extends JpaRepository<Historico, Long> {
              order by h.criadoEm desc, h.id desc
             """)
     List<HistoricoResposta> doRegistro(Long unidadeId, String refTipo, Long refId, Pageable limite);
+
+    /** Histórico de um registro e dos registros filhos dele (ex.: recurso e as execuções). */
+    @Query("""
+            select new br.org.apae.secretaria.sistema.historico.dto.HistoricoResposta(
+                   h.id, h.modulo, h.acao, h.descricao, h.refTipo, h.refId, concat(u.nome, ' ', u.sobrenome), h.criadoEm)
+              from Historico h left join Usuario u on u.id = h.usuarioId
+             where h.unidadeId = :unidadeId
+               and ((h.refTipo = :refTipo and h.refId = :refId) or (h.refTipo = :filhosTipo and h.refId in :filhosIds))
+             order by h.criadoEm desc, h.id desc
+            """)
+    List<HistoricoResposta> doRegistroEFilhos(Long unidadeId, String refTipo, Long refId, String filhosTipo,
+            Collection<Long> filhosIds, Pageable limite);
 }

@@ -18,7 +18,7 @@ export const ESTILO_A4 = `
   @media print{ @page{ size:A4; margin:0; } .doc-a4-page{ margin:0; } }
 `;
 
-function escapeHtml(texto: string) {
+export function escapeHtml(texto: string) {
   const div = document.createElement('div');
   div.textContent = texto;
   return div.innerHTML;

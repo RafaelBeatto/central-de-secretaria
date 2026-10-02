@@ -12,7 +12,7 @@ import { useConsulta } from 'src/hooks/useConsulta';
 import { usePermissao } from 'src/hooks/usePermissao';
 import { PERMISSOES } from 'src/constantes/permissoes';
 import { servicoDocumentos } from 'src/servicos/documentos';
-import { CategoriaDocumento, Documento, ROTULO_CATEGORIA_DOCUMENTO } from 'src/types/documentos';
+import { CategoriaDocumento, Documento, ExigenciaApae, ROTULO_CATEGORIA_DOCUMENTO, ROTULO_EXIGENCIA_APAE } from 'src/types/documentos';
 import { mensagemDeErro } from 'src/utils/erroApi';
 import { formatarData, normalizar } from 'src/utils/formatacao';
 import { useSelector } from 'src/store/Store';
@@ -28,7 +28,7 @@ const Documentos = () => {
   const { dados: documentos, carregando, erro, definirDados } = useConsulta(servicoDocumentos.listar);
   const [selecionado, setSelecionado] = useState<Documento | null>(null);
   const [filtro, setFiltro] = useState({ busca: '', categoria: '', responsavel: '' });
-  const [formulario, setFormulario] = useState<{ aberto: boolean; documento: Documento | null }>({ aberto: false, documento: null });
+  const [formulario, setFormulario] = useState<{ aberto: boolean; documento: Documento | null; exigencia?: ExigenciaApae | null }>({ aberto: false, documento: null });
   const [renovando, setRenovando] = useState<Documento | null>(null);
 
   useEffect(() => setSelecionado(null), [unidadeVisualizadaId]);
@@ -53,6 +53,14 @@ const Documentos = () => {
     abrir(documentoPedido);
     setParametros({}, { replace: true });
   }, [documentoPedido, abrir, setParametros]);
+
+  // Vindo de "Documentação da APAE" num projeto: /documentos?exigencia=CNPJ abre o cadastro já marcado.
+  const exigenciaPedida = parametros.get('exigencia') as ExigenciaApae | null;
+  useEffect(() => {
+    if (!exigenciaPedida || !(exigenciaPedida in ROTULO_EXIGENCIA_APAE)) return;
+    if (alterar) setFormulario({ aberto: true, documento: null, exigencia: exigenciaPedida });
+    setParametros({}, { replace: true });
+  }, [exigenciaPedida, alterar, setParametros]);
 
   const substituir = (d: Documento) => {
     definirDados((lista) => [...(lista ?? []).filter((x) => x.id !== d.id), d]);
@@ -182,6 +190,7 @@ const Documentos = () => {
       <FormularioDocumento
         aberto={formulario.aberto}
         documento={formulario.documento}
+        exigenciaInicial={formulario.exigencia}
         responsaveis={responsaveis}
         aoFechar={() => setFormulario({ aberto: false, documento: null })}
         aoSalvar={(d, novoDoc) => {

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, LinearProgress, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, LinearProgress, MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import SimpleBar from 'simplebar-react';
 import { useNavigate } from 'react-router-dom';
 import Pagina from 'src/components/container/Pagina';
 import ColunaKanban from 'src/components/apps/kanban/ColunaKanban';
 import CartaoTarefa from 'src/components/apps/kanban/CartaoTarefa';
+import QuadroExecucoes from 'src/components/apps/kanban/QuadroExecucoes';
 import { useInteracao } from 'src/components/compartilhados/ProvedorInteracao';
 import { useConsulta } from 'src/hooks/useConsulta';
 import { usePermissao } from 'src/hooks/usePermissao';
@@ -31,11 +32,13 @@ const DIAS_CONCLUIDAS = 14;
 /**
  * Quadro de tarefas por situação (old/js/15-kanban.js). Mover para "Concluída"
  * é o mesmo "Concluir" da Secretaria (rotina volta no próximo ciclo).
- * O quadro "Execuções de projeto" entra junto com o módulo Projetos.
+ * O quadro "Execuções de projeto" aparece para quem lê projetos.
  */
 const Kanban = () => {
   const navegar = useNavigate();
-  const { podeAlterar } = usePermissao();
+  const { podeAlterar, tem } = usePermissao();
+  const verExecucoes = tem(PERMISSOES.PROJETO_LER);
+  const [quadro, setQuadro] = useState<'tarefas' | 'execucoes'>('tarefas');
   const { notificar } = useInteracao();
   const alterar = podeAlterar(PERMISSOES.TAREFA_ESCREVER);
   const unidadeVisualizadaId = useSelector((s) => s.autenticacao.unidadeVisualizadaId);
@@ -113,6 +116,12 @@ const Kanban = () => {
   return (
     <Pagina>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} mb={3}>
+        {verExecucoes ? (
+          <ToggleButtonGroup size="small" exclusive value={quadro} onChange={(_, v) => v && setQuadro(v)} aria-label="Quadro">
+            <ToggleButton value="tarefas">Tarefas</ToggleButton>
+            <ToggleButton value="execucoes">Execuções de projeto</ToggleButton>
+          </ToggleButtonGroup>
+        ) : null}
         <TextField
           type="search"
           size="small"
@@ -133,9 +142,10 @@ const Kanban = () => {
           </TextField>
         ) : null}
       </Stack>
-      {carregando && !dados ? <LinearProgress /> : null}
-      {erro ? <Alert severity="error">{erro}</Alert> : null}
-      {dados ? (
+      {quadro === 'execucoes' ? <QuadroExecucoes filtro={filtro} podeAlterar={podeAlterar(PERMISSOES.PROJETO_ESCREVER)} /> : null}
+      {quadro === 'tarefas' && carregando && !dados ? <LinearProgress /> : null}
+      {quadro === 'tarefas' && erro ? <Alert severity="error">{erro}</Alert> : null}
+      {quadro === 'tarefas' && dados ? (
         <SimpleBar>
           <DragDropContext onDragEnd={aoSoltar}>
             <Box display="flex" gap={2} pb={2}>

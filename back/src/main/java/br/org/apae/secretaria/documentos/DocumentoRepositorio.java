@@ -11,4 +11,7 @@ public interface DocumentoRepositorio extends JpaRepository<Documento, Long> {
 
     /** Vencimentos no período (fonte da Agenda). */
     List<Documento> findByUnidadeIdAndDataValidadeBetween(Long unidadeId, LocalDate inicio, LocalDate fim);
+
+    /** Documentos que valem como exigência da APAE nos projetos. */
+    List<Documento> findByUnidadeIdAndExigenciaApaeIsNotNull(Long unidadeId);
 }

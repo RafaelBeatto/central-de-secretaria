@@ -93,6 +93,7 @@ export const MODULOS: Modulo[] = [
     icone: IconFolder,
     grupo: 'Controle',
     permissao: PERMISSOES.PROJETO_LER,
+    tela: lazy(() => import('src/views/projetos/Projetos')),
   },
   {
     caminho: '/documentos',

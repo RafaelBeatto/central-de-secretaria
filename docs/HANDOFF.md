@@ -1,7 +1,7 @@
 # HANDOFF — continuar a migração da Central da Secretaria
 
-> Atualizado em: 2026-10-01 · Concluído: **Base + Módulo 1 (Secretaria + Kanban) + Módulo 2 (Agenda) + Módulo 3 (Atendimentos) + Módulo 4 (Documentos + Empresas)** · Próximo: **Módulo 5 — Projetos**
-> (o desenho do Módulo 5 **ainda não foi feito** — comece lendo `old/js/04-projetos.js`, `old/js/04b-projetos-telas.js` e o MAPA_DE_USABILIDADE §4.7)
+> Atualizado em: 2026-10-01 · Concluído: **Base + Módulos 1 a 5 (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos)** · Próximo: **Módulo 6 — Gerador de documentos**
+> (o desenho do Módulo 6 **ainda não foi feito** — comece lendo `old/js/17-gerador-documentos.js`, `old/js/17b-gerador-telas.js` e o MAPA_DE_USABILIDADE §4.8)
 >
 > **Para a IA que vai continuar:** leia este arquivo inteiro, depois `MAPA_DE_CODIGO.md` (onde está cada coisa) e
 > `MAPA_DE_USABILIDADE.md` §4 (regras de cada módulo). Siga a seção 4 "Próximo passo exato" e, ao terminar cada módulo,
@@ -180,25 +180,72 @@ Migração do sistema "Central da Secretaria" das APAEs:
   cadastro com CNPJ não conferia a razão social (estourava o índice `ux_empresa_razao`) e histórico da renovação com data ISO.
 - Não testado: telas no navegador (o dono vai revisar) e a consulta real à CNPJá.
 
-### Próximo passo exato — Módulo 5: Projetos (espec: MAPA_DE_USABILIDADE §4.7 · fonte: `old/js/04-projetos.js`, `old/js/04b-projetos-telas.js`)
-- Ler os dois arquivos do antigo inteiros antes de desenhar (são os maiores: recurso → execuções, financeiro com movimentações,
-  checklist de seções, cotações ≥3 empresas, ordem de compra, notas, pagamentos, pendências, relatório PDF).
-- As tabelas do schema `projetos` **já existem** no `apae.sql` (11 tabelas).
-- Projetos entra como fonte da Agenda (`PROJETO_INICIO-<id>`, `PROJETO_FIM-<id>` com `Prioridade.pelaProximidade`) e como o
-  quadro "Execuções de projeto" do Kanban.
-- "Documentação da APAE" lê `documentos.documento.exigencia_apae` (old: `situacaoDocsApae` — para cada exigência, o documento
-  de validade mais longa; sem validade conta como válido). Avisos de documentos da empresa vencidos na data da ordem/pagamento
-  leem `empresas.empresa_documento` (old: `documentosVencidosEmpresa`). `utils/documentos.ts` já tem a situação no front.
-- Completar a ficha da empresa (abas Cotações, Ordens de compra, Projetos; "Ligar a um projeto").
-- PDF do relatório do recurso: reaproveitar `utils/documentoA4.ts` + `utils/impressaoPdf.ts`; arquivos com `CampoArquivoFormik`.
+### Pronto (Módulo 5 — Projetos)
+- Back `projetos/`: entidades `Recurso`, `Execucao` (`somarAoPlanejado` da transferência), `RecursoDocumento`,
+  `MovimentacaoRecurso`, `ExecucaoEmpresa`, `Cotacao` (itens como `@ElementCollection` de `Cotacao.Item` em `cotacao_item`),
+  `OrdemCompra`, `ExecucaoDocumento`, `Pagamento`, `ExecucaoPendencia`; enums em `Enums.java`. Comum novo
+  `comum/entidade/EntidadeCriada` (só `criado_em`).
+- **`CalculoProjetos`** é a fonte única dos números e do checklist (iguais ao antigo): financeiro do recurso (recebido /
+  distribuído / pago / não distribuído / saldo das execuções / disponível; canceladas não contam), livre para distribuir,
+  situação da execução (planejado/pago/saldo, 7 etapas, próximo passo), documentação da APAE (por exigência, o documento de
+  validade mais longa; sem validade = válido) e empresas com documentação OK. Carrega **em lote** (uma consulta por tabela
+  para todas as execuções), então a lista não faz N consultas.
+- `ServicoRecurso` (CRUD, arquivar/reabrir, documentos, transferência ≤ saldo da origem, histórico do recurso + execuções),
+  `ServicoExecucao` (CRUD com **limite do saldo não distribuído**, situação pelo Kanban, plano, ligar/remover empresa,
+  detalhe completo, `daEmpresa` para a ficha), `ServicoItensExecucao` (cotações, vencedora com ≥3 empresas, ordem só da
+  vencedora, notas, pagamentos, pendências). Toda mudança de valor vira movimentação (ENTRADA, DISTRIBUICAO, TRANSFERENCIA,
+  AJUSTE — editar valor e excluir execução geram AJUSTE), como no antigo; pagamentos **não** geram movimentação (o antigo também não).
+- Regras novas vs. o antigo (o banco exigiu): ordem de compra referencia a cotação vencedora (`cotacao_id NOT NULL`), então
+  trocar a vencedora ou excluir a cotação com ordem pede excluir a ordem antes; remover empresa com cotação é bloqueado
+  (o antigo também bloqueava); não cria execução em recurso arquivado.
+- `ServicoArquivo.exigirCategoria(id, categoria)` (novo, reaproveitável): valida que o anexo é da unidade e do tipo certo.
+- Histórico: `ServicoHistorico.doRegistroEFilhos` (recurso + execuções juntos, até 60). Refs: `RECURSO`, `EXECUCAO`;
+  ligar/remover empresa registra na ficha da empresa (`EMPRESA`).
+- Agenda: `agenda/fontes/FonteProjetos` (PROJETO_LER) — início/fim de recursos não arquivados e das execuções deles; chaves
+  `RECURSO_INICIO-id`, `RECURSO_FIM-id`, `EXECUCAO_INICIO-id`, `EXECUCAO_FIM-id`; o fim usa `Prioridade.pelaProximidade`.
+  O painel do item tem "Abrir projeto".
+- Front: `views/projetos/Projetos.tsx` — **o nível aberto fica na URL** (`?recurso=ID`, `?execucao=ID&secao=empresas`), então o
+  "voltar" do navegador funciona e Agenda/Kanban/Empresas abrem direto o registro. `components/apps/projetos/*`:
+  `ListaRecursos` (totais + cartão por recurso com medidor e execuções), `TelaRecurso` (financeiro, abas Execuções/Documentos/
+  Histórico com movimentações, dados ao lado, relatório PDF, transferir, arquivar), `TelaExecucao` (navegação que É o checklist:
+  ✓ ou número da etapa; no celular vira abas), `SecoesExecucao` (Resumo, Plano, Empresas e compras, Documentação da APAE,
+  Notas e documentos, Pagamentos, Pendências), `FormulariosProjeto`, `DialogosProjeto` (documento do recurso, transferência,
+  plano, ligar empresa, cotação com itens e total automático, ordem e pagamento com **aviso de documentos da empresa vencidos
+  na data** e de pagamento acima do saldo — confirmados como no antigo), `Comuns` (chip de status, medidor, números, linha de
+  item), `relatorioRecurso.ts` (PDF com o cabeçalho da unidade).
+- Kanban: quadro "Execuções de projeto" (`components/apps/kanban/QuadroExecucoes`), escolhido no topo para quem tem
+  PROJETO_LER; mover para Concluído com etapas pendentes pede confirmação listando as etapas.
+- Empresas: ficha com abas **Cotações, Ordens de compra e Projetos** e "Ligar a um projeto"; aceita `?empresa=ID`.
+- Documentos: aceita `?exigencia=CNPJ` (abre o cadastro já marcado — vindo de "Cadastrar" na Documentação da APAE); "Renovar"
+  da Documentação da APAE abre o mesmo `DialogoRenovarDocumento` dentro do projeto.
+- Comuns novos no front: `regras.valor(minimo)` (reais com 2 casas) em `utils/validacao.ts`; `formatarMoeda`, `PROPS_VALOR`,
+  `TOM_STATUS`, `avisoDocumentosEmpresa` em `utils/projetos.ts`; `escapeHtml` exportado de `utils/documentoA4.ts`.
+- Removido conforme decisão: pasta .zip da prestação e "classificar projeto antigo" (banco começa do zero).
+- Verificado: back compila, empacota e sobe validando o schema num banco descartável; API testada ponta a ponta por curl
+  (limite do saldo ao criar/editar, período inválido, ligar empresa repetida, cotação de empresa não ligada, vencedora com
+  menos de 3 empresas, ordem sem 3 cotações/sem vencedora, troca de vencedora, bloqueios por ordem existente, plano/nota/
+  pagamento movendo o checklist, anexo de tipo errado, transferência acima do saldo e válida, movimentações, histórico do
+  recurso, Kanban e status, ficha da empresa, Agenda com prioridade, excluir execução devolvendo o valor e apagando os
+  arquivos, arquivar bloqueando nova execução). **Bug achado e corrigido nos testes:** trocar a vencedora deixava a anterior
+  ainda marcada na resposta (o `update` em massa não atualiza a entidade já carregada) — agora desmarca pela entidade e dá
+  `flush` antes de marcar a nova (o índice único `ux_cotacao_vencedora` aceita só uma). Front passa em `tsc`, `eslint` e `vite build`.
+- Não testado: telas no navegador (o dono vai revisar) e PDF do relatório (depende do navegador).
+
+### Próximo passo exato — Módulo 6: Gerador de documentos (espec: MAPA_DE_USABILIDADE §4.8 · fonte: `old/js/17-gerador-documentos.js`, `old/js/17b-gerador-telas.js`)
+- Ler os dois arquivos do antigo inteiros antes de desenhar. As tabelas `gerador.*` já existem; os 12 modelos do sistema já
+  estão no seed (unidade NULL). Numeração por série/ano: `ServicoNumeracao.numeroDoAno`.
+- Vínculos que preenchem campos: empresa (`EmpresaResposta`), execução (`ExecucaoDetalhe`), aluno, atendimento, documento,
+  tarefa. A ficha da empresa ganha "Gerar documento" e o bloqueio de excluir empresa ligada a documento gerado (o antigo bloqueava).
+- PDF/impressão: `utils/documentoA4.ts` (`ESTILO_A4`, cabeçalho) + `utils/impressaoPdf.ts`; anexos com `CampoArquivoFormik`
+  (categoria `ANEXO_GERADOR`). HTML do editor rico precisa ser sanitizado no back.
 
 ### Próximos módulos (ordem aprovada)
 1. ~~Base~~ → ~~Secretaria + Kanban~~ (prontos)
 2. ~~Agenda~~ (pronto)
 3. ~~Atendimentos~~ (pronto)
 4. ~~Documentos + Empresas~~ (pronto)
-5. **Projetos** ← próximo (recurso → execuções; financeiro, cotações ≥3 empresas, vencedora, ordem de compra, notas, pagamentos, pendências, checklist, relatório PDF)
-6. Gerador de documentos (modelos com {AUTO}/[MANUAL], numeração por série/ano, versões, vínculos, anexos, PDF)
+5. ~~Projetos~~ (pronto) (recurso → execuções; financeiro, cotações ≥3 empresas, vencedora, ordem de compra, notas, pagamentos, pendências, checklist, relatório PDF)
+6. **Gerador de documentos** ← próximo (modelos com {AUTO}/[MANUAL], numeração por série/ano, versões, vínculos, anexos, PDF)
 7. Pendências + Painel completo ("para resolver", hoje/7 dias, projetos)
 8. Histórico (tela), Relatórios (relatório de atividades em PDF), Pesquisa geral
 9. Vínculos entre registros (tabela `sistema.vinculo_registro`) — encaixar nos módulos 4–6
@@ -285,6 +332,14 @@ Front:
   `ADMINISTRADOR_SISTEMA` tem uma constante em `Cargo.java`).
 - **Spring Data com parâmetro `null`** em método derivado (`findByUnidadeIdAndCnpj(id, null)`) gera `cnpj IS NULL` e acha
   qualquer registro sem o campo — teste o `null` antes de consultar (ver `ServicoEmpresa.mesmaEmpresa`).
+- **Spring Data não acha repositório aninhado** (interface dentro de outra classe): `considerNestedRepositories` é `false`
+  por padrão — um repositório por arquivo.
+- **`@Modifying` em massa + entidade já carregada**: o `update` vai ao banco, mas a entidade na sessão continua com o valor
+  antigo e volta assim na resposta. Prefira alterar pelas entidades (e `flush` quando um índice único exige a ordem).
+- **Acentos no `curl` do Git Bash** saem fora de UTF-8 e o back responde 400 "formato inválido": teste a API com textos sem
+  acento (ou pelo navegador).
+- **Heredoc com aspas no Git Bash** às vezes quebra ("unexpected EOF"): para editar arquivos com script, grave o `.py` no
+  scratchpad e execute.
 - **Chamada a serviço de fora** (ex.: CNPJá): use `fetch` puro, nunca o `api` de `utils/axios` (ele manda o JWT e o
   `X-Unidade`).
 
@@ -296,8 +351,7 @@ Front:
 - Os PDFs do antigo são gerados com **html2pdf** (`old/js/vendor/html2pdf.bundle.min.js`, usado em
   `old/js/17-gerador-documentos.js`). O Módulo 3 já instalou `html2pdf.js` via npm e criou `utils/documentoA4.ts` +
   `utils/impressaoPdf.ts` reaproveitáveis pelos Módulos 5, 6 e 8. A Agenda continua só com `window.print()`.
-- Deixados para os módulos seguintes: o quadro "Execuções de projeto" no Kanban (Módulo 5) e os vínculos da tarefa
-  (Módulos 4/5).
+- Deixados para os módulos seguintes: os vínculos da tarefa, do documento e da execução (item 9, tabela `sistema.vinculo_registro`).
 - Agenda: o filtro de fontes por permissão (professor/profissional veem eventos, não tarefas) está no `ServicoAgenda`,
   mas não foi testado com um usuário desses cargos. O aviso de 30 min, como no antigo, também avisa (uma vez no dia) um
   evento de hoje que já começou — confirmar com o dono se deve avisar só os que ainda vão começar.
@@ -306,6 +360,6 @@ Front:
 - Atendimentos: "Cadastros de apoio" (Aluno/Profissional) não têm tela própria fora do diálogo "Alunos e profissionais";
   se crescer (relatório só de cadastros, por exemplo) considerar uma tela dedicada.
 - Nenhum teste automatizado foi escrito (pedido do dono). Também não houve teste manual no navegador das telas dos
-  Módulos 1, 2, 3 e 4: o dono ainda vai revisar (as APIs dos Módulos 3 e 4 foram testadas ponta a ponta por curl, sem navegador).
+  Módulos 1 a 5: o dono ainda vai revisar (as APIs dos Módulos 3, 4 e 5 foram testadas ponta a ponta por curl, sem navegador).
 - Documentos: a seção "Vincular a outros registros" do formulário antigo fica para o item 9 (vínculos entre registros).
 - `back/erro-backend.txt` (no stage do git) é só um log de "porta 8080 já em uso" — não é bug; pode ser apagado.
