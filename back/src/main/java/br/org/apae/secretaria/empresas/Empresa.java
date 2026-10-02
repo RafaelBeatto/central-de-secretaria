@@ -49,11 +49,7 @@ public class Empresa extends EntidadeAuditavel {
     private String municipio;
 
     @Setter
-<<<<<<< HEAD
     @Column(columnDefinition = "bpchar(2)", length = Limites.UF)
-=======
-    @Column(length = Limites.UF)
->>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
     private String uf;
 
     @Setter

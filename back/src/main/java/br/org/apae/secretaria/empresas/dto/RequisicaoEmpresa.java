@@ -1,22 +1,17 @@
 package br.org.apae.secretaria.empresas.dto;
 
 import br.org.apae.secretaria.comum.Limites;
-<<<<<<< HEAD
 import br.org.apae.secretaria.comum.validacao.Cnpj;
 import br.org.apae.secretaria.comum.validacao.Cpf;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-=======
-import jakarta.validation.constraints.NotBlank;
->>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
 import jakarta.validation.constraints.Size;
 
 /** Cadastro/edição de empresa (old/js/04-projetos.js: abrirFormEmpresaGlobal). */
 public record RequisicaoEmpresa(
         @NotBlank @Size(max = Limites.EMPRESA_RAZAO_SOCIAL) String razaoSocial,
         @Size(max = Limites.EMPRESA_NOME_FANTASIA) String nomeFantasia,
-<<<<<<< HEAD
         @Cnpj @Size(max = Limites.CNPJ) String cnpj,
         @Size(max = Limites.TELEFONE) String telefone,
         @Email @Size(max = Limites.EMAIL) String email,
@@ -25,15 +20,5 @@ public record RequisicaoEmpresa(
         @Pattern(regexp = "^$|^[A-Za-z]{2}$", message = "use a sigla com 2 letras") String uf,
         @Size(max = Limites.RESPONSAVEL) String representante,
         @Cpf @Size(max = Limites.CPF) String cpfRepresentante,
-=======
-        @Size(max = Limites.CNPJ) String cnpj,
-        @Size(max = Limites.TELEFONE) String telefone,
-        @Size(max = Limites.EMAIL) String email,
-        @Size(max = Limites.EMPRESA_ENDERECO) String endereco,
-        @Size(max = Limites.MUNICIPIO) String municipio,
-        @Size(max = Limites.UF) String uf,
-        @Size(max = Limites.RESPONSAVEL) String representante,
-        @Size(max = Limites.CPF) String cpfRepresentante,
->>>>>>> 426a94c127d17a98c09e288f8ca7b11985d0744f
         @Size(max = Limites.EMPRESA_OBSERVACAO) String observacao) {
 }
