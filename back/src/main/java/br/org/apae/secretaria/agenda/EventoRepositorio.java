@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface EventoRepositorio extends JpaRepository<Evento, Long> {
 
+    List<Evento> findByUnidadeId(Long unidadeId);
+
     /** Eventos de um período (tarefa ligada e série já carregadas). */
     @Query("""
             select e from Evento e left join fetch e.tarefa left join fetch e.serie

@@ -22,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 public class ServicoHistorico {
 
     private static final int LIMITE_DO_REGISTRO = 30;
+    /** Como o antigo, que guardava as 1.000 ações mais recentes. */
+    private static final int LIMITE_DA_TELA = 1000;
 
     private final HistoricoRepositorio repositorio;
     private final ContextoSeguranca contexto;
@@ -47,5 +49,11 @@ public class ServicoHistorico {
             Collection<Long> filhosIds) {
         Collection<Long> ids = filhosIds.isEmpty() ? List.of(-1L) : filhosIds;
         return repositorio.doRegistroEFilhos(unidadeId, refTipo, refId, filhosTipo, ids, PageRequest.of(0, 60));
+    }
+
+    /** Tela Histórico: até {@value #LIMITE_DA_TELA} ações da unidade consultada no intervalo [desde, ate). */
+    @Transactional(readOnly = true)
+    public List<HistoricoResposta> doPeriodo(java.time.Instant desde, java.time.Instant ate) {
+        return repositorio.doPeriodo(contexto.unidadeLeitura(), desde, ate, PageRequest.of(0, LIMITE_DA_TELA));
     }
 }

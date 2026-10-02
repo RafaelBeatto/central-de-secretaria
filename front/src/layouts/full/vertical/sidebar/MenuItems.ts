@@ -17,7 +17,7 @@ export interface MenuitemsType {
 export function montarMenu(temPermissao: (m: Modulo) => boolean): MenuitemsType[] {
   const itens: MenuitemsType[] = [];
   let grupoAtual = '';
-  MODULOS.filter(temPermissao).forEach((modulo) => {
+  MODULOS.filter((m) => !m.oculto && temPermissao(m)).forEach((modulo) => {
     if (modulo.grupo !== grupoAtual) {
       grupoAtual = modulo.grupo;
       itens.push({ navlabel: true, subheader: modulo.grupo });

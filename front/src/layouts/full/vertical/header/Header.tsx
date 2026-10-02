@@ -2,6 +2,7 @@ import { IconButton, Box, AppBar, useMediaQuery, Toolbar, styled, Stack, Tooltip
 import { useSelector, useDispatch } from 'src/store/Store';
 import { toggleSidebar, toggleMobileSidebar, setDarkMode } from 'src/store/customizer/CustomizerSlice';
 import { IconMenu2, IconMoon, IconSun } from '@tabler/icons-react';
+import BuscaGeral from './BuscaGeral';
 import Profile from './Profile';
 import SeletorUnidade from './SeletorUnidade';
 import AvisoChat from './AvisoChat';
@@ -40,6 +41,7 @@ const Header = () => {
         </IconButton>
 
         <SeletorUnidade />
+        <BuscaGeral />
 
         <Box flexGrow={1} />
         <Stack spacing={{ xs: 0, sm: 1 }} direction="row" alignItems="center">

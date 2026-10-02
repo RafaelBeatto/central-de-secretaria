@@ -13,6 +13,7 @@ import {
   IconHistory,
   IconLayoutDashboard,
   IconLayoutKanban,
+  IconSearch,
   IconShieldLock,
   IconSitemap,
   IconUsers,
@@ -32,6 +33,8 @@ export interface Modulo {
   grupo: 'Início' | 'Dia a dia' | 'Controle' | 'Consultar' | 'Administração';
   permissao?: CodigoPermissao;
   tela?: ReturnType<typeof lazy>;
+  /** Tem rota, mas não aparece no menu (ex.: Pesquisa, aberta pela busca do cabeçalho). */
+  oculto?: boolean;
 }
 
 export const MODULOS: Modulo[] = [
@@ -131,6 +134,16 @@ export const MODULOS: Modulo[] = [
     icone: IconHistory,
     grupo: 'Consultar',
     permissao: PERMISSOES.HISTORICO_LER,
+    tela: lazy(() => import('src/views/historico/Historico')),
+  },
+  {
+    caminho: '/pesquisa',
+    titulo: 'Pesquisa',
+    subtitulo: 'Resultados da busca em todo o sistema',
+    icone: IconSearch,
+    grupo: 'Consultar',
+    oculto: true,
+    tela: lazy(() => import('src/views/pesquisa/Pesquisa')),
   },
   {
     caminho: '/relatorios',
@@ -139,6 +152,7 @@ export const MODULOS: Modulo[] = [
     icone: IconChartBar,
     grupo: 'Consultar',
     permissao: PERMISSOES.RELATORIO_LER,
+    tela: lazy(() => import('src/views/relatorios/Relatorios')),
   },
   {
     caminho: '/administracao/usuarios',

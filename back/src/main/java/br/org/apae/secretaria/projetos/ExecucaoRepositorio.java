@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 public interface ExecucaoRepositorio extends JpaRepository<Execucao, Long> {
+    List<Execucao> findByUnidadeId(Long unidadeId);
     List<Execucao> findByRecursoIdOrderByDataInicioAscIdAsc(Long recursoId);
 
     List<Execucao> findByRecursoIdIn(Collection<Long> recursoIds);

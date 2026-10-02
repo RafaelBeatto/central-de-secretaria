@@ -1,7 +1,7 @@
 # HANDOFF — continuar a migração da Central da Secretaria
 
-> Atualizado em: 2026-10-02 · Concluído: **Base + Módulos 1 a 7 (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos, Gerador, Pendências + Painel)** · Próximo: **Módulo 8 — Histórico (tela), Relatórios, Pesquisa geral**
-> (o desenho do Módulo 8 **ainda não foi feito** — comece lendo `old/js/08b-historico.js`, `old/js/09-relatorios.js`, `old/js/08-pesquisa-historico.js` e o MAPA_DE_USABILIDADE §4.10)
+> Atualizado em: 2026-10-02 · Concluído: **Base + Módulos 1 a 8 (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos, Gerador, Pendências + Painel, Histórico + Relatórios + Pesquisa)** · Próximo: **Módulo 9 — Vínculos entre registros**
+> (o desenho do Módulo 9 **ainda não foi feito** — leia o MAPA_DE_USABILIDADE e procure "vínculos" em `old/js/` antes de desenhar)
 >
 > **Para a IA que vai continuar:** leia este arquivo inteiro, depois `MAPA_DE_CODIGO.md` (onde está cada coisa) e
 > `MAPA_DE_USABILIDADE.md` §4 (regras de cada módulo). Siga a seção 4 "Próximo passo exato" e, ao terminar cada módulo,
@@ -262,10 +262,21 @@ Migração do sistema "Central da Secretaria" das APAEs:
   `views/pendencias/Pendencias.tsx`, `views/painel/Painel.tsx` + `components/apps/painel/BlocosPainel`.
 - Verificado: back compila e sobe validando as consultas; front passa em `tsc`, `eslint` e `vite build`. Não testado no navegador. Adiado: contadores no menu lateral.
 
-### Próximo passo exato — Módulo 8: Histórico (tela), Relatórios, Pesquisa geral (espec: MAPA_DE_USABILIDADE §4.10 · fonte: `old/js/08b-historico.js`, `09-relatorios.js`, `08-pesquisa-historico.js`)
-- Ler os três arquivos do antigo antes de desenhar. O histórico já é gravado por todos os módulos (`ServicoHistorico`, tabela `sistema.historico`); falta a tela
-  global com filtros, o relatório de atividades em PDF (reaproveitar `utils/documentoA4.ts` + `utils/impressaoPdf.ts`) e a pesquisa geral entre módulos.
-- Ao terminar: criar `melhorias/modulo-08-*.md` e atualizar HANDOFF e mapas.
+### Pronto (Módulo 8 — Histórico, Relatórios, Pesquisa geral)
+- Detalhe em **[melhorias/modulo-08-historico-relatorios-pesquisa.md](melhorias/modulo-08-historico-relatorios-pesquisa.md)**.
+- Back: `GET /api/historico?desde&ate` (`ServicoHistorico.doPeriodo`, 1.000 mais recentes), `relatorios/` (`GET /api/relatorios/atividades?de&ate&secoes`,
+  `ServicoRelatorio`), `pesquisa/` (`GET /api/pesquisa?termo`, `ServicoPesquisa` com pontuação). Repositórios ganharam consultas próprias
+  (`HistoricoRepositorio.doPeriodo/acoesSobre`, `DocumentoVersaoRepositorio.renovacoes`, `PagamentoRepositorio.doPeriodo`, `findByUnidadeId` em tarefa/evento/execução).
+- Front: `views/historico`, `views/relatorios` (+ `utils/relatorioAtividades.ts`, PDF/impressão reaproveitando `documentoA4`/`impressaoPdf`), `views/pesquisa`
+  (+ campo `layouts/.../header/BuscaGeral`), `utils/historico.ts`, `types/{pesquisa,relatorios}.ts`, `servicos/{historico,relatorios,pesquisa}.ts`.
+  `Modulo.oculto` (routes/modulos.ts) = rota sem item no menu (Pesquisa).
+- Decisões: sem "Limpar histórico" (auditoria imutável); backup removido; pesquisa não cobre cotações/ordens e mostra alunos/profissionais em vez de atendimentos.
+- Verificado: back compila e sobe validando as consultas; front passa em `tsc`, `eslint`, `vite build`. Não testado no navegador.
+
+### Próximo passo exato — Módulo 9: Vínculos entre registros (tabela `sistema.vinculo_registro`)
+- Encaixar nos módulos 4–6 (documento, tarefa e execução: "Vincular a outros registros" que o formulário antigo tinha). Ler no `old/js` como o vínculo era
+  gravado e exibido antes de desenhar; o Gerador já tem seus próprios vínculos (`TipoVinculo`) — não duplicar.
+- Ao terminar: criar `melhorias/modulo-09-*.md` e atualizar HANDOFF e mapas.
 
 ### Próximos módulos (ordem aprovada)
 1. ~~Base~~ → ~~Secretaria + Kanban~~ (prontos)
@@ -275,8 +286,8 @@ Migração do sistema "Central da Secretaria" das APAEs:
 5. ~~Projetos~~ (pronto) (recurso → execuções; financeiro, cotações ≥3 empresas, vencedora, ordem de compra, notas, pagamentos, pendências, checklist, relatório PDF)
 6. ~~Gerador de documentos~~ (pronto) (modelos com {AUTO}/[MANUAL], numeração por série/ano, versões, vínculos, anexos, PDF)
 7. ~~Pendências + Painel completo~~ (pronto)
-8. **Histórico (tela), Relatórios (relatório de atividades em PDF), Pesquisa geral** ← próximo
-9. Vínculos entre registros (tabela `sistema.vinculo_registro`) — encaixar nos módulos 4–6
+8. ~~Histórico (tela), Relatórios (relatório de atividades em PDF), Pesquisa geral~~ (pronto)
+9. **Vínculos entre registros** (tabela `sistema.vinculo_registro`) — encaixar nos módulos 4–6 ← próximo
 
 ## 5. Como rodar
 

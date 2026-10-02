@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface TarefaRepositorio extends JpaRepository<Tarefa, Long> {
 
+    List<Tarefa> findByUnidadeId(Long unidadeId);
+
     /** Tarefas em aberto (inclui rotinas ativas) + as concluídas a partir de uma data. */
     @Query("""
             select distinct t from Tarefa t left join fetch t.subtarefas

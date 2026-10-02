@@ -29,6 +29,8 @@ export interface HistoricoRegistro {
   modulo: string;
   acao: string;
   descricao: string;
+  refTipo?: string | null;
+  refId?: number | null;
   usuarioNome: string | null;
   criadoEm: string;
 }
