@@ -68,4 +68,19 @@ public final class Limites {
     // Atendimentos
     public static final int ATENDIMENTO_NOME = 150;
     public static final int ATENDIMENTO_REMARCADO_MOTIVO = 200;
+
+    // Documentos
+    public static final int DOCUMENTO_NOME = 200;
+    public static final int DOCUMENTO_NUMERO = 60;
+    public static final int DOCUMENTO_ORGAO = 150;
+    public static final int DOCUMENTO_LOCAL_GUARDADO = 200;
+    public static final int DOCUMENTO_TAGS = 200;
+
+    // Empresas
+    public static final int EMPRESA_RAZAO_SOCIAL = 200;
+    public static final int EMPRESA_NOME_FANTASIA = 200;
+    public static final int EMPRESA_ENDERECO = 250;
+    public static final int EMPRESA_OBSERVACAO = 1000;
+    public static final int EMPRESA_DOCUMENTO_NOME = 60;
+    public static final int EMPRESA_DOCUMENTO_OBSERVACAO = 500;
 }
