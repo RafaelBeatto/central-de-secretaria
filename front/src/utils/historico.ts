@@ -12,6 +12,7 @@ export const ROTULO_MODULO_HISTORICO: Record<string, string> = {
   USUARIOS: 'Usuários',
   UNIDADES: 'Unidades',
   PERMISSOES: 'Permissões',
+  RELATORIOS: 'Relatórios',
 };
 
 export const ROTULO_ACAO_HISTORICO: Record<string, string> = {
@@ -54,6 +55,8 @@ export function destinoDoHistorico(h: Pick<HistoricoRegistro, 'refTipo' | 'refId
     case 'ALUNO':
     case 'PROFISSIONAL':
       return '/atendimentos';
+    case 'RELATORIO_PROFISSIONAL':
+      return '/central-relatorios';
     case 'DOCUMENTO_GERADO':
       return `/gerador?documento=${id}`;
     default:

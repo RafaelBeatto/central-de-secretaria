@@ -22,6 +22,7 @@ CREATE SCHEMA IF NOT EXISTS empresas;
 CREATE SCHEMA IF NOT EXISTS projetos;
 CREATE SCHEMA IF NOT EXISTS gerador;
 CREATE SCHEMA IF NOT EXISTS atendimentos;
+CREATE SCHEMA IF NOT EXISTS relatorios;
 
 -- ---------------------------------------------------------------------
 -- 1. ORGANIZAÇÃO: unidades (Nacional → Estadual → Municipal)
@@ -633,6 +634,36 @@ CREATE INDEX ix_atendimento_profissional ON atendimentos.atendimento (profission
 CREATE INDEX ix_atendimento_serie ON atendimentos.atendimento (serie_id) WHERE serie_id IS NOT NULL;
 CREATE UNIQUE INDEX ux_atendimento_remarcado_de ON atendimentos.atendimento (remarcado_de_id) WHERE remarcado_de_id IS NOT NULL;
 
+-- ---------------------------------------------------------------------
+-- 12. RELATÓRIOS DE PROFESSORES/PROFISSIONAIS (PDF enviado e arquivado)
+-- ---------------------------------------------------------------------
+-- O sistema só arquiva o PDF (sistema.arquivo, categoria RELATORIO_PROFISSIONAL); não cria nem edita o conteúdo.
+-- nome_usuario e cargo_nome são o retrato do momento do envio (não mudam se o cadastro mudar).
+CREATE TABLE relatorios.relatorio_profissional (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    unidade_id      BIGINT       NOT NULL REFERENCES acesso.unidade (id),
+    usuario_id      BIGINT       NOT NULL REFERENCES acesso.usuario (id),
+    nome_usuario    VARCHAR(160) NOT NULL,
+    cargo_nome      VARCHAR(60)  NOT NULL,
+    nome            VARCHAR(150) NOT NULL,
+    tipo            VARCHAR(10)  NOT NULL CHECK (tipo IN ('PESSOAL','GERAL')),
+    nome_aluno      VARCHAR(150),
+    periodo_inicio  DATE         NOT NULL,
+    periodo_fim     DATE         NOT NULL,
+    arquivo_id      BIGINT       REFERENCES sistema.arquivo (id),
+    complemento     VARCHAR(1000),
+    status          VARCHAR(10)  NOT NULL DEFAULT 'ENTREGUE' CHECK (status IN ('PENDENTE','ENTREGUE')),
+    -- Cobrança (Central): relatório PENDENTE criado por um superior; vira ENTREGUE quando o profissional envia o PDF.
+    solicitado_por_id BIGINT     REFERENCES acesso.usuario (id),
+    solicitado_em   TIMESTAMPTZ,
+    enviado_em      TIMESTAMPTZ,
+    CONSTRAINT ck_relatorio_prof_aluno CHECK (tipo <> 'PESSOAL' OR nome_aluno IS NOT NULL),
+    CONSTRAINT ck_relatorio_prof_periodo CHECK (periodo_fim >= periodo_inicio),
+    CONSTRAINT ck_relatorio_prof_arquivo CHECK (status = 'PENDENTE' OR arquivo_id IS NOT NULL)
+);
+CREATE INDEX ix_relatorio_prof_usuario ON relatorios.relatorio_profissional (usuario_id, periodo_inicio DESC);
+CREATE INDEX ix_relatorio_prof_unidade ON relatorios.relatorio_profissional (unidade_id, periodo_inicio DESC);
+
 -- =====================================================================
 -- DADOS INICIAIS
 -- =====================================================================
@@ -673,7 +704,10 @@ INSERT INTO acesso.permissao (id, codigo, modulo, descricao) VALUES
     (21, 'PERMISSAO_LER',         'PERMISSOES',   'Ver a matriz de permissões da unidade'),
     (22, 'PERMISSAO_ESCREVER',    'PERMISSOES',   'Ajustar a matriz de permissões da unidade'),
     (23, 'INSTITUICAO_ESCREVER',  'UNIDADES',     'Editar os dados institucionais (cabeçalho) da própria unidade'),
-    (24, 'CHAT_USAR',             'CHAT',         'Conversar pelo chat');
+    (24, 'CHAT_USAR',             'CHAT',         'Conversar pelo chat'),
+    (25, 'RELATORIO_PROF_ENVIAR', 'RELATORIOS',   'Enviar os próprios relatórios em PDF e ver os que enviou'),
+    (26, 'RELATORIO_PROF_LER',    'RELATORIOS',   'Central de Relatórios: ver os relatórios enviados por professores e profissionais'),
+    (27, 'RELATORIO_PROF_COBRAR', 'RELATORIOS',   'Central de Relatórios: cobrar um relatório de um professor ou profissional');
 
 -- Matriz padrão (aprovada). O administrador do sistema tem todas as permissões pelo código.
 INSERT INTO acesso.cargo_permissao (cargo_id, permissao_id)
@@ -683,11 +717,11 @@ SELECT c.id, p.id
     WHEN 'PRESIDENTE' THEN ARRAY['AGENDA_LER','AGENDA_ESCREVER','TAREFA_LER','TAREFA_ESCREVER','ATENDIMENTO_LER','ATENDIMENTO_ESCREVER',
                                  'PROJETO_LER','PROJETO_ESCREVER','DOCUMENTO_LER','DOCUMENTO_ESCREVER','GERADOR_LER','GERADOR_ESCREVER',
                                  'EMPRESA_LER','EMPRESA_ESCREVER','HISTORICO_LER','RELATORIO_LER','USUARIO_LER','USUARIO_ESCREVER',
-                                 'UNIDADE_LER','UNIDADE_ESCREVER','PERMISSAO_LER','PERMISSAO_ESCREVER','INSTITUICAO_ESCREVER','CHAT_USAR']
+                                 'UNIDADE_LER','UNIDADE_ESCREVER','PERMISSAO_LER','PERMISSAO_ESCREVER','INSTITUICAO_ESCREVER','CHAT_USAR','RELATORIO_PROF_LER','RELATORIO_PROF_COBRAR']
     WHEN 'DIRETOR' THEN ARRAY['AGENDA_LER','AGENDA_ESCREVER','TAREFA_LER','TAREFA_ESCREVER','ATENDIMENTO_LER','ATENDIMENTO_ESCREVER',
                               'PROJETO_LER','PROJETO_ESCREVER','DOCUMENTO_LER','DOCUMENTO_ESCREVER','GERADOR_LER','GERADOR_ESCREVER',
                               'EMPRESA_LER','EMPRESA_ESCREVER','HISTORICO_LER','RELATORIO_LER','USUARIO_LER','USUARIO_ESCREVER',
-                              'UNIDADE_LER','INSTITUICAO_ESCREVER','CHAT_USAR']
+                              'UNIDADE_LER','INSTITUICAO_ESCREVER','CHAT_USAR','RELATORIO_PROF_LER','RELATORIO_PROF_COBRAR']
     WHEN 'ADMINISTRADOR' THEN ARRAY['AGENDA_LER','AGENDA_ESCREVER','TAREFA_LER','TAREFA_ESCREVER','ATENDIMENTO_LER','ATENDIMENTO_ESCREVER',
                                     'PROJETO_LER','DOCUMENTO_LER','DOCUMENTO_ESCREVER','GERADOR_LER','GERADOR_ESCREVER',
                                     'EMPRESA_LER','EMPRESA_ESCREVER','HISTORICO_LER','RELATORIO_LER','USUARIO_LER','USUARIO_ESCREVER',
@@ -697,8 +731,8 @@ SELECT c.id, p.id
                                  'EMPRESA_LER','EMPRESA_ESCREVER','HISTORICO_LER','RELATORIO_LER','CHAT_USAR']
     WHEN 'TESOUREIRO' THEN ARRAY['AGENDA_LER','AGENDA_ESCREVER','TAREFA_LER','PROJETO_LER','PROJETO_ESCREVER',
                                  'DOCUMENTO_LER','GERADOR_LER','EMPRESA_LER','EMPRESA_ESCREVER','HISTORICO_LER','RELATORIO_LER','CHAT_USAR']
-    WHEN 'PROFESSOR' THEN ARRAY['AGENDA_LER','ATENDIMENTO_LER','ATENDIMENTO_ESCREVER','CHAT_USAR']
-    WHEN 'PROFISSIONAL' THEN ARRAY['AGENDA_LER','ATENDIMENTO_LER','ATENDIMENTO_ESCREVER','CHAT_USAR']
+    WHEN 'PROFESSOR' THEN ARRAY['AGENDA_LER','ATENDIMENTO_LER','ATENDIMENTO_ESCREVER','CHAT_USAR','RELATORIO_PROF_ENVIAR']
+    WHEN 'PROFISSIONAL' THEN ARRAY['AGENDA_LER','ATENDIMENTO_LER','ATENDIMENTO_ESCREVER','CHAT_USAR','RELATORIO_PROF_ENVIAR']
     ELSE ARRAY[]::varchar[]
   END);
 

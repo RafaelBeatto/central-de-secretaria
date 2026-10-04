@@ -15,6 +15,7 @@ import br.org.apae.secretaria.acesso.unidade.Unidade;
 import br.org.apae.secretaria.acesso.unidade.UnidadeRepositorio;
 import br.org.apae.secretaria.comum.Limites;
 import br.org.apae.secretaria.comum.Transacoes;
+import br.org.apae.secretaria.comum.excecao.AcessoNegadoExcecao;
 import br.org.apae.secretaria.comum.excecao.NaoEncontradoExcecao;
 import br.org.apae.secretaria.comum.excecao.RegraNegocioExcecao;
 import br.org.apae.secretaria.configuracao.PropriedadesAplicacao;
@@ -48,6 +49,9 @@ public class ServicoArquivo {
         }
         if (!categoria.aceita(extensao)) {
             throw new RegraNegocioExcecao("Formato não aceito aqui. Use: " + String.join(", ", categoria.extensoes()) + ".");
+        }
+        if (categoria.restrita() && !contexto.usuario().possui(categoria.permissaoDeEnvio())) {
+            throw new AcessoNegadoExcecao("Você não tem permissão para enviar este tipo de arquivo.");
         }
         Long unidadeId = contexto.unidadeEscrita();
         String chave = "%s/%s/%s.%s".formatted(pastaDaUnidade(unidadeId), categoria.pasta(), UUID.randomUUID(), extensao);
@@ -102,8 +106,21 @@ public class ServicoArquivo {
         return ArquivoResposta.de(buscarVisivel(arquivoId));
     }
 
+    /**
+     * Link temporário de um arquivo de categoria restrita. QUEM CHAMA já conferiu que o usuário pode ver o
+     * registro dono do arquivo (ex.: o relatório); aqui não há outra checagem.
+     */
+    @Transactional(readOnly = true)
+    public String urlTemporariaAutorizada(Long arquivoId) {
+        Arquivo arquivo = repositorio.findById(arquivoId).orElseThrow(() -> new NaoEncontradoExcecao("Arquivo"));
+        return armazenamento.urlTemporaria(arquivo.getChaveS3(), arquivo.getNomeOriginal());
+    }
+
     private Arquivo buscarVisivel(Long arquivoId) {
         Arquivo arquivo = repositorio.findById(arquivoId).orElseThrow(() -> new NaoEncontradoExcecao("Arquivo"));
+        if (arquivo.getCategoria().restrita()) {
+            throw new NaoEncontradoExcecao("Arquivo");
+        }
         contexto.exigirLeitura(arquivo.getUnidadeId());
         return arquivo;
     }

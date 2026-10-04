@@ -52,7 +52,7 @@ Chat: `@stomp/stompjs` → `/ws` → `ControladorChatWebSocket` → `ServicoChat
 | `cargo/` | cargos fixos (seed) |
 | `permissao/` | `Permissoes` (constantes p/ `@PreAuthorize`), matriz por unidade, ajuste e restauração |
 | **sistema/** | |
-| `arquivo/` | upload S3 (tipos por `CategoriaArquivo`, limite de MB), URL assinada, exclusão pós-commit |
+| `arquivo/` | upload S3 (tipos por `CategoriaArquivo`, limite de MB), URL assinada, exclusão pós-commit. Categoria **restrita** (`RELATORIO_PROFISSIONAL`): as rotas genéricas respondem 404 e só o módulo dono abre (`urlTemporariaAutorizada`) |
 | `historico/` | `ServicoHistorico.registrar(...)` (mesma transação), enums `ModuloHistorico`, `AcaoHistorico` |
 | `numeracao/ServicoNumeracao` | `codigo("TAR", unidade)` → `TAR-0001`; `numeroDoAno("Ofício", unidade, ano)` → `001/2026` (upsert atômico) |
 | **chat/** | `ServicoChat` (regras), `ControladorChat` (REST), `ControladorChatWebSocket` (STOMP) |
@@ -64,6 +64,7 @@ Chat: `@stomp/stompjs` → `/ws` → `ControladorChatWebSocket` → `ServicoChat
 | **documentos/** | `Documento` (regra `renovar` na entidade → `DocumentoVersao`), `CategoriaDocumento`, `ExigenciaApae` (documento que vale nos projetos), `ServicoDocumento` (CRUD, renovar, excluir com os arquivos das versões), `ControladorDocumento` |
 | **vinculos/** | `VinculoRegistro`, `TipoRegistro`, `ServicoVinculo`, `ControladorVinculo` (`/api/vinculos`: GET lista, GET /opcoes, POST, DELETE); `dto/Vinculado` |
 | **relatorios/** | `ServicoRelatorio`, `ControladorRelatorio` (`GET /api/relatorios/atividades?de&ate&secoes`, RELATORIO_LER); `dto/RelatorioAtividades` |
+| `relatorios/profissional/` | **Relatórios de professores/profissionais (PDF)**: `RelatorioProfissional`, `StatusRelatorio`, `TipoRelatorio` (PESSOAL/GERAL), `ServicoRelatorioProfissional`, `ControladorRelatorioProfissional` (`/api/relatorios-profissionais`), `dto/` |
 | **pesquisa/** | `ServicoPesquisa` (pontuação sem acento), `ControladorPesquisa` (`GET /api/pesquisa?termo`); `dto/ResultadoPesquisa` |
 | **painel/** | `ServicoPainel`, `ControladorPainel` (`GET /api/painel/extras`: atendimentos sem presença, alunos com faltas seguidas, pendências manuais de execução — vêm de `ServicoAtendimento.semPresenca/alunosComFaltasSeguidas` e `ServicoItensExecucao.pendenciasAbertas`); `dto/ExtrasPainel` |
 | **gerador/** | `ModeloDocumento`, `DocumentoGerado`, `DocumentoGeradoVersao`, `FormatoModelo`, `TipoVinculo`; `SanitizadorHtml` (jsoup); `ServicoModeloDocumento`, `ServicoDocumentoGerado`; `ControladorGerador`; `dto/` |
@@ -132,6 +133,10 @@ A consulta de CNPJ (`open.cnpja.com/office/{cnpj}`) é feita direto do navegador
 `GET|POST /gerador/documentos` (lista sem texto, com respostas) · `GET|PUT|DELETE /gerador/documentos/{id}` (PUT = nova versão) ·
 `GET /gerador/documentos/{id}/historico` · `POST /gerador/documentos/{id}/duplicar` · `POST /gerador/documentos/{id}/anexos` (`{arquivoId}`) · `DELETE …/anexos/{arquivoId}`.
 
+**Relatórios de professores/profissionais** (`/relatorios-profissionais`; enviar = RELATORIO_PROF_ENVIAR, Central = RELATORIO_PROF_LER):
+`GET /meus` · `POST` (`{nome, tipo, nomeAluno, complemento, periodoInicio?, periodoFim?, arquivoId}`) · `POST /{id}/entregar` (atende cobrança) · `POST /central/profissionais/{usuarioId}/cobrar` (RELATORIO_PROF_COBRAR) · `GET /central/profissionais?busca&ano&de&ate&status` ·
+`GET /central/profissionais/{usuarioId}?ano&de&ate&status` · `GET /{id}/url` (autor ou Central; link temporário do PDF).
+
 ### Banco — schemas e tabelas (`apae.sql`)
 
 | Schema | Tabelas |
@@ -146,6 +151,7 @@ A consulta de CNPJ (`open.cnpja.com/office/{cnpj}`) é feita direto do navegador
 | `projetos` | recurso, recurso_documento, execucao, movimentacao_recurso, execucao_empresa, cotacao, cotacao_item, ordem_compra, execucao_documento, pagamento, execucao_pendencia |
 | `gerador` | modelo_documento (unidade NULL = modelo do sistema), documento_gerado (JSONB valores/contexto/assinaturas), documento_gerado_versao, documento_gerado_anexo |
 | `atendimentos` | aluno, profissional, atendimento |
+| `relatorios` | relatorio_profissional |
 
 Enums gravados como texto em MAIÚSCULAS (ex.: `EM_ANDAMENTO`); o front traduz para rótulos.
 
@@ -205,6 +211,8 @@ Enums gravados como texto em MAIÚSCULAS (ex.: `EM_ANDAMENTO`); o front traduz p
 | `types/projetos.ts`, `servicos/projetos.ts`, `utils/projetos.ts` | `formatarMoeda`, `PROPS_VALOR`, `TOM_STATUS`, `empresasCotadas`, `avisoDocumentosEmpresa` | novo |
 | `types/documentos.ts`, `types/empresas.ts`, `servicos/documentos.ts`, `servicos/empresas.ts`, `utils/documentos.ts` | situação pela validade, texto do prazo, grupos, atalhos de validade, situação da empresa; `consultarCnpj` | novo |
 | `utils/documentoA4.ts`, `utils/impressaoPdf.ts` | folha A4 com cabeçalho e rodapé institucionais (`ESTILO_DOCUMENTO` serve também para prévia na tela) + `imprimir`/`salvarPdf` (`html2pdf.js`, import dinâmico, `paginaXdeY`); usado nos Módulos 3, 5 e 6, reaproveitável pelo 8 | novo |
+| `views/relatoriosProfissionais/{MeusRelatorios,CentralRelatorios}.tsx`, `components/apps/relatoriosProfissionais/*` (`ListaRelatorios` pendentes + ano→mês com abrir/baixar, `DialogoEnviarRelatorio` — novo ou atendendo cobrança —, `DialogoCobrarRelatorio`, `CamposRelatorio`) | Meus Relatórios (`/meus-relatorios`) e Central de Relatórios (`/central-relatorios`) | novo |
+| `types/relatoriosProfissionais.ts`, `servicos/relatoriosProfissionais.ts`, `utils/relatoriosProfissionais.ts` | tipos, chamadas, agrupamento por ano/mês, texto do período | novo |
 | `views/EmConstrucao.tsx`, `views/erro/Erro.tsx` | módulos não migrados; 403/404 | novo / template |
 
 Assets: `assets/images/logos/logo-apae.png` (extraído do base64 do sistema antigo), fundos do template.

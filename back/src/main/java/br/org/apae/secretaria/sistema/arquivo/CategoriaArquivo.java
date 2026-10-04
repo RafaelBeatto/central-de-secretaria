@@ -16,14 +16,35 @@ public enum CategoriaArquivo {
     ORDEM_COMPRA("documentos/ordens-compra", Formatos.DOCUMENTOS),
     DOCUMENTO_EXECUCAO("documentos/execucao", Formatos.DOCUMENTOS),
     COMPROVANTE_PAGAMENTO("documentos/comprovantes", Formatos.COMPROVANTES),
-    ANEXO_GERADOR("documentos/anexos", Formatos.DOCUMENTOS);
+    ANEXO_GERADOR("documentos/anexos", Formatos.DOCUMENTOS),
+    /** Restrita: só abre pelo módulo de relatórios, que confere de quem é (ver {@link #restrita()}). */
+    RELATORIO_PROFISSIONAL("documentos/relatorios-profissionais", Formatos.SO_PDF, "RELATORIO_PROF_ENVIAR");
 
     private final String pasta;
     private final Set<String> extensoes;
+    private final String permissaoDeEnvio;
 
     CategoriaArquivo(String pasta, Set<String> extensoes) {
+        this(pasta, extensoes, null);
+    }
+
+    CategoriaArquivo(String pasta, Set<String> extensoes, String permissaoDeEnvio) {
         this.pasta = pasta;
         this.extensoes = extensoes;
+        this.permissaoDeEnvio = permissaoDeEnvio;
+    }
+
+    /** Código da permissão exigida para enviar arquivos desta categoria (só existe nas restritas). */
+    public String permissaoDeEnvio() {
+        return permissaoDeEnvio;
+    }
+
+    /**
+     * Arquivo que não pode ser aberto pelas rotas genéricas de {@code /api/arquivos}: ali basta ser da unidade,
+     * e aqui quem pode ver depende do dono do registro (o módulo dono confere e usa o serviço por dentro).
+     */
+    public boolean restrita() {
+        return permissaoDeEnvio != null;
     }
 
     /** Pasta dentro da unidade no bucket (ex.: "documentos/ordens-compra"). */
@@ -41,6 +62,7 @@ public enum CategoriaArquivo {
 
     private static final class Formatos {
         static final Set<String> IMAGENS = Set.of("png", "jpg", "jpeg", "webp");
+        static final Set<String> SO_PDF = Set.of("pdf");
         static final Set<String> COMPROVANTES = Set.of("pdf", "png", "jpg", "jpeg", "webp");
         static final Set<String> DOCUMENTOS = Set.of("pdf", "png", "jpg", "jpeg", "webp", "doc", "docx", "xls", "xlsx");
     }

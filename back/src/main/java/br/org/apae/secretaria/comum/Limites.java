@@ -38,6 +38,13 @@ public final class Limites {
     public static final int SENHA_MINIMO = 8;
     public static final int SENHA_MAXIMO = 72;
 
+    // Relatórios de professores/profissionais (nome do usuário + espaço + sobrenome; nome do cargo)
+    public static final int RELATORIO_PROF_NOME = USUARIO_NOME + 1 + USUARIO_SOBRENOME;
+    public static final int RELATORIO_PROF_CARGO = 60;
+    public static final int RELATORIO_PROF_TITULO = 150;
+    public static final int RELATORIO_PROF_ALUNO = 150;
+    public static final int RELATORIO_PROF_COMPLEMENTO = 1000;
+
     // Arquivo
     public static final int ARQUIVO_NOME = 255;
     public static final int ARQUIVO_TIPO = 100;

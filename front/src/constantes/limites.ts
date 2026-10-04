@@ -31,6 +31,9 @@ export const LIMITES = {
 
   // Arquivo (MB — o back também valida)
   ARQUIVO_TAMANHO_MB: 20,
+  RELATORIO_PROF_TITULO: 150,
+  RELATORIO_PROF_ALUNO: 150,
+  RELATORIO_PROF_COMPLEMENTO: 1000,
 
   // Chat
   MENSAGEM_TEXTO: 2000,

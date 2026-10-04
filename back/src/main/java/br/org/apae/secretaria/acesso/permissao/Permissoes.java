@@ -36,4 +36,7 @@ public final class Permissoes {
     public static final String PERMISSAO_ESCREVER = TEM + "PERMISSAO_ESCREVER" + FIM;
     public static final String INSTITUICAO_ESCREVER = TEM + "INSTITUICAO_ESCREVER" + FIM;
     public static final String CHAT_USAR = TEM + "CHAT_USAR" + FIM;
+    public static final String RELATORIO_PROF_ENVIAR = TEM + "RELATORIO_PROF_ENVIAR" + FIM;
+    public static final String RELATORIO_PROF_LER = TEM + "RELATORIO_PROF_LER" + FIM;
+    public static final String RELATORIO_PROF_COBRAR = TEM + "RELATORIO_PROF_COBRAR" + FIM;
 }

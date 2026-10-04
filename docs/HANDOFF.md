@@ -1,6 +1,6 @@
 # HANDOFF — continuar a migração da Central da Secretaria
 
-> Atualizado em: 2026-10-02 · Concluído: **Base + Módulos 1 a 9 — toda a lista aprovada** (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos, Gerador, Pendências + Painel, Histórico + Relatórios + Pesquisa, Vínculos) · Próximo: **revisão do dono no navegador + pendências da seção 8** (nenhum módulo novo planejado)
+> Atualizado em: 2026-10-02 · Concluído: **Base + Módulos 1 a 9 — toda a lista aprovada + Módulo 10 (Relatórios de professores/profissionais)** (Secretaria + Kanban, Agenda, Atendimentos, Documentos + Empresas, Projetos, Gerador, Pendências + Painel, Histórico + Relatórios + Pesquisa, Vínculos) · Próximo: **revisão do dono no navegador + pendências da seção 8** (nenhum módulo novo planejado)
 >
 > **Para a IA que vai continuar:** leia este arquivo inteiro, depois `MAPA_DE_CODIGO.md` (onde está cada coisa) e
 > `MAPA_DE_USABILIDADE.md` §4 (regras de cada módulo). Siga a seção 4 "Próximo passo exato" e, ao terminar cada módulo,
@@ -280,6 +280,19 @@ Migração do sistema "Central da Secretaria" das APAEs:
 - Front: `components/compartilhados/Relacionados.tsx` (usado em DetalheTarefa, DetalheDocumento, FichaEmpresa [aba Histórico] e TelaExecucao [Resumo]), `types/vinculos.ts`, `servicos/vinculos.ts`.
 - Verificado: back compila e sobe; front passa em `tsc`, `eslint`, `vite build`. Não testado no navegador.
 
+### Pronto (Módulo 10 — Relatórios de professores/profissionais)
+- Detalhe em **[melhorias/modulo-10-relatorios-profissionais.md](melhorias/modulo-10-relatorios-profissionais.md)**.
+- Banco: schema `relatorios`, tabela `relatorio_profissional` (seção 12 do `apae.sql`) + permissões `RELATORIO_PROF_ENVIAR` (Professor/Profissional) e `RELATORIO_PROF_LER` (Presidente/Diretor).
+  Quem já tem o banco criado precisa aplicar só esse trecho (schema, tabela, 2 permissões e as linhas da matriz padrão) — já feito no `apae` local do dono.
+- Back `relatorios/profissional/` (`/api/relatorios-profissionais`): meus, enviar, Central (profissionais com total + relatórios de um profissional, filtros ano/período/status/busca), `/{id}/url`.
+- **Arquivo restrito**: `CategoriaArquivo.RELATORIO_PROFISSIONAL.restrita()` → as rotas genéricas de `/api/arquivos` dão 404 e só esse módulo abre o PDF (`ServicoArquivo.urlTemporariaAutorizada`),
+  para ninguém abrir o relatório alheio trocando o id. Reaproveitável para outro anexo sigiloso.
+- Front: `/meus-relatorios` (Dia a dia) e `/central-relatorios` (Consultar); `CampoArquivoFormik` ganhou `aceita` e `restrito`.
+- Envio pede **nome do relatório** e **tipo** (Pessoal sugerido → pede nome do aluno; Geral). Colunas `nome`, `tipo`, `nome_aluno` na tabela (já aplicadas no `apae` local; relatórios anteriores viraram nome "Relatório", tipo Geral).
+- **Período opcional** (sem "de" = hoje) e **complemento** opcional. **Cobrar** (Central, permissão nova `RELATORIO_PROF_COBRAR`, Presidente/Diretor): cria relatório `PENDENTE` (sem arquivo) que o profissional atende em Meus Relatórios (`POST /{id}/entregar`). Tabela ganhou `complemento`, `solicitado_por_id`, `solicitado_em` e `enviado_em` nulável (migração já aplicada no `apae` local).
+- Pendências do módulo: sem periodicidade/cobrança automática, sem aviso/selo ao cobrado, sem cancelar cobrança nem excluir/editar relatório enviado, telas não testadas no navegador.
+- Verificado: back testado por curl (ver o arquivo de melhorias); front passa em `tsc`, `eslint` e `vite build`.
+
 ### Próximo passo
 - Todos os módulos aprovados estão migrados. O que resta: o dono revisar as telas no navegador (nenhuma foi aberta em teste manual) e as pendências da seção 8
   (upload real no S3, token em cookie httpOnly, limpeza de arquivos órfãos, `application-prod.properties`). Os selos do menu lateral já foram feitos (`hooks/useContadoresMenu`).
@@ -395,6 +408,7 @@ Front:
   com o jar rodando o `mvnw package` falha ao renomear o `.jar`.
 
 ## 8. Pendências conhecidas (fora dos módulos)
+- Relatórios de professores/profissionais (Módulo 10): decidir se haverá periodicidade/pendência, exclusão de envio errado e se Administrador/Secretário/Tesoureiro entram na Central (hoje só pela tela Permissões).
 - Upload real para o S3 não testado (bucket `apae-chorobura` criado; falta o dono preencher as chaves no servidor).
 - **PENDENTE — armazenamento local provisório (2026-10-02):** sem `back/.env` (sem chaves da AWS) o envio de arquivos falhava com erro 500. Para destravar o desenvolvimento,
   `sistema/arquivo/ArmazenamentoLocal` + `ControladorArquivoLocal` guardam os arquivos em `back/arquivos-locais/` (não versionada) e abrem por link assinado

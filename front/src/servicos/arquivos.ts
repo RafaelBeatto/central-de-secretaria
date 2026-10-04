@@ -14,10 +14,12 @@ export type CategoriaArquivo =
   | 'ORDEM_COMPRA'
   | 'DOCUMENTO_EXECUCAO'
   | 'COMPROVANTE_PAGAMENTO'
-  | 'ANEXO_GERADOR';
+  | 'ANEXO_GERADOR'
+  | 'RELATORIO_PROFISSIONAL';
 
 /** Extensões aceitas por categoria (o back valida de novo). */
-export const ACEITA: Record<'imagem' | 'comprovante' | 'documento', string> = {
+export const ACEITA: Record<'imagem' | 'comprovante' | 'documento' | 'pdf', string> = {
+  pdf: '.pdf',
   imagem: '.png,.jpg,.jpeg,.webp',
   comprovante: '.pdf,.png,.jpg,.jpeg,.webp',
   documento: '.pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx',

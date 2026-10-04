@@ -19,9 +19,13 @@ interface Props {
   obrigatorio?: boolean;
   /** Texto abaixo do botão (ex.: "envie outro só para substituir"). */
   dica?: string;
+  /** Extensões aceitas pelo seletor (padrão: documentos em geral). */
+  aceita?: string;
+  /** Arquivo de categoria restrita: só o módulo dono abre, então aqui mostra o nome sem link. */
+  restrito?: boolean;
 }
 
-const CampoArquivoFormik = ({ name, rotulo, categoria, obrigatorio, dica }: Props) => {
+const CampoArquivoFormik = ({ name, rotulo, categoria, obrigatorio, dica, aceita = ACEITA.documento, restrito }: Props) => {
   const [campo, meta, ajudante] = useField<number | null>(name);
   const { notificar } = useInteracao();
   const [nome, setNome] = useState<string | null>(null);
@@ -31,7 +35,9 @@ const CampoArquivoFormik = ({ name, rotulo, categoria, obrigatorio, dica }: Prop
   // Arquivo já ligado ao registro: mostra o nome dele.
   useEffect(() => {
     let ativo = true;
-    if (campo.value) {
+    if (campo.value && restrito) {
+      // O nome vem do envio feito agora; as rotas genéricas não abrem arquivo restrito.
+    } else if (campo.value) {
       servicoArquivos
         .dados(campo.value)
         .then((a) => ativo && setNome(a.nome))
@@ -40,7 +46,7 @@ const CampoArquivoFormik = ({ name, rotulo, categoria, obrigatorio, dica }: Prop
     return () => {
       ativo = false;
     };
-  }, [campo.value]);
+  }, [campo.value, restrito]);
 
   const enviar = async (arquivo?: File) => {
     if (!arquivo) return;
@@ -70,14 +76,19 @@ const CampoArquivoFormik = ({ name, rotulo, categoria, obrigatorio, dica }: Prop
             id={name}
             hidden
             type="file"
-            accept={ACEITA.documento}
+            accept={aceita}
             onChange={(e) => {
               enviar(e.target.files?.[0]);
               e.target.value = ''; // permite escolher o mesmo arquivo de novo
             }}
           />
         </Button>
-        {campo.value ? (
+        {campo.value && restrito ? (
+          <Typography component="span" variant="body2" noWrap display="flex" alignItems="center" gap={0.5} minWidth={0}>
+            <IconPaperclip size={16} style={{ flexShrink: 0 }} />
+            {nome ?? 'Arquivo enviado'}
+          </Typography>
+        ) : campo.value ? (
           <Link component="button" type="button" variant="body2" onClick={() => servicoArquivos.abrir(campo.value as number)} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0, textAlign: 'left' }}>
             <IconPaperclip size={16} style={{ flexShrink: 0 }} />
             <Typography component="span" variant="body2" noWrap>

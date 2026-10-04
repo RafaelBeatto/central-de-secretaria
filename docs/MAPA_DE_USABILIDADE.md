@@ -15,6 +15,8 @@ de quem ajusta (tela **Permissões**). O administrador do sistema tem tudo.
 | Documentos e Gerador | E | E | E | E | L | — |
 | Empresas | E | E | E | E | E | — |
 | Histórico e Relatórios | L | L | L | L | L | — |
+| Relatórios de profissionais — enviar os próprios (Meus Relatórios) | — | — | — | — | — | E |
+| Relatórios de profissionais — Central de Relatórios (ver / cobrar) | L + cobrar | L + cobrar | — | — | — | — |
 | Usuários | E | E | E | — | — | — |
 | Unidades subordinadas | E | L | E | — | — | — |
 | Permissões | E | — | E | — | — | — |
@@ -41,7 +43,9 @@ subordinada, todas as telas mostram os dados dela com a faixa "somente leitura" 
 | `/gerador` | Gerador de documentos | ⏳ Módulo 6 |
 | `/empresas` | Fornecedores (`?empresa=ID` abre a ficha) | ✅ |
 | `/historico` | Histórico | ⏳ Módulo 8 |
-| `/relatorios` | Relatório de atividades | ⏳ Módulo 8 |
+| `/relatorios` | Relatório de atividades | ✅ |
+| `/meus-relatorios` | Meus Relatórios: enviar o PDF com o período e ver o que já entregou | ✅ |
+| `/central-relatorios` | Central de Relatórios: profissionais com total de relatórios, filtros, PDFs por ano/mês | ✅ |
 | `/administracao/usuarios` | Lista, busca, novo, editar, redefinir senha, ativar/desativar | ✅ |
 | `/administracao/unidades` | Árvore; nova subordinada; editar | ✅ |
 | `/administracao/permissoes` | Abas por cargo; marcar permissões; salvar/restaurar padrão; "ajustado" | ✅ |
@@ -213,3 +217,11 @@ Diálogos de formulário ocupam a tela inteira no celular; listas viram cartões
   Projetos) com o cabeçalho da unidade; prévia = impressão = PDF.
 - Pesquisa geral (campo no topo): tarefas, agenda, atendimentos, documentos, documentos gerados, recursos, execuções,
   empresas, cotações, ordens; sem diferenciar acento/maiúscula; filtro por tipo; pontuação (igual > começa > contém).
+
+### 4.11 Relatórios de professores e profissionais (módulo novo, sem equivalente no `old/`) · `relatorios.relatorio_profissional`
+- O profissional faz o relatório fora do sistema, gera o PDF e o envia em **Meus Relatórios** (nome do relatório, tipo — **Pessoal** sugerido, que pede o nome do aluno — período de/até e PDF). O sistema só arquiva; não edita nem gera conteúdo,
+  não há periodicidade nem aprovação. Todo envio nasce **Entregue** (o status Pendente existe, mas nenhuma tela o usa ainda).
+- **Central de Relatórios** (`RELATORIO_PROF_LER`, padrão Presidente e Diretor): lista professores/profissionais da unidade consultada com "N relatórios"; filtros por busca, ano, período e status;
+  ao escolher um, os PDFs por ano → mês; clicar abre, o botão ao lado baixa. Detalhes em [melhorias/modulo-10-relatorios-profissionais.md](melhorias/modulo-10-relatorios-profissionais.md).
+- Período opcional (sem "de" vale hoje) e complemento explicativo opcional. Na Central, **Cobrar relatório** cria um relatório **Pendente** que o profissional atende com **Enviar PDF**.
+- Cada um só vê os próprios; o PDF não abre por id de arquivo (rota restrita), só pelo id do relatório com conferência de autor/Central.
