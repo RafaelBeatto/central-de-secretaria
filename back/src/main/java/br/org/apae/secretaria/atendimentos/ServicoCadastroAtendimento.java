@@ -171,6 +171,14 @@ public class ServicoCadastroAtendimento {
                 .orElseGet(() -> profissionais.save(new Profissional(unidadeId, contexto.usuario().nomeCompleto(), usuarioId)));
     }
 
+    /**
+     * Só consulta (não cria): serve às leituras, que rodam em transação somente-leitura. Quem ainda não tem cadastro de
+     * profissional recebe 0, que não casa com nenhum atendimento — o cadastro nasce na primeira escrita (meuProfissional).
+     */
+    Long idDoMeuProfissional(Long unidadeId) {
+        return profissionais.findByUnidadeIdAndUsuarioId(unidadeId, contexto.usuario().id()).map(Profissional::getId).orElse(0L);
+    }
+
     /** Verdadeiro para professor/profissional: só enxergam e criam os próprios atendimentos. */
     boolean vinculado() {
         return CARGOS_VINCULADOS.contains(contexto.usuario().cargoCodigo());

@@ -26,12 +26,13 @@ const ChatContent = ({ toggleChatSidebar }: Props) => {
   const { conversaAtivaId, conversas, mensagens, temMaisAntigas } = useSelector((s) => s.chat);
   const conversa = conversas.find((c) => c.id === conversaAtivaId);
   const lista = conversaAtivaId ? mensagens[conversaAtivaId] ?? [] : [];
-  const fim = useRef<HTMLDivElement>(null);
+  const caixa = useRef<HTMLDivElement>(null);
   const ultimaId = lista[lista.length - 1]?.id;
 
-  // Nova mensagem: rola até o fim e, se veio do outro, marca como lida.
+  // Nova mensagem: rola só a caixa de mensagens até o fim (scrollIntoView rolaria a página inteira) e,
+  // se veio do outro, marca como lida.
   useEffect(() => {
-    fim.current?.scrollIntoView({ block: 'end' });
+    if (caixa.current) caixa.current.scrollTop = caixa.current.scrollHeight;
     if (conversa?.naoLidas) dispatch(marcarLidas(conversa.id));
   }, [ultimaId, conversa?.id, conversa?.naoLidas, dispatch]);
 
@@ -70,7 +71,7 @@ const ChatContent = ({ toggleChatSidebar }: Props) => {
         </ListItem>
       </Box>
       <Divider />
-      <Box sx={{ height: { xs: 'calc(100vh - 330px)', lg: '420px' }, overflowY: 'auto' }} p={{ xs: 2, md: 3 }}>
+      <Box ref={caixa} sx={{ height: { xs: 'calc(100vh - 330px)', lg: '420px' }, overflowY: 'auto' }} p={{ xs: 2, md: 3 }}>
         {temMaisAntigas[conversa.id] ? (
           <Box textAlign="center" mb={2}>
             <Button
@@ -121,7 +122,6 @@ const ChatContent = ({ toggleChatSidebar }: Props) => {
             </Box>
           );
         })}
-        <div ref={fim} />
       </Box>
     </Box>
   );

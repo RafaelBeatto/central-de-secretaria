@@ -404,6 +404,8 @@ Front:
 - **Hibernate 7 + `jsonb`**: precisa de Jackson 2 (`com.fasterxml.jackson.core:jackson-databind`) no classpath, mesmo com Spring Boot 4/Jackson 3;
   sem isso o INSERT dá "Could not find a FormatMapper for the JSON format". Colunas `jsonb` mapeiam com `@JdbcTypeCode(SqlTypes.JSON)` + `columnDefinition = "jsonb"`.
 - **`execCommand`** (editor rico) é "obsoleto", mas funciona em todos os navegadores; botões da barra usam `onMouseDown preventDefault` para não perder a seleção.
+- **Leitura não pode criar registro** (2026-10-04): `ServicoCadastroAtendimento.meuProfissional` grava o cadastro do professor/profissional na 1ª vez; chamado de dentro de `@Transactional(readOnly = true)` (Painel, Atendimentos) o INSERT falhava → "Erro inesperado" no Painel de professor novo. Leituras usam `idDoMeuProfissional` (só consulta, 0 se não existe); só as escritas usam `meuProfissional`.
+- **`scrollIntoView` rola a página inteira**, não só a caixa: no chat isso jogava a tela para cima ao enviar mensagem. Para rolar uma caixa use `ref.scrollTop = ref.scrollHeight` (`ChatContent`).
 - **Parar o back de teste no Windows**: `pkill` não existe; use `Get-CimInstance Win32_Process` (PowerShell) filtrando pela linha de comando e `Stop-Process` —
   com o jar rodando o `mvnw package` falha ao renomear o `.jar`.
 

@@ -375,7 +375,7 @@ public class ServicoAtendimento {
 
     /** Nulo para quem gerencia todos os atendimentos da unidade; senão, o id do próprio profissional. */
     private Long meuProfissionalIdOuNull(Long unidadeId) {
-        return cadastro.vinculado() ? cadastro.meuProfissional(unidadeId).getId() : null;
+        return cadastro.vinculado() ? cadastro.idDoMeuProfissional(unidadeId) : null;
     }
 
     private AtendimentoResposta resposta(Atendimento a) {
