@@ -77,7 +77,8 @@ else
 fi
 
 echo "== 7. firewall =="
-sudo ufw allow 8090/tcp >/dev/null && sudo ufw status | grep -E "^8090"
+# Acesso só por https://apae.chorobura.com.br (80/443, já liberadas). A 8090 foi fechada após o DNS.
+sudo ufw status | grep -E "^(80|443)/tcp " || true
 
 echo "== 8. aguardando o back subir =="
 for i in $(seq 1 60); do
